@@ -44,3 +44,8 @@
 .studio-edit-check{flex-direction:row!important;align-items:center;margin:10px 0}
 #studio-variants small{color:#839ab0}
 @media(max-width:650px){.studio-panel .studio-grid{grid-template-columns:1fr}}
+
+#studio-comment-panel.contextual{position:fixed;right:24px;top:90px;z-index:90;width:min(440px,calc(100vw - 35px));max-height:calc(100vh - 105px);overflow-y:auto;background:#17283b;border:1px solid #6cd8b2;box-shadow:0 22px 70px #000a;border-radius:13px;padding:20px}
+.studio-close{float:right;border:0;background:#344359;color:#fff;border-radius:6px;font-size:23px;cursor:pointer;width:32px;height:32px}
+#studio-comment-panel:not(.contextual) .studio-close{display:none}
+@media(max-width:600px){#studio-comment-panel.contextual{right:12px;top:55px;width:calc(100vw - 24px)}}
