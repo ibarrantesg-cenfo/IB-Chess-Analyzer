@@ -121,3 +121,7 @@ Este prototipo estima fuerza a partir del análisis bajo las condiciones indicad
 - Sin puntuación si hay jugadas sin analizar o menos de 8 decisiones del bando.
 - En torneo se muestra media del Elo aparente de sus partidas completamente analizadas.
 - Es un indicador experimental recreativo de fuerza demostrada, **no** rating FIDE, performance oficial ni estimación predictiva validada. Para lograr validez será necesario calibrar y medir error con muchos PGN de referencia.
+
+
+## v2.2 — Apariencia para clases
+En la barra superior hay un selector **♟ Apariencia**. Ofrece seis temas de tablero (Jade, madera, azul, gris, violeta y alto contraste), combinación personalizada de colores claros y oscuros, cuatro tratamientos visuales de piezas basados en los glifos Unicode (Clásicas, Planas, Contorno y Alto contraste), coordenadas opcionales y botón para restaurar ajustes. Las preferencias se guardan con `localStorage` solamente en el navegador; no afectan ni el PGN ni los cálculos Stockfish. Estos estilos no equivalen a cambiar a paquetes de imágenes 2D distintos, que requerirían activos gráficos adicionales. La nube Supabase sigue pendiente de conexión y pruebas de permisos.
