@@ -23,7 +23,7 @@ function change(){ensure().updated=new Date().toISOString();saveSoon();el('studi
 function commentAt(ply){if(!active)loadFromGame();el('studio-comment-panel').hidden=false;el('studio-comment-panel').classList.add('contextual');renderNotes();el('studio-note').focus();}
 function lineFromInput(){const text=el('studio-line-input').value.trim();if(!text)return;const base=selected.positions[selected.move],c=new Chess(base),sans=[];try{for(const token of text.replace(/\d+\.(\.\.)?/g,' ').split(/\s+/).filter(Boolean)){if(['*','1-0','0-1','1/2-1/2'].includes(token))break;const move=c.move(token);if(!move)throw Error('Jugada ilegal: '+token);sans.push(move.san);}if(!sans.length)throw Error('No se encontraron jugadas');ensure().variations.push({id:crypto.randomUUID(),ply:selected.move,san:sans,fen:c.fen()});el('studio-line-input').value='';change();renderNotes();notify('Variante agregada a esta posición.');}catch(e){notify('Variante inválida: '+e.message,'err');}}
 function choosePalette(x){palette=x;document.querySelectorAll('[data-piece]').forEach(b=>b.classList.toggle('picked',b.dataset.piece===x));}
-function paintSquare(square){const fen=selected.positions[selected.move];const c=new Chess(fen);try{if(palette==='empty')c.remove(square);else {const side=palette[0],piece=palette[1].toLowerCase();c.remove(square);if(!c.put({type:piece,color:side},square))throw Error('Casilla no válida');}const next=c.fen();el('studio-fen').value=next;selected.positions[selected.move]=next;onChange();}catch(e){notify('Posición no válida: '+e.message,'err');}}
+function paintSquare(square){const fen=selected.previewFen||selected.positions[selected.move];const c=new Chess(fen);try{if(palette==='empty')c.remove(square);else {const side=palette[0],piece=palette[1].toLowerCase();c.remove(square);if(!c.put({type:piece,color:side},square))throw Error('Casilla no válida');}const next=c.fen();el('studio-fen').value=next;selected.previewFen=next;onChange();}catch(e){notify('Posición no válida: '+e.message,'err');}}
 // Board editor only edits an isolated position until it is exported; original PGN mainline is untouched.
 function insertBoardAction(){const board=el('board');board.addEventListener('click',e=>{if(!paint)return;const square=e.target.closest('.square')?.title;if(square)paintSquare(square);});}
 async function refreshLibrary(){try{const rows=await getAll();rows.sort((a,b)=>b.updated.localeCompare(a.updated));el('studio-library').innerHTML='<option value="">Abrir estudio guardado…</option>'+rows.map(x=>'<option value="'+x.id+'">'+(x.student+' | '+x.name).replace(/[&<>"']/g,'')+'</option>').join('');}catch(e){notify('Almacenamiento local no disponible: '+e.message,'err');}}
@@ -43,7 +43,7 @@ export function initStudio(state,callbacks){selected=state;onChange=callbacks.re
  el('studio-palette').innerHTML=pieces.map(([p,g])=>'<button type="button" title="'+p+'" data-piece="'+p+'">'+g+'</button>').join('');
  el('studio-palette').addEventListener('click',e=>{const p=e.target.closest('[data-piece]');if(p)choosePalette(p.dataset.piece);});
  choosePalette('wP');insertBoardAction();
- el('studio-paint').onchange=e=>{paint=e.target.checked;};
+ el('studio-paint').onchange=e=>{paint=e.target.checked;if(!paint){selected.previewFen=null;callbacks.renderPreview();}};
  el('studio-copy-fen').onclick=()=>navigator.clipboard.writeText(el('studio-fen').value);
  el('studio-note').oninput=e=>{ensure().comments[selected.move]=e.target.value;change();};
  el('studio-add-line').onclick=lineFromInput;
