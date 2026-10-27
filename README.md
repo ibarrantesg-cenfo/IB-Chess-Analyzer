@@ -59,3 +59,16 @@ Supabase PostgreSQL + Auth + RLS, con tablas profiles, students, studies, study_
 - Comprobación sintáctica automática antes del despliegue.
 
 **Estado de validación:** el código está versionado y tiene comprobaciones sintácticas; las funciones nuevas requieren una prueba real en el navegador antes de considerarse estables. No subir información sensible hasta verificar permisos de la nube.
+
+
+## v1.5: Motor en vivo, 3 variantes, conclusiones visibles
+- Corregido el panel de conclusiones: ya no es flotante ni tapa gráficas o notación al desplazarse.
+- Stockfish Lite se inicia automáticamente en un worker independiente al abrir la web.
+- Cada avance/retroceso y cada variante jugada sobre el tablero solicita el análisis de la posición actual.
+- MultiPV seleccionable: 1, 3 o 5 líneas, profundidad 16/20/24/28; incluye evaluación desde la perspectiva de las blancas, SAN y una explicación heurística por alternativa.
+- El motor en vivo se pausa al iniciar un Game Review completo y se reanuda al terminar; el navegador no mantiene dos búsquedas simultáneas.
+- Cada línea del motor puede guardarse en un estudio junto con una explicación; la opción solo es válida desde la línea principal (no una FEN editada o subvariante).
+- El Game Review contextualiza errores con continuación principal de Stockfish y argumentos básicos sobre capturas, jaques y fases del juego.
+- Es un análisis basado en reglas y en Stockfish; no equivale a una narración estratégica generada por un entrenador o IA.
+- El cómputo puede consumir CPU; desactivá el análisis automático desde el interruptor si necesitás recursos.
+- Se necesita verificar esta versión en un navegador real. GitHub Actions comprueba sintaxis y publicación, no garantiza que Stockfish WASM inicialice en todos los equipos.
