@@ -1,3 +1,4 @@
+import { calibrationSamples,enginePerformance } from './engine-performance.js';
 // IB Chess Analyzer — descriptive per-game metrics and opponent-adjusted tournament performance.
 // No fabricated "estimated Elo from accuracy": only opponent ratings plus results can support TPR.
 const pct=n=>Number.isFinite(n)?n.toFixed(1)+'%':'—';
@@ -81,7 +82,7 @@ export function initPerformance({state,notify,analyzeGame,jumpGame,getAnalyses})
     <div id="perf-batch-state" class="perf-info">El análisis individual se conserva mientras navegás entre las partidas de este PGN.</div>
     <div id="perf-rows"></div>
   </div>
-  <p class="perf-disclaimer">El índice técnico 0–100 se calcula a partir de pérdidas de centipeones, no equivale a la precisión comercial de Chess.com ni permite inferir un Elo. El performance de torneo aplica la tabla Ra + dp de FIDE al Elo indicado en el PGN. Para ser un rendimiento FIDE verificable, los ratings, las partidas efectivamente jugadas y el ritmo deben proceder de datos oficiales.</p>`;
+  <p class="perf-disclaimer">El índice técnico proviene de las pérdidas de evaluación. Un Elo estimado solo se muestra tras calibrarlo con una muestra suficiente de partidas Stockfish y ratings conocidos; es experimental. El performance de torneo aplica la tabla Ra + dp de FIDE al Elo indicado en el PGN. Para ser un rendimiento FIDE verificable, los ratings, las partidas efectivamente jugadas y el ritmo deben proceder de datos oficiales.</p>`;
  left.append(box);
  const $=id=>document.getElementById(id);
  let selectedPlayer='',selectedEvent='',activeTab='game',batchCancelled=false,batching=false;
@@ -106,14 +107,20 @@ export function initPerformance({state,notify,analyzeGame,jumpGame,getAnalyses})
  function renderGame(){
   const current=state.game;if(!current)return;
   const ix=state.games.indexOf(current),m=gameMetrics(current,getAnalyses().get(ix)||state.reports);
+  const reference=calibrationSamples(state.games,getAnalyses());
+  const ew=enginePerformance(m.w.complete?m.w.quality:null,reference,{excludeIndex:ix,excludePlayer:String(current.headers.White||'').toLowerCase()});
+  const eb=enginePerformance(m.b.complete?m.b.quality:null,reference,{excludeIndex:ix,excludePlayer:String(current.headers.Black||'').toLowerCase()});
   const completed=current.headers.Result&&['1-0','0-1','1/2-1/2'].includes(current.headers.Result)?current.headers.Result:'Sin resultado';
-  $('perf-game').innerHTML='<div class="perf-result">'+esc(current.headers.White||'?')+' <strong>'+completed+'</strong> '+esc(current.headers.Black||'?')+'</div>'+statHTML('Blancas · '+esc(current.headers.White||'?'),m.w)+statHTML('Negras · '+esc(current.headers.Black||'?'),m.b);
+  $('perf-game').innerHTML='<div class="perf-result">'+esc(current.headers.White||'?')+' <strong>'+completed+'</strong> '+esc(current.headers.Black||'?')+'</div>'+'<div class="perf-engine"><h3>Performance derivado de Stockfish</h3><div class="perf-engine-pair"><div><b>'+(ew.value??'—')+'</b><small>Blancas · '+(ew.value?'±'+ew.spread+' Elo experimental':'Sin calibración')+'</small></div><div><b>'+(eb.value??'—')+'</b><small>Negras · '+(eb.value?'±'+eb.spread+' Elo experimental':'Sin calibración')+'</small></div></div><p>'+(ew.value||eb.value?'Elo calibrado con otras partidas analizadas. No es rendimiento FIDE ni rating oficial.':'Todavía no hay suficientes partidas de referencia analizadas para inferir un Elo fiable. Se muestra el índice técnico debajo.')+'</p><small>Referencias disponibles: '+reference.length+' partidas-jugador.</small></div>'+statHTML('Blancas · '+esc(current.headers.White||'?'),m.w)+statHTML('Negras · '+esc(current.headers.Black||'?'),m.b);
  }
  function renderTournament(){
   filters();
   const t=tournamentStats(state.games,selectedPlayer,selectedEvent,getAnalyses());
+  const reference=calibrationSamples(state.games,getAnalyses());
+  const estimated=t.rows.map(r=>({row:r,...enginePerformance(r.technical.complete?r.technical.quality:null,reference,{excludeIndex:r.index,excludePlayer:selectedPlayer.toLowerCase()})})).filter(r=>r.value!==null);
+  const meanEstimate=estimated.length?Math.round(estimated.reduce((a,r)=>a+r.value,0)/estimated.length/5)*5:null;
   const tpr=t.fide?String(t.fide.rating):'Sin Elo rival';
-  $('perf-summary').innerHTML='<div class="perf-tournament-grid"><div><b>'+t.points+'/'+t.scored+'</b><small>Puntos / partidas puntuadas</small></div><div><b>'+tpr+'</b><small>Performance FIDE* (Ra + dp)</small></div><div><b>'+t.rated+'</b><small>Rivales con Elo válido</small></div><div><b>'+(t.quality===null?'—':t.quality.toFixed(1))+'</b><small>Índice técnico ('+t.analyzed+'/'+t.rows.length+')</small></div></div><p class="perf-info">'+(t.fide?'Ra '+t.fide.average+' · '+t.fide.percent+'% de puntuación · dp '+(t.fide.delta>=0?'+':'')+t.fide.delta+'. ':'')+'*Método de tabla FIDE; el Elo indicado por el PGN no se verifica con la lista FIDE, y partidas por incomparecencia pueden necesitar exclusión.</p>';
+  $('perf-summary').innerHTML='<div class="perf-engine"><h3>Performance desde análisis de Stockfish</h3><div class="perf-engine-pair"><div><b>'+(meanEstimate??'—')+'</b><small>Elo experimental del torneo</small></div><div><b>'+estimated.length+'/'+t.rows.length+'</b><small>Partidas calibradas</small></div></div><p>'+(meanEstimate===null?'Se necesita más información de partidas analizadas con Elo conocido para calibrar el rendimiento.':'Promedio de estimaciones por partida; depende de la muestra de referencia y profundidad constante.')+'</p></div><div class="perf-tournament-grid"><div><b>'+t.points+'/'+t.scored+'</b><small>Puntos / partidas puntuadas</small></div><div><b>'+tpr+'</b><small>Performance FIDE* (Ra + dp)</small></div><div><b>'+t.rated+'</b><small>Rivales con Elo válido</small></div><div><b>'+(t.quality===null?'—':t.quality.toFixed(1))+'</b><small>Índice técnico ('+t.analyzed+'/'+t.rows.length+')</small></div></div><p class="perf-info">'+(t.fide?'Ra '+t.fide.average+' · '+t.fide.percent+'% de puntuación · dp '+(t.fide.delta>=0?'+':'')+t.fide.delta+'. ':'')+'*Método de tabla FIDE; el Elo indicado por el PGN no se verifica con la lista FIDE, y partidas por incomparecencia pueden necesitar exclusión.</p>';
   $('perf-rows').innerHTML=t.rows.length?t.rows.map(r=>'<button class="perf-game-row" data-open-game="'+r.index+'"><span>R'+esc(r.round)+' · '+esc(r.opponent)+'</span><span>'+(r.elo??'s/Elo')+' · '+(r.result===null?'Sin resultado':r.result)+' pt · '+(r.technical.complete?r.technical.quality.toFixed(1)+'/100':'sin analizar')+'</span></button>').join(''):'<p>Este evento no contiene partidas de ese jugador.</p>';
  }
  function render(){renderGame();if(activeTab==='tournament')renderTournament();}
