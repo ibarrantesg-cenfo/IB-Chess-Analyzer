@@ -2,7 +2,7 @@ import { Chess } from 'chess.js';
 
 // UCI analysis runs in its own Web Worker. Batch Game Review is a separate engine.
 // No network calls or paid API are required.
-export function initLiveAnalysis({getFen,getEngineUrl,notify}) {
+export function initLiveAnalysis({getFen,getEngineUrl,notify,onSaveVariation}) {
   const host=document.querySelector('.analysis-column');
   const panel=document.createElement('div');
   panel.className='panel live-analysis-panel';
@@ -74,7 +74,9 @@ export function initLiveAnalysis({getFen,getEngineUrl,notify}) {
       header.append(title,depth);
       const variation=document.createElement('div');variation.className='live-pv';variation.textContent=item.san||'Calculando…';
       const explanation=document.createElement('p');explanation.className='live-idea';explanation.textContent=idea(item.moves[0],activeFen);
-      div.append(header,variation,explanation);host.append(div);
+      const save=document.createElement('button');save.type='button';save.className='live-save-line';save.textContent='＋ Añadir al estudio';save.title='Guardar esta línea y una explicación en el estudio actual';
+      save.onclick=()=>{const notes='Stockfish, alternativa '+n+' ('+item.score+', profundidad '+item.depth+'): '+item.san+'. '+idea(item.moves[0],activeFen);onSaveVariation?.(item.moves.map(m=>m.san),notes);};
+      div.append(header,variation,explanation,save);host.append(div);
     }
     const first=lines.get(1);
     $('live-explanation').textContent=first?'La opción principal comienza con '+(first.moves[0]?.san||'—')+'. '+idea(first.moves[0],activeFen)+' Compará las otras variantes: son opciones del motor, no recomendaciones independientes del entrenador.':'Las evaluaciones están expresadas desde la perspectiva de las blancas.';
@@ -103,7 +105,7 @@ export function initLiveAnalysis({getFen,getEngineUrl,notify}) {
     const rank=Number(line.match(/\bmultipv (\d+)/)?.[1]||1),depth=Number(line.match(/\bdepth (\d+)/)?.[1]||0);
     if(rank>Number($('live-count').value))return;
     if((lines.get(rank)?.depth||0)>depth)return;
-    const parsed=pvToSan(activeFen,pv.trim().split(/\s+/));
+    let parsed;try{parsed=pvToSan(activeFen,pv.trim().split(/\s+/));}catch{return;}
     if(!parsed.moves.length)return;
     bestDepth=Math.max(bestDepth,depth);
     lines.set(rank,{score:compactScore(mt[1],Number(mt[2]),activeFen),san:parsed.san,moves:parsed.moves,depth});
