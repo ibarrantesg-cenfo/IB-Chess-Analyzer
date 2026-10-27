@@ -85,5 +85,5 @@ export function initStudio(state,callbacks){selected=state;onChange=callbacks.re
  el('studio-comment-panel').hidden=false;
  tree=initVariationBoard(selected,{render:callbacks.renderPreview,notify,isEditing:()=>paint,save:v=>{ensure();const i=active.variations.findIndex(x=>x.id===v.id);if(i>=0)active.variations[i]=v;else active.variations.push(v);change();renderNotes();}});
  refreshLibrary();renderNotes();
- return {gameChanged(){active=null;paint=false;tree?.clear();el('studio-paint').checked=false;renderNotes();},selectionChanged(){tree?.restoreMain();if(el('studio-note')!==document.activeElement)renderNotes();el('studio-fen').value=selected.positions[selected.move]||'';}}
+ return {getComment(ply){return active?.comments?.[ply]||'';},getVariations(ply){return (active?.variations||[]).filter(v=>v.ply===ply).map(v=>v.san.join(' '));},gameChanged(){active=null;paint=false;tree?.clear();el('studio-paint').checked=false;renderNotes();},selectionChanged(){tree?.restoreMain();if(el('studio-note')!==document.activeElement)renderNotes();el('studio-fen').value=selected.positions[selected.move]||'';}}
 }
