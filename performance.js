@@ -9,12 +9,14 @@ export function gameMetrics(game,reports){
     const r=reports?.[i];if(!r||!Number.isFinite(r.loss))continue;
     const target=byColor[i%2===0?'w':'b'];target.loss.push(Math.max(0,r.loss));target.counts[r.type]=(target.counts[r.type]||0)+1;
   }
+  const phaseRanges=[['Apertura',0,20],['Medio juego',20,60],['Final',60,Infinity]];
+  const phases=color=>phaseRanges.map(([label,lo,hi])=>{const values=[];for(let i=lo;i<Math.min(hi,moves.length);i++){if((i%2===0?'w':'b')!==color)continue;const r=reports?.[i];if(r&&Number.isFinite(r.loss))values.push(Math.max(0,r.loss));}return {label,moves:values.length,avg:values.length?values.reduce((a,b)=>a+b,0)/values.length:null};});
   const info=color=>{
     const a=byColor[color].loss, count=a.length,totalMoves=moves.filter((_,i)=>(i%2===0?'w':'b')===color).length;
     const avg=a.length?a.reduce((x,y)=>x+y,0)/a.length:null;
     // Transparent, original 0–100 quality index: capped per-move loss discourages one blunder dominating everything.
     const quality=a.length?100*a.reduce((sum,x)=>sum+Math.exp(-Math.min(x,600)/150),0)/a.length:null;
-    return {count,totalMoves,avg,quality,counts:byColor[color].counts,complete:a.length===totalMoves&&totalMoves>0};
+    return {count,totalMoves,avg,quality,counts:byColor[color].counts,complete:a.length===totalMoves&&totalMoves>0,phases:phases(color)};
   };
   return {w:info('w'),b:info('b')};
 }
@@ -88,7 +90,7 @@ export function initPerformance({state,notify,analyzeGame,jumpGame,getAnalyses})
  }
  function statHTML(label,metric){
   if(!metric.count)return '<div class="perf-empty">'+label+': realizá un Game Review para obtener métricas técnicas.</div>';
-  return '<div class="perf-color"><strong>'+label+'</strong><div class="perf-metrics"><span><b>'+metric.quality.toFixed(1)+'</b><small>Índice técnico /100</small></span><span><b>'+metric.avg.toFixed(1)+'</b><small>Pérdida media CP</small></span><span><b>'+metric.count+'/'+metric.totalMoves+'</b><small>Jugadas evaluadas</small></span></div><div class="perf-errors">Imprecisiones '+(metric.counts.inaccuracy||0)+' · Errores '+(metric.counts.mistake||0)+' · Graves '+(metric.counts.blunder||0)+'</div></div>';
+  return '<div class="perf-color"><strong>'+label+'</strong><div class="perf-metrics"><span><b>'+metric.quality.toFixed(1)+'</b><small>Índice técnico /100</small></span><span><b>'+metric.avg.toFixed(1)+'</b><small>Pérdida media CP</small></span><span><b>'+metric.count+'/'+metric.totalMoves+'</b><small>Jugadas evaluadas</small></span></div><div class="perf-errors">Imprecisiones '+(metric.counts.inaccuracy||0)+' · Errores '+(metric.counts.mistake||0)+' · Graves '+(metric.counts.blunder||0)+'</div><div class="perf-phases">'+metric.phases.map(p=>'<span>'+p.label+': <b>'+(p.avg===null?'—':p.avg.toFixed(0)+' cp')+'</b></span>').join('')+'</div></div>';
  }
  function renderGame(){
   const current=state.game;if(!current)return;
