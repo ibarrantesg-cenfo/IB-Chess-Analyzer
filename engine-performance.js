@@ -5,7 +5,7 @@ const finite=n=>Number.isFinite(n);
 export function calibrationSamples(games, analyses){
  const samples=[];
  for(let i=0;i<games.length;i++){
-   const g=games[i],reports=analyses.get(i);
+   const g=games[i],entry=analyses.get(i),reports=Array.isArray(entry)?entry:entry?.reports;
    if(!reports || !g.moves?.length)continue;
    for(const [color,field,nameField] of [['w','WhiteElo','White'],['b','BlackElo','Black']]){
      const rating=Number(g.headers?.[field]),player=String(g.headers?.[nameField]||'').trim().toLowerCase();
