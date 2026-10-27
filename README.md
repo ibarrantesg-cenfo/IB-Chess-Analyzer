@@ -1,4 +1,4 @@
-# IB Chess Analyzer Web v1.0
+# IB Chess Analyzer Web v1.3
 
 Analizador de ajedrez web **sin suscripción**, construido sobre `chess.js` y **Stockfish.js 19** (WASM). El cálculo se realiza en un Web Worker en tu navegador, no en servidores de pago.
 
@@ -48,3 +48,14 @@ Stockfish.js 19 está licenciado bajo **GPL-3.0**. Cuando distribuyas el sitio c
 
 ## Fase posterior: estudios compartidos
 Supabase PostgreSQL + Auth + RLS, con tablas profiles, students, studies, study_memberships, study_positions, variations, move_comments, analysis_jobs. Exigir autorización por estudio y alumno en todas las lecturas y escrituras, usar migraciones, auditoría de cambios y evitar incluir service_role keys en el cliente. El análisis Stockfish sigue corriendo en el navegador.
+
+## Novedades v1.3 — Edición y estudios
+- Clic derecho en cualquier jugada para anotar la posición.
+- Mover piezas con dos clics (origen y destino) para crear una variante legal desde la posición elegida; navegarla con los controles en Estudios.
+- Editar diagramas mediante una copia FEN, sin alterar la partida original.
+- Guardar la partida y comentarios localmente en el navegador; exportar e importar copias de seguridad JSON.
+- Exportar PGN con comentarios del entrenador y alternativas anotadas como texto.
+- Panel opcional de estudios compartidos: iniciar sesión por correo, subir/abrir estudios y dar acceso de lectura por ID de usuario. **Inactivo hasta configurar Supabase** según `CLOUD_SETUP.md`.
+- Comprobación sintáctica automática antes del despliegue.
+
+**Estado de validación:** el código está versionado y tiene comprobaciones sintácticas; las funciones nuevas requieren una prueba real en el navegador antes de considerarse estables. No subir información sensible hasta verificar permisos de la nube.
