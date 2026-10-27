@@ -36,3 +36,15 @@ Analizador de ajedrez web **sin suscripción**, construido sobre `chess.js` y **
 
 ## Licencias
 Stockfish.js 19 está licenciado bajo **GPL-3.0**. Cuando distribuyas el sitio con el motor, proporciona también acceso al código fuente del motor y cumple sus requisitos: https://github.com/nmrugg/stockfish.js . `chess.js`: BSD-2-Clause. Este proyecto incluye enlaces a las fuentes originales.
+
+## Editor de estudios v1.2 (almacenamiento local)
+- Clic derecho sobre una jugada para abrir sus comentarios.
+- Etiquetá la partida por alumno y guardá el estudio usando IndexedDB del navegador.
+- Agregá variantes SAN legales desde la posición seleccionada.
+- Editá una posición mediante la paleta de piezas. Esta edición afecta la visualización de esa posición; **no** modifica el PGN original ni constituye todavía un editor de árboles de variantes.
+- Exportá el estudio (PGN base, comentarios y variantes) como JSON.
+- Los estudios son **locales a cada navegador**, sin cuentas, sincronización ni colaboración multiusuario. No se deben prometer bibliotecas compartidas hasta integrar backend y permisos.
+- Hacé una copia JSON regularmente: borrar datos del navegador puede borrar la biblioteca local.
+
+## Fase posterior: estudios compartidos
+Supabase PostgreSQL + Auth + RLS, con tablas profiles, students, studies, study_memberships, study_positions, variations, move_comments, analysis_jobs. Exigir autorización por estudio y alumno en todas las lecturas y escrituras, usar migraciones, auditoría de cambios y evitar incluir service_role keys en el cliente. El análisis Stockfish sigue corriendo en el navegador.
