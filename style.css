@@ -49,3 +49,14 @@
 .studio-close{float:right;border:0;background:#344359;color:#fff;border-radius:6px;font-size:23px;cursor:pointer;width:32px;height:32px}
 #studio-comment-panel:not(.contextual) .studio-close{display:none}
 @media(max-width:600px){#studio-comment-panel.contextual{right:12px;top:55px;width:calc(100vw - 24px)}}
+
+/* v1.3 variation workspace and JSON backup */
+.variation-workspace{margin-top:15px;border-top:1px solid #35465c;padding-top:4px}
+.variation-hint{font-size:11px;color:#8fa7be;line-height:1.5}
+.variation-toolbar{display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin:12px 0}
+.variation-toolbar .btn{padding:7px 11px;font-size:11px}
+#v-progress{font-size:11px;color:#85dcc0}
+.variation-line{color:#a5f2d6;font-size:12px;line-height:1.6;overflow-wrap:anywhere}
+.square.candidate:after{content:'';position:absolute;inset:3px;border:3px solid #e2ad42;border-radius:3px;pointer-events:none}
+.studio-import{cursor:pointer}
+.studio-import input{display:none}
