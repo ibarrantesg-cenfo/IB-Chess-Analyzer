@@ -111,3 +111,13 @@ El módulo prioriza el **performance técnico obtenido de las decisiones evaluad
 - La calibración procede de ratings PGN declarados y debe validarse con una muestra representativa, idealmente separada de las partidas que se predicen.
 
 Este prototipo estima fuerza a partir del análisis bajo las condiciones indicadas, no reproduce el Estimated Rating de Chess.com.
+
+
+## v1.9 — Elo aparente instantáneo en cada partida
+- Tras Game Review completo, muestra **una cifra para blancas y otra para negras** calculadas solo a partir de las pérdidas de evaluación del jugador en esa partida.
+- No usa resultado, rating del rival ni rating del propio jugador.
+- Interpolación heurística explícita (índice técnico → Elo aparente): 0→400, 35→700, 45→900, 60→1250, 70→1500, 80→1800, 87→2100, 93→2350, 97→2600, 100→2800.
+- Intervalo mostrado como orientación (±450 para 8–14 decisiones, ±350 para 15–24 y ±300 para 25 o más), **no** es un intervalo estadístico calibrado.
+- Sin puntuación si hay jugadas sin analizar o menos de 8 decisiones del bando.
+- En torneo se muestra media del Elo aparente de sus partidas completamente analizadas.
+- Es un indicador experimental recreativo de fuerza demostrada, **no** rating FIDE, performance oficial ni estimación predictiva validada. Para lograr validez será necesario calibrar y medir error con muchos PGN de referencia.
