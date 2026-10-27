@@ -125,3 +125,13 @@ Este prototipo estima fuerza a partir del análisis bajo las condiciones indicad
 
 ## v2.2 — Apariencia para clases
 En la barra superior hay un selector **♟ Apariencia**. Ofrece seis temas de tablero (Jade, madera, azul, gris, violeta y alto contraste), combinación personalizada de colores claros y oscuros, cuatro tratamientos visuales de piezas basados en los glifos Unicode (Clásicas, Planas, Contorno y Alto contraste), coordenadas opcionales y botón para restaurar ajustes. Las preferencias se guardan con `localStorage` solamente en el navegador; no afectan ni el PGN ni los cálculos Stockfish. Estos estilos no equivalen a cambiar a paquetes de imágenes 2D distintos, que requerirían activos gráficos adicionales. La nube Supabase sigue pendiente de conexión y pruebas de permisos.
+
+
+## v2.3 — Flechas y marcas de casillas
+- Clic derecho sostenido sobre una casilla y arrastrar a otra: flecha amarilla sobre el tablero (SVG independiente de la partida).
+- Clic derecho sin arrastrar: marca de casilla rojiza.
+- Repetir la misma flecha o marca alterna su visibilidad (borra esa anotación).
+- Clic izquierdo sobre el tablero elimina las anotaciones actuales; avanzar/retroceder posiciones también las limpia.
+- Las anotaciones no se guardan en el PGN ni en los estudios; son marcas temporales para enseñar.
+- El editor de piezas tiene prioridad sobre las flechas cuando está habilitado.
+- La apariencia de cada navegador y perfil se guarda en localStorage por origen (dominio + protocolo). Cambiar de github.io a .com crea otra identidad de almacenamiento y el aspecto anterior no migra automáticamente.
