@@ -27,6 +27,16 @@ const playerSide=(g,name)=>{
 const scoreFor=(result,color)=>result==='1/2-1/2'?.5:result===(color==='w'?'1-0':'0-1')?1:result===(color==='w'?'0-1':'1-0')?0:null;
 // Elo logistic inversion: rating solving sum expected scores vs individual opponents.
 // Scores of 0% and 100% have no finite root, so show no numeric performance.
+// FIDE B.02 8.1.1 fractional-score conversion table (March 2024 regulation).
+// Percentages are rounded to the nearest 1%, consistent with the table granularity.
+const fideNegativeDp=[0,-7,-14,-21,-29,-36,-43,-50,-57,-65,-72,-80,-87,-95,-102,-110,-117,-125,-133,-141,-149,-158,-166,-175,-184,-193,-202,-211,-220,-230,-240,-251,-262,-273,-284,-296,-309,-322,-336,-351,-366,-383,-401,-422,-444,-470,-501,-538,-589,-677,-800];
+export function fidePerformance(rated){
+ if(!rated.length)return null;
+ const points=rated.reduce((total,r)=>total+r.result,0),percent=Math.max(0,Math.min(100,Math.round(points/rated.length*100)));
+ const avg=Math.round(rated.reduce((total,r)=>total+r.elo,0)/rated.length);
+ const delta=percent>=50?-fideNegativeDp[100-percent-50]:fideNegativeDp[50-percent];
+ return {rating:avg+delta,average:avg,percent,delta,points};
+}
 export function tournamentStats(games,name,event,analyses){
   const rows=[];
   for(let i=0;i<games.length;i++){
@@ -51,9 +61,10 @@ export function tournamentStats(games,name,event,analyses){
       performance=Math.round((lo+hi)/2);
     }
   }
+  const fide=fidePerformance(rated);
   const qualityRows=rows.filter(r=>r.technical.complete);
   const quality=qualityRows.length?qualityRows.reduce((sum,r)=>sum+r.technical.quality,0)/qualityRows.length:null;
-  return {rows,rated:rated.length,scored:scored.length,points,performance,allWon:rated.length&&rated.every(r=>r.result===1),allLost:rated.length&&rated.every(r=>r.result===0),quality,analyzed:qualityRows.length};
+  return {rows,rated:rated.length,scored:scored.length,points,performance,fide,allWon:rated.length&&rated.every(r=>r.result===1),allLost:rated.length&&rated.every(r=>r.result===0),quality,analyzed:qualityRows.length};
 }
 export function initPerformance({state,notify,analyzeGame,jumpGame,getAnalyses}){
  const left=document.querySelector('.board-column');
@@ -70,7 +81,7 @@ export function initPerformance({state,notify,analyzeGame,jumpGame,getAnalyses})
     <div id="perf-batch-state" class="perf-info">El análisis individual se conserva mientras navegás entre las partidas de este PGN.</div>
     <div id="perf-rows"></div>
   </div>
-  <p class="perf-disclaimer">El índice técnico 0–100 se calcula a partir de pérdidas de centipeones, no equivale a la precisión comercial de Chess.com ni permite inferir un Elo. El rendimiento Elo de torneo se estima solo con resultados y Elo declarado de los rivales; no es una cifra oficial FIDE.</p>`;
+  <p class="perf-disclaimer">El índice técnico 0–100 se calcula a partir de pérdidas de centipeones, no equivale a la precisión comercial de Chess.com ni permite inferir un Elo. El performance de torneo aplica la tabla Ra + dp de FIDE al Elo indicado en el PGN. Para ser un rendimiento FIDE verificable, los ratings, las partidas efectivamente jugadas y el ritmo deben proceder de datos oficiales.</p>`;
  left.append(box);
  const $=id=>document.getElementById(id);
  let selectedPlayer='',selectedEvent='',activeTab='game',batchCancelled=false,batching=false;
@@ -101,8 +112,8 @@ export function initPerformance({state,notify,analyzeGame,jumpGame,getAnalyses})
  function renderTournament(){
   filters();
   const t=tournamentStats(state.games,selectedPlayer,selectedEvent,getAnalyses());
-  const tpr=t.rated===0?'Sin Elo rival':t.performance===null?t.allWon?'Sin valor finito (100%)':t.allLost?'Sin valor finito (0%)':'No estimable':String(t.performance);
-  $('perf-summary').innerHTML='<div class="perf-tournament-grid"><div><b>'+t.points+'/'+t.scored+'</b><small>Puntos / partidas puntuadas</small></div><div><b>'+tpr+'</b><small>Rendimiento Elo estimado</small></div><div><b>'+t.rated+'</b><small>Rivales con Elo válido</small></div><div><b>'+(t.quality===null?'—':t.quality.toFixed(1))+'</b><small>Índice técnico ('+t.analyzed+'/'+t.rows.length+')</small></div></div>';
+  const tpr=t.fide?String(t.fide.rating):'Sin Elo rival';
+  $('perf-summary').innerHTML='<div class="perf-tournament-grid"><div><b>'+t.points+'/'+t.scored+'</b><small>Puntos / partidas puntuadas</small></div><div><b>'+tpr+'</b><small>Performance FIDE* (Ra + dp)</small></div><div><b>'+t.rated+'</b><small>Rivales con Elo válido</small></div><div><b>'+(t.quality===null?'—':t.quality.toFixed(1))+'</b><small>Índice técnico ('+t.analyzed+'/'+t.rows.length+')</small></div></div><p class="perf-info">'+(t.fide?'Ra '+t.fide.average+' · '+t.fide.percent+'% de puntuación · dp '+(t.fide.delta>=0?'+':'')+t.fide.delta+'. ':'')+'*Método de tabla FIDE; el Elo indicado por el PGN no se verifica con la lista FIDE, y partidas por incomparecencia pueden necesitar exclusión.</p>';
   $('perf-rows').innerHTML=t.rows.length?t.rows.map(r=>'<button class="perf-game-row" data-open-game="'+r.index+'"><span>R'+esc(r.round)+' · '+esc(r.opponent)+'</span><span>'+(r.elo??'s/Elo')+' · '+(r.result===null?'Sin resultado':r.result)+' pt · '+(r.technical.complete?r.technical.quality.toFixed(1)+'/100':'sin analizar')+'</span></button>').join(''):'<p>Este evento no contiene partidas de ese jugador.</p>';
  }
  function render(){renderGame();if(activeTab==='tournament')renderTournament();}
@@ -115,8 +126,8 @@ export function initPerformance({state,notify,analyzeGame,jumpGame,getAnalyses})
    const t=tournamentStats(state.games,selectedPlayer,selectedEvent,getAnalyses());
    if(!t.rows.length)return notify('Este filtro no tiene partidas.');
    const q=x=>'"'+String(x??'').replaceAll('"','""')+'"';
-   const rows=[['Jugador','Evento','Ronda','Rival','Elo rival','Color','Puntos','Indice tecnico','CP medio','Jugadas evaluadas','Rendimiento Elo de torneo']];
-   for(const r of t.rows)rows.push([selectedPlayer,selectedEvent,r.round,r.opponent,r.elo??'',r.side==='w'?'Blancas':'Negras',r.result??'',r.technical.complete?r.technical.quality.toFixed(1):'',r.technical.complete?r.technical.avg.toFixed(1):'',r.technical.count+'/'+r.technical.totalMoves,t.performance??'No estimable']);
+   const rows=[['Jugador','Evento','Ronda','Rival','Elo rival','Color','Puntos','Indice tecnico','CP medio','Jugadas evaluadas','Performance con tabla FIDE (PGN no verificado)']];
+   for(const r of t.rows)rows.push([selectedPlayer,selectedEvent,r.round,r.opponent,r.elo??'',r.side==='w'?'Blancas':'Negras',r.result??'',r.technical.complete?r.technical.quality.toFixed(1):'',r.technical.complete?r.technical.avg.toFixed(1):'',r.technical.count+'/'+r.technical.totalMoves,t.fide?.rating??'No estimable']);
    const blob=new Blob(['\\ufeff'+rows.map(row=>row.map(q).join(',')).join('\\r\\n')],{type:'text/csv;charset=utf-8'});
    const link=document.createElement('a'),url=URL.createObjectURL(blob);link.href=url;link.download='IB_Torneo_'+selectedPlayer.replace(/[^a-z0-9-]/gi,'_')+'.csv';link.click();setTimeout(()=>URL.revokeObjectURL(url),1000);
  };
