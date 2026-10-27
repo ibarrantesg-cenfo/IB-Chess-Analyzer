@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {gameMetrics,tournamentStats,fidePerformance} from './performance.js';
-import {enginePerformance,calibrationSamples} from './engine-performance.js';
+import {enginePerformance,calibrationSamples,apparentPerformance} from './engine-performance.js';
 const game=(white,black,result,welo,belo,event='Torneo A')=>({headers:{White:white,Black:black,Result:result,WhiteElo:String(welo||''),BlackElo:String(belo||''),Event:event,Round:'1'},moves:[{san:'e4'},{san:'e5'},{san:'Nf3'},{san:'Nc6'}]});
 test('game index reflects CP loss and is complete only when every move is evaluated',()=>{
  const g=game('Alumno','Rival','1-0',1800,1600);
@@ -47,4 +47,16 @@ test('engine calibration excludes the target game and player to avoid informatio
  const samples=Array.from({length:20},(_,i)=>({index:i,player:'p'+i,rating:1300+50*i,quality:50+i,moves:20}));
  const output=enginePerformance(62,samples,{excludeIndex:3,excludePlayer:'p4'});
  assert.equal(output.count,18);
+});
+
+test('apparent Elo is based on the analyzed side and does not need reference players',()=>{
+  const a=apparentPerformance({complete:true,count:32,quality:80});
+  const b=apparentPerformance({complete:true,count:32,quality:93});
+  assert.equal(a.value,1800);
+  assert.equal(b.value,2350);
+  assert.ok(b.value>a.value);
+});
+test('apparent Elo is withheld for incomplete and very short analysis',()=>{
+  assert.equal(apparentPerformance({complete:false,count:25,quality:91}).value,null);
+  assert.equal(apparentPerformance({complete:true,count:5,quality:91}).value,null);
 });
