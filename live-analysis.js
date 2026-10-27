@@ -85,9 +85,10 @@ export function initLiveAnalysis({getFen,getEngineUrl,notify,onSaveVariation,onP
   }
   function enterPlayback(n,index=0){
     const item=lines.get(n);if(!item)return;
+    const snapshot=new Map(lines);
     playback={rank:n,cursor:index,item,fen:activeFen};
-    paused=true;clearTimeout(debounce);stopWorker(); // Freeze the chosen PV while replaying.
-    lines=new Map([[n,item]]);activeFen=playback.fen;
+    paused=true;clearTimeout(debounce);stopWorker(); // Freeze calculated lines while replaying.
+    lines=snapshot;activeFen=playback.fen;
     onPreview?.(playbackFen(item,index),true);
     draw();showPlayback();
   }
@@ -120,7 +121,16 @@ export function initLiveAnalysis({getFen,getEngineUrl,notify,onSaveVariation,onP
       const title=document.createElement('strong');title.textContent='#'+n+' · '+item.score;
       const depth=document.createElement('span');depth.textContent='d'+item.depth;
       header.append(title,depth);
-      const variation=document.createElement('div');variation.className='live-pv';variation.textContent=item.san||'Calculando…';
+      const variation=document.createElement('div');variation.className='live-pv';
+      let playedFen=new Chess(activeFen);
+      for(let j=0;j<item.moves.length;j++){
+        const m=item.moves[j],parts=playedFen.fen().split(' ');
+        const prefix=parts[1]==='w'?parts[5]+'. ':j===0?parts[5]+'... ':'';
+        const chip=document.createElement('button');chip.type='button';chip.className='live-move-chip';
+        chip.textContent=prefix+m.san;chip.title='Reproducir hasta '+m.san;
+        chip.onclick=()=>enterPlayback(n,j+1);variation.append(chip);
+        try{playedFen.move({from:m.from,to:m.to,promotion:m.promotion||'q'});}catch{break;}
+      }
       const explanation=document.createElement('p');explanation.className='live-idea';explanation.textContent=idea(item.moves[0],activeFen);
       const replay=document.createElement('button');replay.type='button';replay.className='live-replay';replay.textContent='▶ Reproducir en tablero';replay.onclick=()=>enterPlayback(n,0);
       const save=document.createElement('button');save.type='button';save.className='live-save-line';save.textContent='＋ Añadir al estudio';save.title='Guardar esta línea y una explicación en el estudio actual';
