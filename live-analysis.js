@@ -95,9 +95,9 @@ export function initLiveAnalysis({getFen,getEngineUrl,notify,onSaveVariation}) {
     draw();
   }
   function onMessage(message){
-    const line=String(message);
-    if(line==='uciok'){configure();return;}
-    if(line==='readyok'){ready=true;loading=false;pump();draw();return;}
+    const line=String(message).trim();
+    if(line.includes('uciok')){configure();return;}
+    if(line.includes('readyok')){ready=true;loading=false;pump();draw();return;}
     if(line.startsWith('bestmove')){busy=false;if(queuedFen && queuedFen!==activeFen){pump();return;}draw();return;}
     if(!line.startsWith('info ')||!busy||(queuedFen&&queuedFen!==activeFen))return;
     const mt=line.match(/\bscore (cp|mate) (-?\d+)/),pv=line.split(' pv ')[1];
