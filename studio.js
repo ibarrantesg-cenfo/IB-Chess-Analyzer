@@ -1,3 +1,4 @@
+import { initVariationBoard } from './variation-board.js';
 import { Chess } from 'chess.js';
 
 // Local-first study tools. Persistent on this browser only; no remote sharing is implied.
@@ -9,7 +10,7 @@ const put=x=>transaction('readwrite',s=>s.put(x));
 const del=id=>transaction('readwrite',s=>s.delete(id));
 const el=id=>document.getElementById(id);
 let active=null, selected=null, paint=false, palette='wP', alternate=null, onChange=()=>{}, notify=()=>{};
-let timer=null;
+let timer=null, tree=null;
 function key(){return active?.id;}
 function saveSoon(){clearTimeout(timer);timer=setTimeout(()=>{if(active)put(active).catch(e=>notify('No se pudo guardar: '+e.message,'err'));},250);}
 function labelMove(ply,san){return (ply%2===1?Math.ceil(ply/2)+'.':Math.ceil(ply/2)+'...')+san;}
@@ -47,12 +48,14 @@ export function initStudio(state,callbacks){selected=state;onChange=callbacks.re
  el('studio-add-line').onclick=lineFromInput;
  el('studio-close-note').onclick=()=>el('studio-comment-panel').classList.remove('contextual');
  document.addEventListener('keydown',e=>{if(e.key==='Escape')el('studio-comment-panel').classList.remove('contextual');});
- el('studio-variants').onclick=e=>{const remove=e.target.closest('[data-delete-line]');if(remove){active.variations=active.variations.filter(v=>v.id!==remove.dataset.deleteLine);change();renderNotes();return;}const play=e.target.closest('[data-line]');if(play){const v=active.variations.find(x=>x.id===play.dataset.line);if(v){alternate=v;el('studio-fen').value=v.fen;notify('FEN de la variante disponible para copiar.');}}};
+ el('studio-variants').onclick=e=>{const remove=e.target.closest('[data-delete-line]');if(remove){active.variations=active.variations.filter(v=>v.id!==remove.dataset.deleteLine);change();renderNotes();return;}const play=e.target.closest('[data-line]');if(play){const v=active.variations.find(x=>x.id===play.dataset.line);if(v)tree?.open(v);}};
  el('studio-save').onclick=async()=>{ensure().student=el('studio-student').value.trim()||'Sin alumno';change();await put(active);await refreshLibrary();notify('Estudio guardado en este navegador.');};
  el('studio-export').onclick=exportStudy;
  el('studio-delete').onclick=async()=>{if(!active)return;if(!confirm('¿Eliminar este estudio guardado?'))return;await del(active.id);active=null;renderNotes();await refreshLibrary();};
  el('studio-library').onchange=async e=>{if(!e.target.value)return;const item=await transaction('readonly',s=>s.get(e.target.value));if(!item)return;callbacks.loadPGN(item.pgn,'estudio guardado');active=item;el('studio-student').value=item.student;renderNotes();};
  document.querySelector('#move-list').addEventListener('contextmenu',e=>{const b=e.target.closest('[data-ply]');if(!b)return;e.preventDefault();callbacks.jump(Number(b.dataset.ply));commentAt(Number(b.dataset.ply));});
- el('studio-comment-panel').hidden=false;refreshLibrary();renderNotes();
- return {gameChanged(){active=null;paint=false;el('studio-paint').checked=false;renderNotes();},selectionChanged(){if(el('studio-note')!==document.activeElement)renderNotes();el('studio-fen').value=selected.positions[selected.move]||'';}}
+ el('studio-comment-panel').hidden=false;
+ tree=initVariationBoard(selected,{render:callbacks.renderPreview,notify,isEditing:()=>paint,save:v=>{ensure();const i=active.variations.findIndex(x=>x.id===v.id);if(i>=0)active.variations[i]=v;else active.variations.push(v);change();renderNotes();}});
+ refreshLibrary();renderNotes();
+ return {gameChanged(){active=null;paint=false;tree?.clear();el('studio-paint').checked=false;renderNotes();},selectionChanged(){tree?.restoreMain();if(el('studio-note')!==document.activeElement)renderNotes();el('studio-fen').value=selected.positions[selected.move]||'';}}
 }
