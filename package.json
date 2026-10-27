@@ -4,9 +4,9 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "predev": "node scripts/copy-engine.mjs",
+    "predev": "node copy-engine.mjs",
     "dev": "vite --host 0.0.0.0",
-    "build": "node scripts/copy-engine.mjs && vite build",
+    "build": "node copy-engine.mjs && vite build",
     "preview": "vite preview --host 0.0.0.0"
   },
   "dependencies": {
