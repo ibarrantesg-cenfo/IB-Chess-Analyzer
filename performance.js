@@ -34,7 +34,7 @@ export function fidePerformance(rated){
  if(!rated.length)return null;
  const points=rated.reduce((total,r)=>total+r.result,0),percent=Math.max(0,Math.min(100,Math.round(points/rated.length*100)));
  const avg=Math.round(rated.reduce((total,r)=>total+r.elo,0)/rated.length);
- const delta=percent>=50?-fideNegativeDp[100-percent-50]:fideNegativeDp[50-percent];
+ const delta=percent>=50?-fideNegativeDp[percent-50]:fideNegativeDp[50-percent];
  return {rating:avg+delta,average:avg,percent,delta,points};
 }
 export function tournamentStats(games,name,event,analyses){
