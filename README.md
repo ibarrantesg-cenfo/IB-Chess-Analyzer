@@ -72,3 +72,14 @@ Supabase PostgreSQL + Auth + RLS, con tablas profiles, students, studies, study_
 - Es un análisis basado en reglas y en Stockfish; no equivale a una narración estratégica generada por un entrenador o IA.
 - El cómputo puede consumir CPU; desactivá el análisis automático desde el interruptor si necesitás recursos.
 - Se necesita verificar esta versión en un navegador real. GitHub Actions comprueba sintaxis y publicación, no garantiza que Stockfish WASM inicialice en todos los equipos.
+
+
+## v1.6 — Escritorio compacto y reproducción de variantes
+- **Paneles normales, no flotantes**: el informe no tapa tablero, notación ni gráficas al desplazar.
+- **Vista compacta** con distribución equilibrada para pantallas de escritorio, o vista cómoda con más espacio.
+- **Prioridad** automática: Game Review sobre variantes en la línea principal; variantes sobre Game Review al reproducir una línea, incluida una variante del estudio. Controles manuales para invertir los dos bloques o restaurar el orden. La preferencia se conserva en el navegador.
+- **Reproducción de líneas MultiPV**: clic en una jugada calculada para mostrar la posición correspondiente en el tablero; controles de anterior/siguiente y volver a partida. Las otras opciones del motor permanecen visibles mientras se reproduce la línea.
+- **Interpretación escrita** basada en puntuación Stockfish (perspectiva blanca), ventaja material probable en escala aproximada, jaques y capturas en la secuencia. El valor de MultiPV corresponde a la posición inicial de cada línea, no a evaluaciones independientes de cada jugada interna.
+- La reproducción es temporal: no modifica ni sobrescribe el PGN de la partida.
+- Las explicaciones son heurísticas, no equivalen a análisis causal profundo de IA. Pueden existir variantes evaluadas distinto a profundidad mayor.
+- La build valida sintaxis de `workspace.js` y `live-analysis.js`, pero las interacciones necesitan una prueba real del navegador tras el despliegue.
