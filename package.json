@@ -8,7 +8,7 @@
     "dev": "vite --host 0.0.0.0",
     "build": "node copy-engine.mjs && vite build",
     "preview": "vite preview --host 0.0.0.0",
-    "check": "node --check main.js && node --check studio.js && node --check variation-board.js && node --check cloud.js && node --check live-analysis.js && node --check workspace.js && node --check performance.js && node --check engine-performance.js",
+    "check": "node --check main.js && node --check studio.js && node --check variation-board.js && node --check cloud.js && node --check live-analysis.js && node --check workspace.js && node --check performance.js && node --check engine-performance.js && node --check appearance.js",
     "test": "node --test performance.test.mjs"
   },
   "dependencies": {
