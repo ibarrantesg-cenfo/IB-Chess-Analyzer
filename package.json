@@ -8,7 +8,8 @@
     "dev": "vite --host 0.0.0.0",
     "build": "node copy-engine.mjs && vite build",
     "preview": "vite preview --host 0.0.0.0",
-    "check": "node --check main.js && node --check studio.js && node --check variation-board.js && node --check cloud.js && node --check live-analysis.js && node --check workspace.js"
+    "check": "node --check main.js && node --check studio.js && node --check variation-board.js && node --check cloud.js && node --check live-analysis.js && node --check workspace.js && node --check performance.js",
+    "test": "node --test performance.test.mjs"
   },
   "dependencies": {
     "chess.js": "^1.4.0",
