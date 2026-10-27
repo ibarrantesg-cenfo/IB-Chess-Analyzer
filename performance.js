@@ -66,7 +66,7 @@ export function initPerformance({state,notify,analyzeGame,jumpGame,getAnalyses})
   <div id="perf-tournament" hidden>
     <div class="perf-filters"><label>Jugador<select id="perf-player"></select></label><label>Evento<select id="perf-event"></select></label></div>
     <div id="perf-summary"></div>
-    <div class="perf-actions"><button class="btn primary" id="perf-analyze-all">Analizar partidas de este torneo</button><button class="btn outline" id="perf-stop">Cancelar lote</button></div>
+    <div class="perf-actions"><button class="btn primary" id="perf-analyze-all">Analizar partidas de este torneo</button><button class="btn outline" id="perf-stop">Cancelar lote</button><button class="btn outline" id="perf-export">Exportar torneo CSV</button></div>
     <div id="perf-batch-state" class="perf-info">El análisis individual se conserva mientras navegás entre las partidas de este PGN.</div>
     <div id="perf-rows"></div>
   </div>
@@ -110,6 +110,16 @@ export function initPerformance({state,notify,analyzeGame,jumpGame,getAnalyses})
  $('perf-event').onchange=e=>{selectedEvent=e.target.value;renderTournament();};
  $('perf-rows').onclick=e=>{const b=e.target.closest('[data-open-game]');if(b)jumpGame(Number(b.dataset.openGame));};
  $('perf-stop').onclick=()=>{batchCancelled=true;notify('Se detendrá el análisis por lotes después de la posición actual.');};
+ $('perf-export').onclick=()=>{
+   const t=tournamentStats(state.games,selectedPlayer,selectedEvent,getAnalyses());
+   if(!t.rows.length)return notify('Este filtro no tiene partidas.');
+   const q=x=>'"'+String(x??'').replaceAll('"','""')+'"';
+   const rows=[['Jugador','Evento','Ronda','Rival','Elo rival','Color','Puntos','Indice tecnico','CP medio','Jugadas evaluadas','Rendimiento Elo de torneo']];
+   for(const r of t.rows)rows.push([selectedPlayer,selectedEvent,r.round,r.opponent,r.elo??'',r.side==='w'?'Blancas':'Negras',r.result??'',r.technical.complete?r.technical.quality.toFixed(1):'',r.technical.complete?r.technical.avg.toFixed(1):'',r.technical.count+'/'+r.technical.totalMoves,t.performance??'No estimable']);
+   const blob=new Blob(['\\ufeff'+rows.map(row=>row.map(q).join(',')).join('\\r\\n')],{type:'text/csv;charset=utf-8'});
+   const link=document.createElement('a'),url=URL.createObjectURL(blob);link.href=url;link.download='IB_Torneo_'+selectedPlayer.replace(/[^a-z0-9-]/gi,'_')+'.csv';link.click();setTimeout(()=>URL.revokeObjectURL(url),1000);
+ };
+
  $('perf-analyze-all').onclick=async()=>{
   if(batching)return;
   const t=tournamentStats(state.games,selectedPlayer,selectedEvent,getAnalyses());
