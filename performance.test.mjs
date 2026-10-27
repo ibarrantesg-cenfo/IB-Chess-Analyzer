@@ -1,6 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {gameMetrics,tournamentStats} from './performance.js';
+import {gameMetrics,tournamentStats,fidePerformance} from './performance.js';
+import {enginePerformance,calibrationSamples} from './engine-performance.js';
 const game=(white,black,result,welo,belo,event='Torneo A')=>({headers:{White:white,Black:black,Result:result,WhiteElo:String(welo||''),BlackElo:String(belo||''),Event:event,Round:'1'},moves:[{san:'e4'},{san:'e5'},{san:'Nf3'},{san:'Nc6'}]});
 test('game index reflects CP loss and is complete only when every move is evaluated',()=>{
  const g=game('Alumno','Rival','1-0',1800,1600);
@@ -27,4 +28,23 @@ test('unrated opponents and missing results do not affect TPR',()=>{
 test('tournament only includes selected player and event',()=>{
  const g=[game('Alumno','R','1-0',1800,1900),game('Otro','R','0-1',1800,1900),game('Alumno','R','0-1',1800,1900,'Otro evento')];
  assert.equal(tournamentStats(g,'Alumno','Torneo A',new Map()).rows.length,1);
+});
+
+test('FIDE dp conversion is symmetric around 50 percent',()=>{
+ const fifty=fidePerformance([{elo:2000,result:1},{elo:2000,result:0}]);
+ const higher=fidePerformance(Array.from({length:10},(_,i)=>({elo:2000,result:i<7?1:0})));
+ const lower=fidePerformance(Array.from({length:10},(_,i)=>({elo:2000,result:i<3?1:0})));
+ assert.equal(fifty.rating,2000);assert.equal(higher.rating-2000,2000-lower.rating);
+});
+test('engine performance refuses insufficient and out-of-range training data',()=>{
+ const samples=Array.from({length:24},(_,i)=>({index:i,player:'player'+i,rating:1200+50*i,quality:49+1.5*i,moves:25}));
+ const calibrated=enginePerformance(64,samples);
+ assert.ok(calibrated.value>1000&&calibrated.value<2700);
+ assert.equal(enginePerformance(5,samples).value,null);
+ assert.equal(enginePerformance(60,samples.slice(0,5)).value,null);
+});
+test('engine calibration excludes the target game and player to avoid information leakage',()=>{
+ const samples=Array.from({length:20},(_,i)=>({index:i,player:'p'+i,rating:1300+50*i,quality:50+i,moves:20}));
+ const output=enginePerformance(62,samples,{excludeIndex:3,excludePlayer:'p4'});
+ assert.equal(output.count,18);
 });
