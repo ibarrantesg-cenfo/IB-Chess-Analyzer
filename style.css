@@ -72,3 +72,6 @@
 .studio-result small{color:#91a8c0;font-size:10px}
 .studio-results>small{font-size:11px;color:#8ca5b7}
 @media(max-width:600px){.studio-result{display:block}.studio-result small{display:block;margin-top:4px}}
+
+/* v1.5: no floating overlay on analysis, notation or evaluation chart */
+.analysis-column>.review-panel{position:static!important;top:auto!important;z-index:auto!important;box-shadow:none!important}
