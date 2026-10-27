@@ -70,6 +70,7 @@ const initialRender=render;render=function(){initialRender();$('#black-name').te
 window.IB_STUDIO=initStudio(state,{render:()=>{render();window.IB_LIVE?.positionChanged(true);},renderPreview:()=>{render();window.IB_LIVE?.positionChanged();},notify,loadPGN:loadText,jump});
 window.IB_WORKSPACE=initWorkspace();
 window.IB_APPEARANCE=initBoardAppearance({refreshPieces:()=>{if(state.game){$('#board').innerHTML=boardHTML();window.IB_ARROWS?.positionChanged();}}});
+if(state.game)$('#board').innerHTML=boardHTML(); // restore saved SVG set immediately
 window.IB_ARROWS=initBoardArrows({getFen:()=>state.previewFen||state.positions[state.move],getOrientation:()=>state.orientation,isEditing:()=>document.getElementById('studio-paint')?.checked});
 window.IB_LIVE=initLiveAnalysis({getFen:()=>state.previewFen||state.positions[state.move],onPreview:(fen)=>{state.previewFen=fen;render();window.IB_WORKSPACE?.variationChanged(true);},onLeavePreview:()=>{state.previewFen=null;render();window.IB_WORKSPACE?.variationChanged(false);},getEngineUrl:()=>`${import.meta.env.BASE_URL}engine/stockfish-19-lite-single.js`,notify,onSaveVariation:(moves,notes)=>{if(window.IB_STUDIO?.addEngineVariation(state.move,moves,notes))notify('Alternativa y comentario guardados en el estudio.');}});
 
