@@ -30,3 +30,23 @@ Volver a ejecutar `Publicar IB Chess Analyzer` en GitHub Actions. Son variables 
 - Las variantes jugadas sobre el tablero se guardan como ramas alternativas asociadas a la jugada, no como una estructura recursiva de varias subvariantes anidadas.
 - No hay pruebas de navegador reales en GitHub Actions por ahora; el workflow verifica sintaxis y compilación.
 - Antes de uso real con menores se requiere revisar protección de datos, consentimiento y controles de acceso.
+
+
+## Flujo de entrenamiento entrenador ↔ alumno (v2.1, tras activar Supabase)
+1. Ambos inician sesión con enlaces por correo desde la propia web.
+2. El entrenador entra en Estudios compartidos y copia **mi ID para compartir**.
+3. El alumno abre un estudio **propio** en su cuenta, pulsa **Subir estudio actual**, introduce el UUID del entrenador y usa **Compartir estudio**.
+4. Al actualizar la biblioteca de la cuenta del entrenador y seleccionar **Compartidos conmigo**, aparece el estudio del alumno. El propietario es siempre el alumno.
+5. El entrenador lo abre, añade comentarios y variantes y pulsa **Enviar corrección al alumno**. Esto guarda **otro estudio** a nombre del entrenador, con referencia al original, y comparte la copia con el alumno en lectura. No sobrescribe la entrega original.
+6. El alumno pulsa Actualizar biblioteca y encuentra la corrección en **Compartidos conmigo**.
+
+**Importante**: es un intercambio secuencial, no edición simultánea. La corrección no se sube automáticamente al escribir; hay que pulsar el botón para enviarla. No debe usarse con datos privados reales sin probar RLS con dos cuentas separadas. Los alumnos menores requieren medidas adicionales de protección de datos y acceso.
+
+## Diagramas y posiciones
+El editor permite añadir/retirar piezas, establecer el turno, importar/copiar FEN, partir de solo dos reyes y **guardar diagramas FEN en cada estudio**. El PGN principal queda inalterado. Las copias JSON incluyen los diagramas.
+
+## Seguridad operacional
+- No crear variables GitHub para claves service_role ni secretos de base de datos.
+- Aplicar únicamente la migración tras examinarla y probar permisos en Supabase.
+- Probar que un tercer usuario no puede ver estudios compartidos entre alumno y entrenador, ni modificar un estudio que no posee.
+- Si falla el compartido de correcciones, comprobar que el propietario de la copia está autenticado y que se creó la membresía, antes de anunciar que la devolución se completó.
