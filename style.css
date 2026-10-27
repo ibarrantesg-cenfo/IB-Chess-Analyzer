@@ -103,3 +103,6 @@
 .live-footer span{font-size:10px;color:#97b6c8}
 .live-footer button{padding:8px 10px;font-size:11px}
 @media(max-width:800px){.live-analysis-panel{padding:16px}.live-lines{max-height:260px}}
+
+.live-save-line{margin-top:10px;padding:7px 9px;border:1px solid #45695c;border-radius:7px;background:#203a33;color:#9ae7c9;font-size:11px;font-weight:700}
+.live-save-line:hover,.live-save-line:focus-visible{background:#2b5547;outline:1px solid #82e6c1}
