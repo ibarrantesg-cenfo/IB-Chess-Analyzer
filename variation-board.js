@@ -10,14 +10,14 @@ export function initVariationBoard(state, options) {
   area.innerHTML = '<div class="studio-subtitle">Variantes navegables</div><p class="variation-hint">Seleccioná una jugada y tocá una pieza y su destino para construir una alternativa. También podés escribir una línea SAN arriba.</p><div class="variation-toolbar"><button id="v-start" class="btn outline">⏮ Inicio</button><button id="v-prev" class="btn outline">◀</button><span id="v-progress">Sin variante</span><button id="v-next" class="btn outline">▶</button><button id="v-main" class="btn subtle">Volver a partida</button></div><div id="v-current" class="variation-line"></div>';
   root.after(area);
   const $ = id => document.getElementById(id);
-  const clear = () => {branch=null;from=null;state.previewFen=null;options.render();draw();};
+  const clear = () => {branch=null;from=null;state.previewFen=null;window.IB_WORKSPACE?.variationChanged(false);options.render();draw();};
   const draw = () => {
     $('v-progress').textContent=branch?branch.cursor+' / '+branch.san.length:'Sin variante';
     $('v-current').textContent=branch?branch.san.map((m,i)=>i===branch.cursor-1?'【'+m+'】':m).join(' '):'';
     for(const id of ['v-start','v-prev','v-next','v-main'])$(id).disabled=!branch;
   };
   const sync = () => {
-    state.previewFen=branch?.fens[branch.cursor]||null;from=null;
+    state.previewFen=branch?.fens[branch.cursor]||null;from=null;window.IB_WORKSPACE?.variationChanged(Boolean(branch));
     options.render();draw();
   };
   const open = (entry) => {
