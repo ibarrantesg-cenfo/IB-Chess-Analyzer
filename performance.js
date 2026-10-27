@@ -95,7 +95,8 @@ export function initPerformance({state,notify,analyzeGame,jumpGame,getAnalyses})
  function renderGame(){
   const current=state.game;if(!current)return;
   const ix=state.games.indexOf(current),m=gameMetrics(current,getAnalyses().get(ix)||state.reports);
-  $('perf-game').innerHTML=statHTML('Blancas · '+esc(current.headers.White||'?'),m.w)+statHTML('Negras · '+esc(current.headers.Black||'?'),m.b);
+  const completed=current.headers.Result&&['1-0','0-1','1/2-1/2'].includes(current.headers.Result)?current.headers.Result:'Sin resultado';
+  $('perf-game').innerHTML='<div class="perf-result">'+esc(current.headers.White||'?')+' <strong>'+completed+'</strong> '+esc(current.headers.Black||'?')+'</div>'+statHTML('Blancas · '+esc(current.headers.White||'?'),m.w)+statHTML('Negras · '+esc(current.headers.Black||'?'),m.b);
  }
  function renderTournament(){
   filters();
