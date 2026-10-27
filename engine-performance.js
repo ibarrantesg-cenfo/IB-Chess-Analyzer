@@ -48,3 +48,28 @@ export function enginePerformance(targetQuality, samples, {excludeIndex=-1,exclu
  const sd=Math.sqrt(neighbors.reduce((a,s,i)=>a+weights[i]*(s.rating-value)**2,0)/sw);
  return {value:Math.round(value/5)*5,spread:Math.max(100,Math.round(1.5*sd/25)*25),count:pool.length,players:unique,reason:'Estimación experimental calibrada con partidas analizadas y Elo de referencia; no equivale a un rendimiento oficial.'};
 }
+
+
+// IMMEDIATE apparent playing strength. This is an explicitly UNCALIBRATED
+// heuristic scale applied to the player's own Stockfish evaluations only.
+// It is not an empirically validated mapping from centipawn loss to Elo.
+export function apparentPerformance(metric){
+  if(!metric?.complete || !Number.isFinite(metric.quality))
+    return {value:null,reason:'Completá Game Review para obtener el Elo aparente de esta partida.'};
+  if(metric.count<8)
+    return {value:null,reason:'Se necesitan al menos 8 decisiones analizadas de este bando.'};
+  const anchors=[[0,400],[35,700],[45,900],[60,1250],[70,1500],[80,1800],[87,2100],[93,2350],[97,2600],[100,2800]];
+  const q=Math.max(0,Math.min(100,metric.quality));
+  let value=2800;
+  for(let i=1;i<anchors.length;i++){
+    if(q<=anchors[i][0]){
+      const [x0,y0]=anchors[i-1],[x1,y1]=anchors[i];
+      value=y0+(q-x0)*(y1-y0)/(x1-x0);
+      break;
+    }
+  }
+  // Short games are particularly misleading. This intentionally wide
+  // interval is a communication aid, NOT a calibrated confidence interval.
+  const uncertainty=metric.count<15?450:metric.count<25?350:300;
+  return {value:Math.round(value/25)*25,spread:uncertainty,reason:'Elo aparente heurístico según las jugadas analizadas; no es un Elo oficial ni una predicción validada.',moves:metric.count};
+}
