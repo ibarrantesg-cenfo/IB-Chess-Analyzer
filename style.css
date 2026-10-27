@@ -187,3 +187,5 @@
 .workspace-compact .performance-panel{padding:14px 16px}
 .workspace-compact .perf-metrics b{font-size:19px}
 @media(max-width:650px){.perf-filters{grid-template-columns:1fr}.perf-game-row{flex-direction:column;align-items:flex-start}}
+
+.perf-phases{margin-top:9px;display:flex;gap:8px;flex-wrap:wrap;color:#a0bdcc;font-size:10px}.perf-phases b{color:#b7f1d8}.perf-result{padding:8px 12px;border:1px solid #2f4b59;border-radius:9px;background:#17302e;text-align:center;font-size:12px;color:#b7d7d0;margin-bottom:12px}.perf-result strong{color:#8ee7bd;margin:0 7px}
