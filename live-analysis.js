@@ -2,7 +2,7 @@ import { Chess } from 'chess.js';
 
 // UCI analysis runs in its own Web Worker. Batch Game Review is a separate engine.
 // No network calls or paid API are required.
-export function initLiveAnalysis({getFen,getEngineUrl,notify,onSaveVariation}) {
+export function initLiveAnalysis({getFen,getEngineUrl,notify,onSaveVariation,onPreview,onLeavePreview}) {
   const host=document.querySelector('.analysis-column');
   const panel=document.createElement('div');
   panel.className='panel live-analysis-panel';
@@ -13,6 +13,7 @@ export function initLiveAnalysis({getFen,getEngineUrl,notify,onSaveVariation}) {
       <label>Líneas <select id="live-count"><option value="1">1</option><option value="3" selected>3</option><option value="5">5</option></select></label>
       <label>Profundidad <select id="live-depth"><option value="16">16</option><option value="20" selected>20</option><option value="24">24</option><option value="28">28</option></select></label>
     </div>
+    <div id="live-playback" class="live-playback" hidden><strong data-progress>Variante</strong><div class="live-playback-buttons"><button id="pv-back" class="btn outline">◀ Anterior</button><button id="pv-next" class="btn outline">Siguiente ▶</button><button id="pv-exit" class="btn subtle">Volver a partida</button></div></div>
     <div id="live-lines" class="live-lines" aria-live="polite"><p class="live-empty">Iniciando motor de análisis…</p></div>
     <p id="live-explanation" class="live-explanation">Las alternativas se actualizan mientras el motor calcula. Las explicaciones son heurísticas, no texto generado por un modelo de IA.</p>
     <div class="live-footer"><span id="live-depth-status">Sin evaluación</span><button class="btn outline" id="live-restart">Reiniciar motor</button></div>`;
@@ -20,7 +21,7 @@ export function initLiveAnalysis({getFen,getEngineUrl,notify,onSaveVariation}) {
   host.insertBefore(panel,enginePanel);
   const $=id=>document.getElementById(id);
   let worker=null,ready=false,busy=false,activeFen=null,queuedFen=null,enabled=true,loading=false,sequence=0,debounce=null,paused=false;
-  let lines=new Map(),bestDepth=0,failures=0;
+  let lines=new Map(),bestDepth=0,failures=0,playback=null;
   const compactScore=(kind,value,fen)=>{
     const white=fen.split(' ')[1]==='w';
     const sign=white?1:-1;
@@ -53,6 +54,53 @@ export function initLiveAnalysis({getFen,getEngineUrl,notify,onSaveVariation}) {
     if(move.piece==='q')return 'Reubica la dama; comprobá amenazas, desarrollo y seguridad antes de aceptarla.';
     return 'Compará la actividad y coordinación de las piezas en esta variante.';
   }
+  const interpretation=(item,rank)=>{
+    if(!item?.moves?.length)return 'Calculando continuación…';
+    const evalWhite=item.score,whiteTurn=activeFen.split(' ')[1]==='w';
+    const lead=evalWhite.includes('M')?'La evaluación indica una secuencia de mate forzado, si se mantiene la mejor defensa.':(()=>{
+       const value=Number(evalWhite.replace('−','-'));
+       if(!Number.isFinite(value))return 'Evaluación provisional del motor.';
+       const advantage=Math.abs(value)<.35?'posición aproximadamente equilibrada':Math.abs(value)<1?'ventaja ligera':Math.abs(value)<2?'ventaja apreciable':'ventaja considerable';
+       return Math.abs(value)<.35?'El motor considera la posición aproximadamente equilibrada.':'El motor estima '+advantage+' para '+(value>0?'las blancas':'las negras')+'.';
+    })();
+    const first=item.moves[0];
+    const other=rank===1?'Es la principal elección de Stockfish a la profundidad actual.':'Es una alternativa comparada con la línea principal.';
+    const capture=item.moves.filter(m=>m.captured).length,checks=item.moves.filter(m=>/[+#]/.test(m.san)).length;
+    const forcing=(checks?' Incluye '+checks+' jaque(s) calculados.':'')+(capture?' Hay '+capture+' captura(s) en la continuación.':'');
+    const initiative=whiteTurn?'blancas':'negras';
+    return lead+' '+other+' '+idea(first,activeFen)+forcing+' El turno inicial corresponde a las '+initiative+'. La evaluación puede cambiar al profundizar.';
+  };
+  function playbackFen(item,index){
+    const c=new Chess(activeFen);
+    for(const move of item.moves.slice(0,index))c.move({from:move.from,to:move.to,promotion:move.promotion||'q'});
+    return c.fen();
+  }
+  function showPlayback(){
+    const p=document.getElementById('live-playback');
+    if(!p)return;
+    if(!playback){p.hidden=true;return;}
+    p.hidden=false;
+    const item=lines.get(playback.rank)||playback.item;
+    p.querySelector('[data-progress]').textContent='Línea '+playback.rank+' · '+playback.cursor+'/'+item.moves.length;
+  }
+  function enterPlayback(n,index=0){
+    const item=lines.get(n);if(!item)return;
+    playback={rank:n,cursor:index,item,fen:activeFen};
+    paused=true;clearTimeout(debounce);stopWorker(); // Freeze the chosen PV while replaying.
+    lines=new Map([[n,item]]);activeFen=playback.fen;
+    onPreview?.(playbackFen(item,index),true);
+    draw();showPlayback();
+  }
+  function changePlayback(delta){
+    if(!playback)return;
+    const item=playback.item;
+    playback.cursor=Math.max(0,Math.min(item.moves.length,playback.cursor+delta));
+    onPreview?.(playbackFen(item,playback.cursor),true);showPlayback();
+  }
+  function exitPlayback(){
+    if(!playback)return;
+    playback=null;paused=false;onLeavePreview?.();draw();update(true);
+  }
   function draw(){
     const status=$('live-status');
     status.textContent=!enabled?'Pausado':paused?'Game Review activo':loading?'Cargando Stockfish':busy?'Calculando':'Listo';
@@ -74,12 +122,13 @@ export function initLiveAnalysis({getFen,getEngineUrl,notify,onSaveVariation}) {
       header.append(title,depth);
       const variation=document.createElement('div');variation.className='live-pv';variation.textContent=item.san||'Calculando…';
       const explanation=document.createElement('p');explanation.className='live-idea';explanation.textContent=idea(item.moves[0],activeFen);
+      const replay=document.createElement('button');replay.type='button';replay.className='live-replay';replay.textContent='▶ Reproducir en tablero';replay.onclick=()=>enterPlayback(n,0);
       const save=document.createElement('button');save.type='button';save.className='live-save-line';save.textContent='＋ Añadir al estudio';save.title='Guardar esta línea y una explicación en el estudio actual';
       save.onclick=()=>{const notes='Stockfish, alternativa '+n+' ('+item.score+', profundidad '+item.depth+'): '+item.san+'. '+idea(item.moves[0],activeFen);onSaveVariation?.(item.moves.map(m=>m.san),notes);};
-      div.append(header,variation,explanation,save);host.append(div);
+      explanation.textContent=interpretation(item,n);div.append(header,variation,explanation,replay,save);host.append(div);
     }
     const first=lines.get(1);
-    $('live-explanation').textContent=first?'La opción principal comienza con '+(first.moves[0]?.san||'—')+'. '+idea(first.moves[0],activeFen)+' Compará las otras variantes: son opciones del motor, no recomendaciones independientes del entrenador.':'Las evaluaciones están expresadas desde la perspectiva de las blancas.';
+    $('live-explanation').textContent=first?interpretation(first,1):'Las evaluaciones están expresadas desde la perspectiva de las blancas.';
   }
   function configure(){
     if(!worker)return;
@@ -136,7 +185,7 @@ export function initLiveAnalysis({getFen,getEngineUrl,notify,onSaveVariation}) {
     if(!enabled||paused)return;
     clearTimeout(debounce);
     const fen=getFen();
-    if(!fen)return;
+    if(!fen||playback)return;
     debounce=setTimeout(()=>{
       if(!worker){queuedFen=fen;start();return;}
       if(force||fen!==activeFen){
@@ -146,6 +195,9 @@ export function initLiveAnalysis({getFen,getEngineUrl,notify,onSaveVariation}) {
       }
     },160);
   }
+  $('pv-back').onclick=()=>changePlayback(-1);
+  $('pv-next').onclick=()=>changePlayback(1);
+  $('pv-exit').onclick=exitPlayback;
   $('live-enabled').onchange=e=>{enabled=e.target.checked;if(!enabled){clearTimeout(debounce);stopWorker();draw();}else update(true);};
   $('live-count').onchange=()=>{const fen=getFen();stopWorker();queuedFen=fen;start();};
   $('live-depth').onchange=()=>update(true);
@@ -153,8 +205,9 @@ export function initLiveAnalysis({getFen,getEngineUrl,notify,onSaveVariation}) {
   update(true);
   return {
     positionChanged:update,
-    pause(){paused=true;clearTimeout(debounce);stopWorker();draw();},
+    exitPlayback,
+    pause(){if(playback)exitPlayback();paused=true;clearTimeout(debounce);stopWorker();draw();},
     resume(){paused=false;update(true);},
-    dispose(){clearTimeout(debounce);stopWorker();}
+    dispose(){exitPlayback();clearTimeout(debounce);stopWorker();}
   };
 }
