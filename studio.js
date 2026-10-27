@@ -110,5 +110,15 @@ el('studio-export').onclick=exportStudy;
  el('studio-comment-panel').hidden=false;
  tree=initVariationBoard(selected,{render:callbacks.renderPreview,notify,isEditing:()=>paint,save:v=>{ensure();const i=active.variations.findIndex(x=>x.id===v.id);if(i>=0)active.variations[i]=v;else active.variations.push(v);change();renderNotes();}});
  refreshLibrary();renderNotes();
- return {getComment(ply){return active?.comments?.[ply]||'';},getVariations(ply){return (active?.variations||[]).filter(v=>v.ply===ply).map(v=>v.san.join(' '));},gameChanged(){active=null;paint=false;tree?.clear();el('studio-paint').checked=false;renderNotes();},selectionChanged(){tree?.restoreMain();if(el('studio-note')!==document.activeElement)renderNotes();el('studio-fen').value=selected.positions[selected.move]||'';}}
+ return {addEngineVariation(ply,sans,summary){try{
+if(selected.previewFen)throw Error('Volvé a la línea principal antes de guardar variantes del motor.');
+const c=new Chess(selected.positions[ply]);const legalSans=[];
+for(const m of sans){legalSans.push(c.move(m).san);}
+if(!legalSans.length)throw Error('No hay jugadas que guardar.');
+ensure();
+const entry={id:crypto.randomUUID(),ply,san:legalSans,fen:c.fen()};
+if(!active.variations.some(v=>v.ply===ply&&v.san.join(' ')===entry.san.join(' ')))active.variations.push(entry);
+if(summary)active.comments[ply]=[active.comments[ply],summary].filter(Boolean).join('\n');
+change();renderNotes();return true;
+}catch(e){notify('No se pudo guardar la variante: '+e.message,'err');return false;}},getComment(ply){return active?.comments?.[ply]||'';},getVariations(ply){return (active?.variations||[]).filter(v=>v.ply===ply).map(v=>v.san.join(' '));},gameChanged(){active=null;paint=false;tree?.clear();el('studio-paint').checked=false;renderNotes();},selectionChanged(){tree?.restoreMain();if(el('studio-note')!==document.activeElement)renderNotes();el('studio-fen').value=selected.positions[selected.move]||'';}}
 }
