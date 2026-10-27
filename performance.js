@@ -5,6 +5,8 @@ const pct=n=>Number.isFinite(n)?n.toFixed(1)+'%':'—';
 const num=x=>{const n=Number(x);return Number.isFinite(n)&&n>0?n:null;};
 const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;','\'':'&#39;'}[c]));
 export function gameMetrics(game,reports){
+  // Accept both a report array and the cached Game Review record.
+  if(reports && !Array.isArray(reports))reports=reports.reports;
   const moves=game?.moves||[], byColor={w:{loss:[],counts:{}},b:{loss:[],counts:{}}};
   for(let i=0;i<moves.length;i++){
     const r=reports?.[i];if(!r||!Number.isFinite(r.loss))continue;
