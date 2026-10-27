@@ -83,3 +83,15 @@ Supabase PostgreSQL + Auth + RLS, con tablas profiles, students, studies, study_
 - La reproducción es temporal: no modifica ni sobrescribe el PGN de la partida.
 - Las explicaciones son heurísticas, no equivalen a análisis causal profundo de IA. Pueden existir variantes evaluadas distinto a profundidad mayor.
 - La build valida sintaxis de `workspace.js` y `live-analysis.js`, pero las interacciones necesitan una prueba real del navegador tras el despliegue.
+
+
+## v1.7 — Rendimiento de partida y torneo
+- **Desempeño por partida**: resultado PGN, índice técnico original de 0–100 por jugador, pérdida media de centipeones, jugadas procesadas, errores y desglose aproximado apertura/medio juego/final.
+- **No se presenta el índice técnico como Elo o como precisión de Chess.com**. Fórmula pública del proyecto: promedio de `100 × exp(-min(pérdidaCP,600)/150)` para las jugadas analizadas. Las métricas solo son comparables a igual motor, profundidad y criterio.
+- **Rendimiento Elo estimado de torneo**: seleccioná jugador y evento en el PGN. El estimador resuelve por búsqueda binaria la ecuación `Σ 1/(1+10^((EloRival-Rendimiento)/400)) = puntos obtenidos` usando únicamente rivales con Elo válido y resultado 1-0/0-1/1/2-1/2. No es cálculo oficial FIDE ni debe mostrarse como rating obtenido.
+- Para 0% y 100% frente a rivales calificados, no se inventa un número finito. Para rivales sin Elo no se calcula TPR hasta disponer de la información.
+- Abrí cada partida del evento con un clic, calculá Game Review para cada una, o ejecutá **Analizar partidas de este torneo**. El lote analiza secuencialmente las pendientes y se puede cancelar entre partidas.
+- Conserva las evaluaciones de las partidas analizadas **en la sesión actual** al navegar; todavía no las sincroniza ni las persiste automáticamente entre sesiones.
+- Exportá resultados, ratings rivales e índice técnico a CSV. No importa a una base pública ni revela datos del PGN al servidor.
+- **Pruebas automáticas**: `npm run test` comprueba resultados, estimación de 50%, ratings ausentes y resultados extremos; GitHub Actions ejecuta los tests antes del build.
+- Falta confirmar prueba de interfaz/navegación desde un navegador tras el despliegue actual.
