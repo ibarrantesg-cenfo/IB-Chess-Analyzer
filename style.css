@@ -22,3 +22,25 @@
 .move:focus-visible{outline:2px solid #82e8c6;outline-offset:2px}
 @media(min-width:1000px){.analysis-column>.review-panel{position:sticky;top:12px;z-index:3;box-shadow:0 8px 24px #070e19a0}}
 @media(max-width:800px){.review-panel,.engine-panel,.moves-panel{padding:16px}.analysis-column>.review-panel{position:static}}
+
+/* v1.2: local study editor */
+.studio-panel{padding:19px 20px;order:3}
+.studio-panel .studio-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px}
+.studio-panel label{display:flex;flex-direction:column;gap:6px;font-size:11px;color:#a7b8ce}
+.studio-panel input:not([type=checkbox]),.studio-panel select,.studio-panel textarea{width:100%;min-width:0;border:1px solid #385067;border-radius:8px;background:#0e1a2a;color:#eff6ff;padding:10px;font:inherit;font-size:12px}
+.studio-panel textarea{resize:vertical;line-height:1.5}
+.studio-actions{display:flex;gap:7px;flex-wrap:wrap;margin:9px 0}
+.studio-actions .btn{padding:9px 11px}
+#studio-save-status,.studio-disclaimer{display:block;color:#91a5bc;font-size:10px;line-height:1.6}
+.studio-subtitle{font-size:12px;font-weight:700;color:#cfdfef;margin:14px 0 8px}
+.studio-variant{display:flex;justify-content:space-between;gap:7px;background:#19293b;margin:6px 0;padding:7px;border-radius:7px}
+.studio-variant button{background:transparent;border:0;color:#8ee0c3;text-align:left}
+.studio-editor{margin-top:15px;border-top:1px solid #34445b;padding-top:12px}
+.studio-editor summary{cursor:pointer;color:#c6e7df;font-size:12px;font-weight:700}
+.studio-editor p{font-size:11px;line-height:1.6;color:#9daec1}
+.studio-palette{display:grid;grid-template-columns:repeat(7,1fr);gap:4px;margin:10px 0}
+.studio-palette button{min-width:0;background:#25374b;border:1px solid #33485d;color:#f5f5f2;border-radius:7px;padding:4px;font-size:24px}
+.studio-palette button.picked{outline:2px solid #78dfbd;background:#2b5d52}
+.studio-edit-check{flex-direction:row!important;align-items:center;margin:10px 0}
+#studio-variants small{color:#839ab0}
+@media(max-width:650px){.studio-panel .studio-grid{grid-template-columns:1fr}}
