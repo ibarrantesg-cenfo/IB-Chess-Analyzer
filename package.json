@@ -6,10 +6,11 @@
   "scripts": {
     "predev": "node copy-engine.mjs",
     "dev": "vite --host 0.0.0.0",
-    "build": "node copy-engine.mjs && vite build",
+    "build": "node download-pieces.mjs && node copy-engine.mjs && vite build",
     "preview": "vite preview --host 0.0.0.0",
-    "check": "node --check main.js && node --check studio.js && node --check variation-board.js && node --check cloud.js && node --check live-analysis.js && node --check workspace.js && node --check performance.js && node --check engine-performance.js && node --check appearance.js && node --check board-arrows.js",
-    "test": "node --test performance.test.mjs"
+    "check": "node --check main.js && node --check studio.js && node --check variation-board.js && node --check cloud.js && node --check live-analysis.js && node --check workspace.js && node --check performance.js && node --check engine-performance.js && node --check appearance.js && node --check board-arrows.js && node --check download-pieces.mjs",
+    "test": "node --test performance.test.mjs",
+    "pieces": "node download-pieces.mjs"
   },
   "dependencies": {
     "chess.js": "^1.4.0",
