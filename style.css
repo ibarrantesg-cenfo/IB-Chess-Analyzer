@@ -75,3 +75,31 @@
 
 /* v1.5: no floating overlay on analysis, notation or evaluation chart */
 .analysis-column>.review-panel{position:static!important;top:auto!important;z-index:auto!important;box-shadow:none!important}
+
+/* v1.5 - MultiPV live analysis: always in normal document flow */
+.analysis-column>.review-panel{position:static!important;top:auto!important;z-index:auto!important;box-shadow:none!important}
+.live-analysis-panel{padding:19px 21px;order:1}
+.analysis-column>.engine-panel{order:2}
+.analysis-column>.moves-panel{order:3}
+.analysis-column>.studio-panel{order:4}
+.live-analysis-panel .panel-heading{margin-bottom:12px}
+.live-chip{font-size:10px;color:#a6bdd5;background:#26364b;border:1px solid #364c61;border-radius:7px;padding:7px 10px}
+.live-running{background:#193b32;border-color:#316c53;color:#8fe6be}
+.live-controls{display:flex;align-items:end;gap:10px;flex-wrap:wrap;margin-bottom:14px}
+.live-controls label{display:flex;flex-direction:column;gap:6px;font-size:11px;color:#9bb3c9}
+.live-controls label.live-toggle{flex:1 0 100%;flex-direction:row;align-items:center;color:#ccdfec}
+.live-controls input{accent-color:#77d8b5}
+.live-controls select{background:#101e30;border:1px solid #365269;color:#e4f3fa;padding:8px;border-radius:8px;min-width:100px}
+.live-lines{display:grid;gap:9px;max-height:350px;overflow:auto;overscroll-behavior:contain;scrollbar-gutter:stable}
+.live-line{border:1px solid #32455d;border-radius:10px;background:#101b2d;padding:11px 13px}
+.live-line:first-child{border-color:#3b826b;background:#142b2a}
+.live-line-head{display:flex;justify-content:space-between;align-items:center;gap:10px;color:#89e8c6;font-size:14px}
+.live-line-head span{font-size:11px;color:#8ba8be}
+.live-pv{margin:7px 0;color:#f0f4f8;font-size:12px;font-weight:600;line-height:1.65;overflow-wrap:anywhere}
+.live-idea,.live-explanation,.live-empty{font-size:11px;line-height:1.6;color:#9db5c8}
+.live-idea{margin:5px 0 0}
+.live-explanation{margin:12px 0;color:#b3c9dc}
+.live-footer{border-top:1px solid #30465c;padding-top:10px;display:flex;align-items:center;justify-content:space-between;gap:10px}
+.live-footer span{font-size:10px;color:#97b6c8}
+.live-footer button{padding:8px 10px;font-size:11px}
+@media(max-width:800px){.live-analysis-panel{padding:16px}.live-lines{max-height:260px}}
