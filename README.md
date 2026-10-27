@@ -95,3 +95,19 @@ Supabase PostgreSQL + Auth + RLS, con tablas profiles, students, studies, study_
 - Exportá resultados, ratings rivales e índice técnico a CSV. No importa a una base pública ni revela datos del PGN al servidor.
 - **Pruebas automáticas**: `npm run test` comprueba resultados, estimación de 50%, ratings ausentes y resultados extremos; GitHub Actions ejecuta los tests antes del build.
 - Falta confirmar prueba de interfaz/navegación desde un navegador tras el despliegue actual.
+
+
+## v1.8 — Performance basado en análisis Stockfish (experimental)
+
+El módulo prioriza el **performance técnico obtenido de las decisiones evaluadas por Stockfish** y no confunde un resultado deportivo con calidad de juego.
+
+- Índice técnico instantáneo 0–100: promedio `100 × exp(-min(pérdidaCP,600)/150)` sobre jugadas realmente analizadas. Es una métrica interna, no una precisión comercial.
+- **Elo de performance derivado del motor:** cuando hay suficientes partidas completas con Elo de referencia en el PGN, el software aprende una relación *local* entre calidad técnica y Elo declarado, con vecinos cercanos. Se apartan las muestras del mismo jugador y de la propia partida para reducir filtración de resultados.
+- Umbral mínimo: 16 partidas-jugador de otros jugadores, 6 jugadores diferentes, dispersión de Elo de al menos 350 puntos, dispersión de calidad de al menos 7 puntos; tampoco extrapola lejos del intervalo de referencia.
+- Se muestra aproximación y dispersión, no un rating oficial ni una precisión garantizada. La calibración con partidas de distintos ritmos, motores o profundidades puede ser inválida; usar partidas homogéneas.
+- Para el torneo: promedio de los performances analíticos calibrados de las partidas completas del jugador. Cuando no alcanza la muestra, mostrar índice técnico y “Sin calibración” en lugar de inventar rating.
+- Resultado/Elo rivales (performance FIDE Ra + dp) queda como estadística independiente, nunca se usa para generar el performance técnico de la partida evaluada.
+- Importar partidas PGN **no las analiza automáticamente**. Analizar todas las partidas relevantes del evento para crear y utilizar calibración.
+- La calibración procede de ratings PGN declarados y debe validarse con una muestra representativa, idealmente separada de las partidas que se predicen.
+
+Este prototipo estima fuerza a partir del análisis bajo las condiciones indicadas, no reproduce el Estimated Rating de Chess.com.
