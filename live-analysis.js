@@ -97,7 +97,7 @@ export function initLiveAnalysis({getFen,getEngineUrl,notify}) {
     if(line==='uciok'){configure();return;}
     if(line==='readyok'){ready=true;loading=false;pump();draw();return;}
     if(line.startsWith('bestmove')){busy=false;if(queuedFen && queuedFen!==activeFen){pump();return;}draw();return;}
-    if(!line.startsWith('info ')||!busy||queuedFen && queuedFen!==activeFen)return;
+    if(!line.startsWith('info ')||!busy||(queuedFen&&queuedFen!==activeFen))return;
     const mt=line.match(/\bscore (cp|mate) (-?\d+)/),pv=line.split(' pv ')[1];
     if(!mt||!pv)return;
     const rank=Number(line.match(/\bmultipv (\d+)/)?.[1]||1),depth=Number(line.match(/\bdepth (\d+)/)?.[1]||0);
@@ -115,7 +115,9 @@ export function initLiveAnalysis({getFen,getEngineUrl,notify}) {
   }
   function start(){
     if(!enabled||paused)return;
+    const requestedFen=queuedFen||getFen();
     stopWorker();
+    queuedFen=requestedFen;
     loading=true;draw();
     try{
       worker=new Worker(getEngineUrl());
