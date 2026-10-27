@@ -152,3 +152,7 @@
 .live-replay:hover{background:#346c54}
 @media(max-width:1250px){.workspace-compact .layout{grid-template-columns:minmax(0,1fr) minmax(0,1fr)}}
 @media(max-width:850px){.workspace-compact .layout{grid-template-columns:1fr}.workspace-tools{justify-content:flex-start}.workspace-compact .board-row{max-width:550px}}
+
+.live-move-chip{border:0;background:transparent;color:#ebf7ff;font:inherit;font-weight:600;padding:3px 5px;margin:1px;border-radius:5px;cursor:pointer;text-align:left}
+.live-move-chip:hover,.live-move-chip:focus-visible{background:#346959;color:#c0ffe7;outline:1px solid #70d5af}
+.workspace-tools{position:relative;z-index:1}
