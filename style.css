@@ -106,3 +106,49 @@
 
 .live-save-line{margin-top:10px;padding:7px 9px;border:1px solid #45695c;border-radius:7px;background:#203a33;color:#9ae7c9;font-size:11px;font-weight:700}
 .live-save-line:hover,.live-save-line:focus-visible{background:#2b5547;outline:1px solid #82e6c1}
+
+/* v1.6: user-configurable desktop workspace */
+.workspace-tools{display:flex;align-items:center;justify-content:flex-end;gap:8px;flex-wrap:wrap;margin:-7px 0 16px}
+.workspace-tools label{display:flex;align-items:center;gap:7px;font-size:11px;color:#a9bfd3}
+.workspace-tools select{background:#1c2b3d;color:#eaf4ff;border:1px solid #34465e;padding:8px 10px;border-radius:7px}
+.workspace-tools .btn{padding:9px 12px}
+.analysis-column{display:flex;flex-direction:column}
+.analysis-column>.review-panel{order:0}
+.analysis-column>.live-analysis-panel{order:1}
+.analysis-column.variations-first>.live-analysis-panel{order:0}
+.analysis-column.variations-first>.review-panel{order:1}
+.analysis-column.review-first>.review-panel{order:0}
+.analysis-column.review-first>.live-analysis-panel{order:1}
+.analysis-column>.engine-panel{order:2}
+.analysis-column>.moves-panel{order:3}
+.analysis-column>.studio-panel{order:4}
+.workspace-compact .main,.workspace-compact.main{padding-top:22px}
+.workspace-compact .topbar{margin-bottom:15px}
+.workspace-compact .toolbar{margin-bottom:15px}
+.workspace-compact .layout{gap:13px;grid-template-columns:minmax(350px,1fr) minmax(430px,1fr)}
+.workspace-compact .analysis-column>.panel{margin-bottom:12px}
+.workspace-compact .review-panel,.workspace-compact .live-analysis-panel,.workspace-compact .engine-panel,.workspace-compact .moves-panel{padding:13px 16px;min-height:0}
+.workspace-compact .review-panel .review-detail{min-height:0}
+.workspace-compact .review-panel .stats{padding:9px 0}
+.workspace-compact .review-panel .metric-row{padding:5px 0}
+.workspace-compact .review-panel .panel-heading{margin-bottom:7px}
+.workspace-compact .live-analysis-panel .panel-heading{margin-bottom:7px}
+.workspace-compact .live-lines{max-height:245px}
+.workspace-compact .live-line{padding:8px 10px}
+.workspace-compact .live-idea{margin-top:5px}
+.workspace-compact .live-explanation{margin:8px 0}
+.workspace-compact .live-controls{margin-bottom:8px}
+.workspace-compact .board-panel{padding:11px}
+.workspace-compact .board-row{max-width:min(550px,calc(100vh - 270px))}
+.workspace-compact .chart-panel{padding:14px}
+.workspace-compact .move-list{max-height:145px}
+.coach-insight{font-size:12px;line-height:1.55;color:#c1d9e6;border-left:2px solid #6bcaa7;padding-left:10px}
+.live-playback{background:#1b3840;border:1px solid #5ab49c;border-radius:10px;padding:10px 12px;margin-bottom:10px}
+.live-playback[hidden]{display:none}
+.live-playback strong{font-size:12px;color:#c3ffe5}
+.live-playback-buttons{display:flex;gap:7px;flex-wrap:wrap;margin-top:9px}
+.live-playback-buttons .btn{padding:7px 10px;font-size:11px}
+.live-replay{margin:9px 9px 0 0;padding:7px 9px;background:#25493e;color:#adf5db;border:1px solid #568f77;border-radius:7px;font-size:11px;cursor:pointer}
+.live-replay:hover{background:#346c54}
+@media(max-width:1250px){.workspace-compact .layout{grid-template-columns:minmax(0,1fr) minmax(0,1fr)}}
+@media(max-width:850px){.workspace-compact .layout{grid-template-columns:1fr}.workspace-tools{justify-content:flex-start}.workspace-compact .board-row{max-width:550px}}
