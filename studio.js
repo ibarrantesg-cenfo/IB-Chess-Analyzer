@@ -32,7 +32,7 @@ export function initStudio(state,callbacks){selected=state;onChange=callbacks.re
  const panel=document.createElement('div');panel.className='panel studio-panel';panel.innerHTML=`
   <div class="panel-heading"><div><div class="eyebrow">IB CHESS ACADEMY · ESTUDIOS</div><h2>Editor y biblioteca</h2></div><span class="small-pill">LOCAL</span></div>
   <div class="studio-grid"><label>Alumno <input id="studio-student" placeholder="Nombre del alumno" autocomplete="off"/></label><label>Estudio guardado<select id="studio-library"><option value="">Abrir estudio guardado…</option></select></label></div>
-  <div class="studio-actions"><button class="btn primary" id="studio-save">Guardar partida y notas</button><button class="btn outline" id="studio-export">Exportar estudio</button><button class="btn outline" id="studio-delete">Eliminar</button></div>
+  <div class="studio-actions"><button class="btn primary" id="studio-save">Guardar partida y notas</button><button class="btn outline" id="studio-export">Exportar estudio</button><label class="btn outline studio-import">Importar copia JSON<input hidden type="file" id="studio-import-json" accept=".json,application/json"/></label><button class="btn outline" id="studio-delete">Eliminar</button></div>
   <small id="studio-save-status">La biblioteca se guarda solo en este navegador. No se sincroniza entre dispositivos.</small>
   <div id="studio-comment-panel"><button type="button" id="studio-close-note" class="studio-close" aria-label="Cerrar editor">×</button><div class="studio-subtitle" id="studio-note-title">Comentario de posición</div><textarea id="studio-note" rows="3" placeholder="Escribí tus conclusiones, ideas o tareas de entrenamiento…"></textarea><div class="studio-subtitle">Agregar variante desde esta posición (SAN)</div><div class="studio-actions"><input id="studio-line-input" placeholder="Ej.: Cf3 d5 g3"/><button class="btn subtle" id="studio-add-line">Añadir variante</button></div><div id="studio-variants"></div></div>
   <details class="studio-editor"><summary>Editar posición del tablero</summary><p>Activá el editor, elegí una pieza y hacé clic en una casilla. Se edita una copia visual de la posición; no la partida original.</p><div class="studio-palette" id="studio-palette"></div><label class="studio-edit-check"><input type="checkbox" id="studio-paint"/> Activar edición por casillas</label><label>FEN editado <input id="studio-fen" readonly/></label><button class="btn outline" id="studio-copy-fen">Copiar FEN</button></details>
@@ -51,6 +51,20 @@ export function initStudio(state,callbacks){selected=state;onChange=callbacks.re
  el('studio-variants').onclick=e=>{const remove=e.target.closest('[data-delete-line]');if(remove){active.variations=active.variations.filter(v=>v.id!==remove.dataset.deleteLine);change();renderNotes();return;}const play=e.target.closest('[data-line]');if(play){const v=active.variations.find(x=>x.id===play.dataset.line);if(v)tree?.open(v);}};
  el('studio-save').onclick=async()=>{ensure().student=el('studio-student').value.trim()||'Sin alumno';change();await put(active);await refreshLibrary();notify('Estudio guardado en este navegador.');};
  el('studio-export').onclick=exportStudy;
+ el('studio-import-json').onchange=async e=>{
+   const file=e.target.files?.[0];if(!file)return;
+   try {
+     const obj=JSON.parse(await file.text());
+     if(!obj || typeof obj.pgn!=='string' || typeof obj.comments!=='object' || !Array.isArray(obj.variations))throw Error('El archivo no corresponde a un estudio válido.');
+     if(obj.pgn.length>3_000_000)throw Error('Archivo demasiado grande.');
+     const verify=new Chess();verify.loadPgn(obj.pgn,{strict:false});
+     if(!verify.history().length)throw Error('El estudio no contiene una partida.');
+     const restored={id:crypto.randomUUID(),name:String(obj.name||'Estudio importado').slice(0,150),student:String(obj.student||'Sin alumno').slice(0,100),pgn:verify.pgn(),comments:Object.fromEntries(Object.entries(obj.comments).filter(([k,v])=>/^\\d+$/.test(k)&&typeof v==='string').map(([k,v])=>[k,v.slice(0,20000)])),variations:obj.variations.filter(v=>Number.isInteger(v.ply)&&Array.isArray(v.san)&&v.san.every(x=>typeof x==='string')).map(v=>({id:crypto.randomUUID(),ply:v.ply,san:v.san.slice(0,200),fen:''})),created:new Date().toISOString(),updated:new Date().toISOString()};
+     await put(restored);callbacks.loadPGN(restored.pgn,'copia JSON');active=restored;el('studio-student').value=restored.student;await refreshLibrary();renderNotes();notify('Copia importada y guardada.');
+   } catch(err){notify('No se pudo importar: '+err.message,'err');}
+   e.target.value='';
+ };
+
  el('studio-delete').onclick=async()=>{if(!active)return;if(!confirm('¿Eliminar este estudio guardado?'))return;await del(active.id);active=null;renderNotes();await refreshLibrary();};
  el('studio-library').onchange=async e=>{if(!e.target.value)return;const item=await transaction('readonly',s=>s.get(e.target.value));if(!item)return;callbacks.loadPGN(item.pgn,'estudio guardado');active=item;el('studio-student').value=item.student;renderNotes();};
  document.querySelector('#move-list').addEventListener('contextmenu',e=>{const b=e.target.closest('[data-ply]');if(!b)return;e.preventDefault();callbacks.jump(Number(b.dataset.ply));commentAt(Number(b.dataset.ply));});
