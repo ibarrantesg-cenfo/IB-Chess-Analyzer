@@ -12,7 +12,7 @@ export function initLibraryWorkspace({studio,notify,onOpen}){
  const toolbar=page.querySelector('.toolbar'),tools=page.querySelector('.workspace-tools');
  const panel=document.createElement('section');panel.className='library-workspace';panel.hidden=true;
  panel.innerHTML=`<header class="library-header"><div><div class="eyebrow">IB CHESS ACADEMY · BIBLIOTECA</div><h2>Mis partidas y estudios</h2><p>Buscá, abrí y exportá tus estudios locales o sincronizados. Los compartidos respetan los permisos de Supabase.</p></div><label class="btn primary library-upload">＋ Importar PGN a biblioteca<input type="file" id="library-import-file" accept=".pgn,.txt" multiple hidden/></label></header>
- <div class="library-toolbar"><label class="library-search-label">Buscar estudios<input id="library-query" type="search" placeholder="Jugador, título o alumno…"/></label><label>Ubicación<select id="library-origin"><option value="all">Todos</option><option value="local">Guardados en este navegador</option><option value="cloud">Guardados en la nube</option><option value="shared">Compartidos conmigo</option></select></label><button class="btn outline" id="library-refresh">↻ Actualizar</button></div>
+ <div class="library-toolbar"><label class="library-search-label">Buscar estudios<input id="library-query" type="search" placeholder="Jugador, título o alumno…"/></label><label>Ubicación<select id="library-origin"><option value="all">Todos</option><option value="local">Guardados en este navegador</option><option value="cloud">Guardados en la nube</option><option value="shared">Compartidos conmigo</option></select></label><button class="btn outline" id="library-refresh">↻ Actualizar</button><button class="btn primary" id="library-sync">☁ Respaldar estudios en mi cuenta</button></div>
  <div class="library-organize"><input id="library-folder-name" placeholder="Nombre del estudio"/><button class="btn outline" id="library-select-all">Seleccionar partidas sin estudio</button><button class="btn primary" id="library-group">Crear estudio con seleccionadas</button><small id="library-selection-count">0 partidas seleccionadas</small></div><div id="library-counts" class="library-counts"></div><div id="library-back" hidden></div><div id="library-warning" class="library-warning" hidden></div><div id="library-items" class="library-items" aria-live="polite"></div>
  <p class="library-footnote">Local: guardado solamente en este navegador. Nube: accesible con tu cuenta. Solo el propietario puede eliminar un estudio de la nube. Los estudios compartidos por alumnos son de lectura y se corrigen mediante una copia propia.</p>`;
  page.insertBefore(panel,page.querySelector('footer'));
@@ -102,6 +102,14 @@ export function initLibraryWorkspace({studio,notify,onOpen}){
    header.append(badge);wrap.append(header);
    if(entry.source==='local'){const select=make('label','library-checkbox');const check=document.createElement('input');check.type='checkbox';check.checked=checked.has(entry.id);check.onchange=()=>{if(check.checked)checked.add(entry.id);else checked.delete(entry.id);updateSelected();};select.append(check,document.createTextNode(' Seleccionar'));wrap.append(select);}
    wrap.append(make('p','library-subtitle',entry.student));
+   const details=make('div','library-game-details','Leyendo datos PGN…');wrap.append(details);
+   studio.getLibraryPgn(entry.source,entry.id).then(async pgn=>{
+    const chess=new Chess();chess.loadPgn(pgn,{strict:false});const h=chess.header();
+    const white=[h.WhiteTitle,h.White].filter(Boolean).join(' ')||'Blancas',black=[h.BlackTitle,h.Black].filter(Boolean).join(' ')||'Negras';
+    details.textContent=[white+(h.WhiteElo?' ('+h.WhiteElo+')':''),'vs',black+(h.BlackElo?' ('+h.BlackElo+')':''),'·',h.Result||'*',h.Round?'· Ronda '+h.Round:''].filter(Boolean).join(' ');
+    const review=await findReview({headers:h,moves:chess.history({verbose:true})});
+    if(review){const m=gameMetrics({moves:chess.history({verbose:true})},review);if(m.w.complete&&m.b.complete)details.textContent+=' · Índice técnico '+((m.w.quality+m.b.quality)/2).toFixed(1)+'/100';}
+   }).catch(()=>{details.textContent='Datos PGN no disponibles';});
    const metadata=make('small','library-card-date',entry.date?new Date(entry.date).toLocaleDateString('es-CR'):'Sin fecha');
    wrap.append(metadata);
    const actions=make('div','library-card-actions');
@@ -154,7 +162,7 @@ export function initLibraryWorkspace({studio,notify,onOpen}){
   const q=$('library-query').value.trim().toLocaleLowerCase(),filter=$('library-origin').value;
   const filtered=items.filter(x=>(filter==='all'||(filter==='shared'?x.shared:x.source===filter))&&(x.title+' '+x.student+' '+(x.collectionName||'')).toLocaleLowerCase().includes(q));
   const groups=new Map();
-  for(const x of filtered){const key=x.collectionId&&x.source==='local'?'collection:'+x.collectionId:x.source+':'+x.id;if(!groups.has(key))groups.set(key,[]);groups.get(key).push(x);}
+  for(const x of filtered){const key=x.collectionId?'collection:'+x.source+':'+x.collectionId:x.source+':'+x.id;if(!groups.has(key))groups.set(key,[]);groups.get(key).push(x);}
   const counts=$('library-counts');counts.replaceChildren();
   for(const [name,count] of [['Estudios',groups.size],['Partidas',items.length],['En nube',items.filter(x=>x.source==='cloud').length],['Compartidos',items.filter(x=>x.shared).length]]){
     const box=make('div','library-stat');box.append(make('strong','',String(count)),make('small','',name));counts.append(box);
@@ -162,7 +170,7 @@ export function initLibraryWorkspace({studio,notify,onOpen}){
   const root=$('library-items');root.replaceChildren();
   const back=$('library-back');back.replaceChildren();back.hidden=!openGroup;
   if(openGroup){
-    const all=items.filter(x=>x.collectionId&&('collection:'+x.collectionId)===openGroup);
+    const all=items.filter(x=>x.collectionId&&('collection:'+x.source+':'+x.collectionId)===openGroup);
     if(!all.length){openGroup=null;render();return;}
     const heading=make('div','library-folder-heading');
     const previous=make('button','btn outline','← Volver');previous.onclick=()=>{openGroup=null;render();};
@@ -180,7 +188,7 @@ export function initLibraryWorkspace({studio,notify,onOpen}){
       }catch(e){notify('No se pudo analizar el estudio: '+e.message,'err');}
       finally{analyzeStudy.disabled=false;}
     };
-    heading.append(analyzeStudy);back.append(heading);
+    if(all[0].source==='local')heading.append(analyzeStudy);back.append(heading);
     const display=all.filter(x=>(filter==='all'||x.source===filter)&&(x.title+' '+(x.collectionName||'')).toLocaleLowerCase().includes(q));
     if(!display.length)root.append(make('div','library-empty','No hay partidas coincidentes.'));
     for(const entry of display)root.append(card(entry));
@@ -193,7 +201,7 @@ export function initLibraryWorkspace({studio,notify,onOpen}){
       const head=make('div','library-card-head');head.append(make('strong','',entries[0].collectionName||'Estudio'),make('span','library-source local',entries.length+' partidas'));
       wrap.append(head);
       const status=make('p','library-subtitle','Comprobando análisis guardados…');wrap.append(status);
-      studyReport(entries).then(result=>{
+      (entries[0].source==='local'?studyReport(entries):Promise.resolve(null)).then(result=>{if(!result){status.textContent='Estudio en la nube · '+entries.length+' partidas';return;}
         status.textContent=result.completed===result.total?'✓ Análisis del torneo completado · '+result.completed+'/'+result.total+' partidas':'Análisis · '+result.completed+'/'+result.total+' partidas completadas';
         if(result.quality!==null)status.textContent+=' · Índice técnico '+result.quality.toFixed(1)+'/100';
         if(result.apparent!==null)status.textContent+=' · Elo aparente '+result.apparent+' (heurístico)';
@@ -215,7 +223,7 @@ export function initLibraryWorkspace({studio,notify,onOpen}){
     userId=account?.user?.id||null;
     items=[
       ...result.locals.map(x=>({source:'local',id:x.id,title:str(x.name||'Estudio sin nombre'),student:str(x.student||'Sin alumno'),date:x.updated,shared:false,collectionId:x.collectionId||null,collectionName:x.collectionName||null})),
-      ...result.remote.map(x=>({source:'cloud',id:x.id,title:str(x.title||'Estudio sin nombre'),student:str(x.student_label||'Sin alumno'),date:x.updated_at,shared:x.owner_id!==userId}))
+      ...result.remote.map(x=>({source:'cloud',id:x.id,title:str(x.title||'Estudio sin nombre'),student:str(x.student_label||'Sin alumno'),date:x.updated_at,shared:x.owner_id!==userId,collectionId:x.payload?.collectionId||null,collectionName:x.payload?.collectionName||null}))
     ].sort((a,b)=>str(b.date).localeCompare(str(a.date)));
     const warn=$('library-warning');
     warn.hidden=!result.error;warn.textContent=result.error?'No se pudo consultar la nube: '+result.error:'';
@@ -235,6 +243,12 @@ export function initLibraryWorkspace({studio,notify,onOpen}){
  home.onclick=()=>switchView(false);
  nav.onclick=()=>switchView(true);
  $('library-refresh').onclick=refresh;
+ $('library-sync').onclick=async()=>{try{
+  const button=$('library-sync');button.disabled=true;
+  const result=await studio.syncLocalLibrary();await refresh();
+  notify('Respaldo: '+result.uploaded+' estudios subidos · '+result.skipped+' existentes sin sobrescribir.'+(result.errors.length?' Errores: '+result.errors.slice(0,2).join(' | '):''));
+ }catch(e){notify('No se pudo respaldar: '+e.message,'err');}finally{$('library-sync').disabled=false;}};
+
  $('library-select-all').onclick=()=>{for(const x of items)if(x.source==='local'&&!x.collectionId)checked.add(x.id);render();updateSelected();};
  $('library-group').onclick=async()=>{
   if(!checked.size)return notify('Seleccioná partidas locales para agrupar.','err');
