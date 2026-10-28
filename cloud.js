@@ -9,12 +9,12 @@ const api=cloudAvailable?createClient(url,key,{auth:{persistSession:true,autoRef
 export async function getCloudSession(){if(!api)return null;const {data,error}=await api.auth.getSession();if(error)throw error;return data.session;}
 export async function emailLogin(email){if(!api)throw Error('Nube no configurada.');const {error}=await api.auth.signInWithOtp({email,options:{emailRedirectTo:location.origin+location.pathname}});if(error)throw error;}
 export async function cloudLogout(){if(!api)return;const {error}=await api.auth.signOut();if(error)throw error;}
-export async function cloudSave(study){const session=await getCloudSession();if(!session)throw Error('Primero iniciá sesión.');const item={id:study.id,owner_id:session.user.id,student_label:study.student||'Sin alumno',title:study.name||'Estudio',payload:study,updated_at:new Date().toISOString()};const {error}=await api.from('ib_studies').upsert(item,{onConflict:'id'});if(error)throw error;return item;}
-export async function cloudList(){const session=await getCloudSession();if(!session)throw Error('Primero iniciá sesión.');const {data,error}=await api.from('ib_studies').select('id,title,student_label,updated_at,owner_id,payload').order('updated_at',{ascending:false}).limit(150);if(error)throw error;return data||[];}
-export async function cloudOpen(id){const session=await getCloudSession();if(!session)throw Error('Primero iniciá sesión.');const {data,error}=await api.from('ib_studies').select('id,owner_id,title,student_label,payload,updated_at').eq('id',id).single();if(error)throw error;return {study:data.payload,ownerId:data.owner_id,shared:data.owner_id!==session.user.id,updatedAt:data.updated_at};}
-export async function cloudShare(studyId,memberId){const session=await getCloudSession();if(!session)throw Error('Primero iniciá sesión.');const {error}=await api.from('ib_study_members').upsert({study_id:studyId,owner_id:session.user.id,member_id:memberId,role:'viewer'},{onConflict:'study_id,member_id'});if(error)throw error;}
+export async function cloudSave(study){await assertCloudStudyAccess();const session=await getCloudSession();if(!session)throw Error('Primero iniciá sesión.');const item={id:study.id,owner_id:session.user.id,student_label:study.student||'Sin alumno',title:study.name||'Estudio',payload:study,updated_at:new Date().toISOString()};const {error}=await api.from('ib_studies').upsert(item,{onConflict:'id'});if(error)throw error;return item;}
+export async function cloudList(){await assertCloudStudyAccess();const session=await getCloudSession();if(!session)throw Error('Primero iniciá sesión.');const {data,error}=await api.from('ib_studies').select('id,title,student_label,updated_at,owner_id,payload').order('updated_at',{ascending:false}).limit(150);if(error)throw error;return data||[];}
+export async function cloudOpen(id){await assertCloudStudyAccess();const session=await getCloudSession();if(!session)throw Error('Primero iniciá sesión.');const {data,error}=await api.from('ib_studies').select('id,owner_id,title,student_label,payload,updated_at').eq('id',id).single();if(error)throw error;return {study:data.payload,ownerId:data.owner_id,shared:data.owner_id!==session.user.id,updatedAt:data.updated_at};}
+export async function cloudShare(studyId,memberId){await assertCloudStudyAccess();const session=await getCloudSession();if(!session)throw Error('Primero iniciá sesión.');const {error}=await api.from('ib_study_members').upsert({study_id:studyId,owner_id:session.user.id,member_id:memberId,role:'viewer'},{onConflict:'study_id,member_id'});if(error)throw error;}
 
-export async function cloudReviewCopy(source, originalOwnerId){
+export async function cloudReviewCopy(source, originalOwnerId){await assertCloudStudyAccess();
  const session=await getCloudSession();if(!session)throw Error('Primero iniciá sesión.');
  if(!source?.pgn)throw Error('No hay partida para corregir.');
  if(originalOwnerId===session.user.id)throw Error('El estudio ya es tuyo. Guardá los cambios normalmente.');
@@ -55,7 +55,7 @@ export async function shareWithTeacher(studyId,teacherId){
  await cloudShare(studyId,teacherId);
 }
 
-export async function cloudDeleteOwned(studyId){
+export async function cloudDeleteOwned(studyId){await assertCloudStudyAccess();
  const session=await getCloudSession();
  if(!session)throw Error('Primero iniciá sesión.');
  if(!/^[0-9a-f-]{36}$/i.test(String(studyId)))throw Error('Identificador de estudio inválido.');
@@ -134,4 +134,18 @@ export async function reviewAccessRequest(id,status,grantedRole){
  if(!['approved','rejected','suspended'].includes(status)||!['student','teacher'].includes(grantedRole))throw Error('Decisión inválida.');
  const {error}=await api.from('ib_access_requests').update({status,granted_role:grantedRole,reviewed_at:new Date().toISOString(),reviewed_by:session.user.id}).eq('id',id);
  if(error)throw error;
+}
+
+export async function assertCloudStudyAccess(){
+ const session=await getCloudSession();
+ if(!session)throw Error('Iniciá sesión para utilizar tus estudios en la nube.');
+ const {data:teacher,error:teacherError}=await api.from('ib_teachers').select('teacher_id').eq('teacher_id',session.user.id).eq('active',true).maybeSingle();
+ if(teacherError)throw teacherError;
+ if(teacher)return true;
+ const {data:enrollments,error}=await api.from('ib_enrollments').select('state,expires_at').eq('student_id',session.user.id).eq('state','active');
+ if(error)throw error;
+ const now=Date.now();
+ if(!(enrollments||[]).some(e=>!e.expires_at||new Date(e.expires_at).getTime()>now))
+  throw Error('Tu acceso a estudios en la nube no está activo o venció. Contactá a Profe Ian. Tus archivos no fueron eliminados.');
+ return true;
 }
