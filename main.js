@@ -101,9 +101,11 @@ navLibrary.onclick=()=>{window.IB_ACADEMY?.close();window.IB_PERFORMANCE.hide();
 navReports.onclick=()=>{window.IB_ACADEMY?.close();window.IB_LIBRARY.close();window.IB_PERFORMANCE.show();navReview.classList.remove('active');navLibrary.classList.remove('active');};
 
 
+const inviteLanding=new URLSearchParams(location.hash.slice(1)).get('type')==='invite';
+if(inviteLanding)sessionStorage.setItem('ib-invite-activation','1');
 window.IB_PREFERENCES=initPreferences(notify);
 document.querySelector('#nav-preferences').onclick=()=>window.IB_PREFERENCES.open();
-if(new URLSearchParams(location.search).get('solicitar')==='1')window.IB_PREFERENCES.open();
+if(new URLSearchParams(location.search).get('solicitar')==='1'||inviteLanding)window.IB_PREFERENCES.open();
 
 window.IB_SET_BOARD_ORIENTATION=(color)=>{state.orientation=color==='black'?'black':'white';render();window.IB_ARROWS?.positionChanged();};
 
