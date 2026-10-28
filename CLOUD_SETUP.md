@@ -54,3 +54,25 @@ El editor permite añadir/retirar piezas, establecer el turno, importar/copiar F
 
 ## Conexión de producción (28 de octubre de 2026)
 El proyecto Supabase ya está creado y la migración inicial se ejecutó correctamente. La URL pública está configurada en el workflow y `VITE_SUPABASE_ANON_KEY` se añadió a las variables del repositorio. El siguiente despliegue de GitHub Pages incorpora estos valores en el cliente. Aún deben configurarse en Supabase Authentication la URL del sitio, las redirecciones y la verificación de políticas con dos cuentas; una compilación correcta no confirma autenticación ni privacidad.
+
+
+## v2.7: alumnos y profesor Ian
+- La aplicación permite guardar un nombre visible por usuario y distingue entre alumno y profesor consultando `public.ib_teachers`.
+- Un alumno puede seleccionar un estudio *propio ya sincronizado*, escoger el profesor del directorio y pulsar **Compartir con el profe Ian**. El estudio permanece suyo y el profesor obtiene acceso de lectura.
+- La cuenta de profesor ve una bandeja de entregas de alumnos y puede generar una copia corregida para devolverla sin sobrescribir el estudio original.
+- **El rol de profesor nunca se puede activar desde el navegador**. Para habilitarlo, ejecutar en SQL Editor la nueva migración `supabase/migrations/20261028_ib_teacher_profiles.sql` y después identificar el UUID de la cuenta confirmada del docente en Authentication > Users. Finalmente ejecutar esta instrucción, sustituyendo solamente el UUID por el real:
+
+```sql
+insert into public.ib_teachers(teacher_id, display_name, active)
+values ('UUID_DE_LA_CUENTA_VERIFICADA'::uuid, 'Profe Ian', true)
+on conflict (teacher_id)
+do update set display_name=excluded.display_name, active=true;
+```
+
+- Confirmar en el SQL Editor que solo hay el profesor previsto:
+```sql
+select teacher_id,display_name,active from public.ib_teachers;
+```
+- La nueva migración es **adicional** a la de estudios, no sustituye la anterior. Tras aplicarla, actualizar GitHub Pages y entrar de nuevo en **Cuentas y estudios compartidos**.
+- Probar tres cuentas antes de uso real: alumno A comparte con profesor; profesor recibe y devuelve corrección; alumno B no puede leer sin autorización. No mostrar una lista de direcciones de correo de alumnos ni otorgar al profesor poderes administrativos de Auth sin backend seguro.
+- **Gestión administrativa de altas/bajas:** por ahora se realiza con la interfaz Authentication > Users de Supabase. Aún no existe una consola administrativa de creación, desactivación o restablecimiento de usuarios dentro de IB Chess Analyzer. Jamás incluir una clave service_role en el frontend.
