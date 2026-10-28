@@ -58,7 +58,7 @@ export function initPreferences(notify){
  }
  async function refresh(){
   const session=await getCloudSession().catch(()=>null);
-  if(!session){el('prefs-session').textContent='Sin sesión. Iniciá sesión o creá tu cuenta.';el('prefs-teacher-status').textContent='Cuenta de profesor no identificada.';return;}
+  if(!session){el('prefs-session').textContent='Sin sesión. Si sos nuevo, solicitá acceso antes de registrarte.';el('prefs-teacher-status').textContent='Cuenta de profesor no identificada.';return;}
   el('prefs-email').value=session.user.email||'';
   const account=await accountDetails().catch(()=>null);
   if(account?.name)el('prefs-name').value=account.name;
