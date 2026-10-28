@@ -217,6 +217,22 @@ async organizeLibraryItems(ids,name){
  entry.collectionId=group;entry.collectionName=label;entry.updated=new Date().toISOString();await put(entry);changed++;}
  await refreshLibrary();return changed;
 },
+async updateLibraryHeaders(id,updates){
+ const study=await transaction('readonly',store=>store.get(id));if(!study)throw Error('Partida local no encontrada.');
+ const chess=new Chess();chess.loadPgn(study.pgn,{strict:false});
+ const allowed=['White','Black','WhiteElo','BlackElo','WhiteTitle','BlackTitle','Result','Round','Event','Date'];
+ for(const field of allowed){
+  if(!Object.hasOwn(updates,field))continue;
+  const value=String(updates[field]??'').trim();
+  if(!value)continue;
+  if((field==='WhiteElo'||field==='BlackElo')&&!/^[1-9][0-9]{2,3}$/.test(value))throw Error('Elo inválido: '+field);
+  if(field==='Result'&&!['1-0','0-1','1/2-1/2','*'].includes(value))throw Error('Resultado inválido.');
+  chess.setHeader(field,value.slice(0,100));
+ }
+ study.pgn=chess.pgn();study.name=(chess.header().White||'?')+' – '+(chess.header().Black||'?');study.updated=new Date().toISOString();
+ await put(study);if(active?.id===id){active=study;renderNotes();}await refreshLibrary();
+ return study;
+},
 async renameLibraryItem(source,id,newName){
  const label=String(newName||'').trim();if(!label||label.length>130)throw Error('Nombre inválido.');
  if(source!=='local')throw Error('Edición de estudios en nube pendiente: abrí tu copia en el editor.');
