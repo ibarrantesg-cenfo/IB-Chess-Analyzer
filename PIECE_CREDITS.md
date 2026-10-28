@@ -11,6 +11,9 @@ durante la compilación y servidas **localmente desde nuestra propia web**.
 | Spatial | Maurizio Monge (chess-art) | MIT |
 | Celtic | Maurizio Monge (chess-art) | MIT |
 | RhosGFX | RhosGFX | CC0 1.0 |
+| Kiwen Suwi | neverRare | CC BY 4.0 |
+| Totoy | Kosal Sen | CC BY 4.0 |
+| Papercut | Nikolay Anzarov | CC BY 4.0 |
 
 Fuente de atribuciones: https://github.com/lichess-org/lila/blob/master/COPYING.md
 
@@ -27,3 +30,5 @@ cuando corresponda antes de distribuir versiones comerciales.
 
 No se utilizan en esta funcionalidad colecciones de piezas con restricciones
 "solo uso personal" o "no comercial".
+
+Las colecciones CC BY 4.0 requieren atribución, enlace de licencia e indicación de cambios si se modifican. Véase https://creativecommons.org/licenses/by/4.0/. En esta compilación solo se redistribuyen los SVG originales.
