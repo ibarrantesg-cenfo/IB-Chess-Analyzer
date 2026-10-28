@@ -424,3 +424,30 @@
 /* v3: per-game PGN summary and opt-in cloud account backup */
 .library-game-details{font-size:11px;line-height:1.6;color:#a7dbce;padding:8px 10px;background:#102e34;border-radius:7px;overflow-wrap:anywhere}
 #library-sync{white-space:normal}
+
+/* Preferences and user account */
+.prefs-overlay[hidden]{display:none!important}
+.prefs-overlay{position:fixed;inset:0;background:#020917d9;z-index:10005;display:flex;align-items:center;justify-content:center;padding:16px}
+.prefs-dialog{width:min(900px,100%);max-height:94vh;overflow:auto;background:#122234;border:1px solid #38576b;color:#e9f4f6;padding:24px;border-radius:16px;box-shadow:0 20px 60px #0008}
+.prefs-dialog>header{display:flex;justify-content:space-between;gap:12px;align-items:center;margin-bottom:18px}
+.prefs-dialog h2{font-size:23px;margin:0}.prefs-dialog h3{margin:0 0 12px;font-size:16px}
+.prefs-layout{display:grid;grid-template-columns:1fr 1fr;gap:14px}.prefs-block{background:#172c3d;border:1px solid #355266;border-radius:11px;padding:16px;display:flex;flex-direction:column;gap:10px}
+.prefs-block:last-child{grid-column:1/-1}.prefs-block p,.prefs-block small{color:#aac1c9;font-size:12px;line-height:1.65}
+.prefs-block label{display:flex;flex-direction:column;gap:6px;color:#afcbd5;font-size:12px}
+.prefs-block input,.prefs-block select{background:#0c1b2d;border:1px solid #47677a;color:#effaf9;border-radius:8px;padding:11px;min-width:0;width:100%}
+.prefs-pass{display:flex;gap:8px}.prefs-pass input{flex:1}.prefs-actions{display:flex;gap:8px;flex-wrap:wrap}
+@media(max-width:670px){.prefs-layout{grid-template-columns:1fr}.prefs-block:last-child{grid-column:auto}}
+/* Accessible light-theme palette. Original dark mode remains the default. */
+:root[data-theme="light"]{color:#1c3040;background:#f3f7f8;filter:none}
+:root[data-theme="light"] body{background:#f3f7f8;color:#1c3040}
+:root[data-theme="light"] .main,:root[data-theme="light"] .sidebar,:root[data-theme="light"] .panel,:root[data-theme="light"] .library-card,:root[data-theme="light"] .library-folder,:root[data-theme="light"] .library-toolbar,:root[data-theme="light"] .library-stat,:root[data-theme="light"] .performance-source,:root[data-theme="light"] .prefs-dialog,:root[data-theme="light"] .prefs-block{background:#fff;color:#1c3040;border-color:#c6d8dd}
+:root[data-theme="light"] .sidebar .nav,:root[data-theme="light"] .main p,:root[data-theme="light"] .main small,:root[data-theme="light"] .prefs-block p,:root[data-theme="light"] .prefs-block small{color:#405d6b}
+:root[data-theme="light"] .sidebar .nav.active{background:#d4efe4;color:#115a47}
+:root[data-theme="light"] .library-card strong,:root[data-theme="light"] .library-folder-heading h3,:root[data-theme="light"] .prefs-dialog h2,:root[data-theme="light"] .prefs-dialog h3{color:#153442}
+:root[data-theme="light"] .prefs-block label{color:#345967}
+:root[data-theme="light"] .prefs-block input,:root[data-theme="light"] .prefs-block select{background:#fff;color:#1b3645;border-color:#95b1bc}
+:root[data-theme="light"] .library-game-details,:root[data-theme="light"] .board-compact-eval,:root[data-theme="light"] .library-folder-heading{background:#e8f5ef;color:#235746}
+:root[data-theme="light"] .library-source{background:#e3f0f1;color:#245560}
+:root[data-theme="light"] .prefs-overlay{background:#0b202c8f}
+:root[data-theme="system"]{color-scheme:light dark}
+@media(prefers-color-scheme:light){:root[data-theme="system"]{background:#f3f7f8;color:#1c3040}:root[data-theme="system"] body{background:#f3f7f8;color:#1c3040}}
