@@ -129,10 +129,10 @@ el('studio-export').onclick=exportStudy;
      const session=await getCloudSession();
      status(session?'Conectado: '+session.user.email:'Ingresá tu correo y abrí el enlace de acceso.');
      if(!session){account=null;el('account-role').textContent='Sin sesión';el('cloud-user-id').textContent='Sin sesión';cloudRows=[];el('cloud-library').innerHTML='<option>Iniciá sesión primero</option>';return;}
-     account=await accountDetails();
-     el('account-role').textContent=account?.isTeacher?'♔ Cuenta de profesor':'♙ Cuenta de alumno';
+     try{account=await accountDetails();}catch(err){account=null;el('account-hint').textContent='Falta habilitar directorio de profesores: '+err.message;}
+     el('account-role').textContent=account?.isTeacher?'♔ Cuenta de profesor':account?'♙ Cuenta de alumno':'Cuentas pendientes de activación';
      el('account-name').value=account?.name||'';
-     el('account-hint').textContent=account?.isTeacher?'Podés revisar estudios que tus alumnos te compartan.':'Compartí los estudios propios con el profesor desde el selector inferior.';
+     if(account)el('account-hint').textContent=account.isTeacher?'Podés revisar estudios que tus alumnos te compartan.':'Compartí los estudios propios con el profesor desde el selector inferior.';
      el('teacher-select').replaceChildren();
      for(const t of account?.teachers||[]){const opt=document.createElement('option');opt.value=t.teacher_id;opt.textContent=t.display_name;el('teacher-select').append(opt);}
      if(!account?.teachers?.length){const opt=document.createElement('option');opt.value='';opt.textContent='Profesor pendiente de habilitación';el('teacher-select').append(opt);}
@@ -160,6 +160,7 @@ el('studio-export').onclick=exportStudy;
    el('cloud-open').onclick=async()=>{try{await requireLogin();const id=el('cloud-library').value;if(!id)return;const opened=await cloudOpen(id);const study=opened.study;callbacks.loadPGN(study.pgn,'estudio compartido');active=structuredClone(study);cloudSource={id,ownerId:opened.ownerId,shared:opened.shared};el('studio-student').value=study.student||'';renderNotes();notify(opened.shared?'Estudio del alumno abierto. Los cambios locales no alteran su original.':'Estudio propio abierto desde la nube.');}catch(e){notify(e.message,'err');}};
    el('cloud-review').onclick=async()=>{try{
     await requireLogin();
+    if(!account?.isTeacher)throw Error('Solo la cuenta habilitada como profesor puede devolver correcciones.');
     if(!active||!cloudSource?.shared)throw Error('Primero abrí un estudio compartido por un alumno.');
     const review=await cloudReviewCopy(active,cloudSource.ownerId);
     await put(review);active=review;cloudSource={id:review.id,ownerId:(await requireLogin()).user.id,shared:false};
