@@ -24,8 +24,13 @@ export function gameMetrics(game,reports){
   };
   return {w:info('w'),b:info('b')};
 }
+const normalizeName=x=>String(x||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().replace(/[^a-z ]/g,' ').replace(/\s+/g,' ').trim();
+const defaultAliases={'ian barrantes':'ian daniel barrantes granados','barrantes granados ian daniel':'ian daniel barrantes granados','ian daniel barrantes granados':'ian daniel barrantes granados'};
+const getAliases=()=>{try{return {...defaultAliases,...JSON.parse(localStorage.getItem('ib-player-aliases-v1')||'{}')}}catch{return {...defaultAliases}}};
+const canonicalName=(name)=>{const norm=normalizeName(name);return getAliases()[norm]||norm;};
+const displayName=(name)=>canonicalName(name)==='ian daniel barrantes granados'?'Ian Daniel Barrantes Granados':String(name||'?');
 const playerSide=(g,name)=>{
-  const white=String(g.headers?.White||'').trim().toLocaleLowerCase(),black=String(g.headers?.Black||'').trim().toLocaleLowerCase(),n=name.trim().toLocaleLowerCase();
+  const white=canonicalName(g.headers?.White),black=canonicalName(g.headers?.Black),n=canonicalName(name);
   return n===white?'w':n===black?'b':null;
 };
 const scoreFor=(result,color)=>result==='1/2-1/2'?.5:result===(color==='w'?'1-0':'0-1')?1:result===(color==='w'?'0-1':'1-0')?0:null;
@@ -115,7 +120,7 @@ export function initPerformance({state,notify,analyzeGame,jumpGame,getAnalyses})
  };
 
  let selectedPlayer='',selectedEvent='',activeTab='tournament',batchCancelled=false,batching=false;
- const playerList=()=>{const count=new Map();for(const g of state.games)for(const name of [g.headers?.White,g.headers?.Black])if(name)count.set(name,(count.get(name)||0)+1);return [...count.keys()].sort((a,b)=>count.get(b)-count.get(a)||a.localeCompare(b));};
+ const playerList=()=>{const count=new Map();for(const g of state.games)for(const name of [g.headers?.White,g.headers?.Black])if(name&&name!=='?'){const label=displayName(name);count.set(label,(count.get(label)||0)+1);}return [...count.keys()].sort((a,b)=>count.get(b)-count.get(a)||a.localeCompare(b));};
  function filters(restore=true){
   const previous=selectedPlayer;
   const players=playerList();
@@ -156,7 +161,7 @@ export function initPerformance({state,notify,analyzeGame,jumpGame,getAnalyses})
    const score=result==='1-0'?[1,0]:result==='0-1'?[0,1]:result==='1/2-1/2'?[.5,.5]:null;
    for(const [idx,color] of [['White','w'],['Black','b']]){
     const name=String(h[idx]||'').trim();if(!name||name==='?'||!score)continue;
-    const key=name.toLocaleLowerCase(),old=leaderboard.get(key)||{name,points:0,games:0,quality:[],elo:h[idx+'Elo']||null,title:h[idx+'Title']||''};
+    const key=canonicalName(name),old=leaderboard.get(key)||{name:displayName(name),points:0,games:0,quality:[],elo:h[idx+'Elo']||null,title:h[idx+'Title']||''};
     old.points+=score[idx==='White'?0:1];old.games++;
     if(!old.elo&&h[idx+'Elo'])old.elo=h[idx+'Elo'];
     if(!old.title&&h[idx+'Title'])old.title=h[idx+'Title'];
