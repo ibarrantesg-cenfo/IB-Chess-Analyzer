@@ -1,7 +1,8 @@
 // Original synthesized chess effects. No third-party recordings are redistributed.
 const KEY='ib-chess-audio-v1';
-const defaults={enabled:false,theme:'classic',volume:45,history:true};
+const defaults={enabled:false,theme:'recorded',volume:45,history:true};
 const presets={
+ recorded:{freq:180,noise:0.1,decay:0.05,pitch:0.9},
  classic:{freq:155,noise:0.68,decay:0.07,pitch:0.8},
  wood:{freq:125,noise:0.83,decay:0.11,pitch:0.67},
  soft:{freq:310,noise:0.30,decay:0.045,pitch:1.1},
@@ -17,13 +18,15 @@ const presets={
 };
 let settings={...defaults};
 try{settings={...settings,...JSON.parse(localStorage.getItem(KEY)||'{}')};}catch{}
-let ctx=null;
+let ctx=null;const recordedSources={move:'audio/real-move.mp3',capture:'audio/real-capture.mp3'};const recordedPlayers=new Map();
+function playRecorded(type,volume){const kind=type==='capture'?'capture':'move';let player=recordedPlayers.get(kind);if(!player){player=new Audio(import.meta.env.BASE_URL+recordedSources[kind]);player.preload='auto';recordedPlayers.set(kind,player);}const sound=player.cloneNode();sound.volume=Math.min(1,Math.max(0,volume));sound.play().catch(()=>{});}
 const stored=()=>{try{localStorage.setItem(KEY,JSON.stringify(settings));}catch{}};
 function audio(){if(!ctx){const C=window.AudioContext||window.webkitAudioContext;if(!C)return null;ctx=new C();}if(ctx.state==='suspended')ctx.resume().catch(()=>{});return ctx;}
 export function soundSettings(){return {...settings};}
 export function setSoundSettings(next){settings={...settings,...next};settings.volume=Math.max(0,Math.min(100,Number(settings.volume)||0));if(!presets[settings.theme])settings.theme='classic';stored();return soundSettings();}
 export function playChessSound(type,{preview=false}={}){
  if(!settings.enabled&&!preview)return;
+ if(settings.theme==='recorded'){playRecorded(type,settings.volume/100);return;}
  const c=audio();if(!c)return;const preset=presets[settings.theme]||presets.classic;
  const volume=settings.volume/100,now=c.currentTime,kind=['move','capture','castle','check','promotion'].includes(type)?type:'move';
  const duration=preset.decay*(kind==='capture'?1.65:kind==='check'?2.1:kind==='castle'?1.4:1);
@@ -53,7 +56,7 @@ export function playChessSound(type,{preview=false}={}){
 }
 export function initAudioPreferences(){
  const container=document.getElementById('prefs-audio');if(!container)return;
- container.innerHTML='<h3>Sonidos de ajedrez</h3><label class="audio-row"><input type="checkbox" id="audio-enabled"> Activar efectos de jugadas</label><label>Estilo<select id="audio-theme"><option value="tournament">Clásico de torneo</option><option value="woodenClock">Madera tradicional</option><option value="classic">Clásico web</option><option value="minimalist">Minimalista</option><option value="porcelain">Piezas pulidas</option><option value="vintage">Retro tablero</option><option value="soft">Suave</option><option value="wood">Madera profunda</option><option value="subtleClick">Clic ligero</option><option value="metallic">Metálico</option><option value="digital">Digital</option><option value="arcade">Arcade</option></select></label><label>Volumen <span id="audio-volume-label"></span><input id="audio-volume" type="range" min="0" max="100" step="5"></label><label class="audio-row"><input type="checkbox" id="audio-history"> Sonidos al recorrer partidas PGN</label><div class="prefs-actions"><button type="button" class="btn outline" id="audio-demo-move">▶ Movimiento</button><button type="button" class="btn outline" id="audio-demo-capture">▶ Captura</button><button type="button" class="btn outline" id="audio-demo-check">▶ Jaque</button></div><small>12 perfiles sintetizados originales; no son archivos de Chess.com ni Lichess. El navegador puede exigir una interacción antes del primer sonido.</small>';
+ container.innerHTML='<h3>Sonidos de ajedrez</h3><label class="audio-row"><input type="checkbox" id="audio-enabled"> Activar efectos de jugadas</label><label>Estilo<select id="audio-theme"><option value="recorded">Tablero real · grabaciones CC0</option><option value="tournament">Clásico de torneo</option><option value="woodenClock">Madera tradicional</option><option value="classic">Clásico web</option><option value="minimalist">Minimalista</option><option value="porcelain">Piezas pulidas</option><option value="vintage">Retro tablero</option><option value="soft">Suave</option><option value="wood">Madera profunda</option><option value="subtleClick">Clic ligero</option><option value="metallic">Metálico</option><option value="digital">Digital</option><option value="arcade">Arcade</option></select></label><label>Volumen <span id="audio-volume-label"></span><input id="audio-volume" type="range" min="0" max="100" step="5"></label><label class="audio-row"><input type="checkbox" id="audio-history"> Sonidos al recorrer partidas PGN</label><div class="prefs-actions"><button type="button" class="btn outline" id="audio-demo-move">▶ Movimiento</button><button type="button" class="btn outline" id="audio-demo-capture">▶ Captura</button><button type="button" class="btn outline" id="audio-demo-check">▶ Jaque</button></div><small>12 perfiles sintetizados originales; no son archivos de Chess.com ni Lichess. El navegador puede exigir una interacción antes del primer sonido.</small>';
  const el=id=>document.getElementById(id),sync=()=>{el('audio-enabled').checked=settings.enabled;el('audio-theme').value=settings.theme;el('audio-volume').value=settings.volume;el('audio-volume-label').textContent=settings.volume+'%';el('audio-history').checked=settings.history;};
  sync();el('audio-enabled').onchange=e=>setSoundSettings({enabled:e.target.checked});
  el('audio-theme').onchange=e=>{setSoundSettings({theme:e.target.value});playChessSound('move',{preview:true});};
