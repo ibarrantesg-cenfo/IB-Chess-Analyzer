@@ -90,7 +90,7 @@ export function initPerformance({state,notify,analyzeGame,jumpGame,getAnalyses})
   <div id="perf-game" hidden></div>
   <div id="perf-tournament">
     <div class="perf-filters"><label>Evento del estudio<select id="perf-event"></select></label><label hidden>Jugador<select id="perf-player"></select></label></div>
-    <div id="perf-study-overview"></div><div id="perf-summary" hidden></div>
+    <div id="perf-complete-banner"></div><div id="perf-study-overview"></div><div id="perf-summary" hidden></div>
     <div class="perf-actions"><button class="btn primary" id="perf-analyze-all">Analizar partidas de este torneo</button><button class="btn outline" id="perf-stop">Cancelar lote</button><button class="btn outline" id="perf-export">Exportar torneo CSV</button></div>
     <div id="perf-batch-state" class="perf-info">El análisis individual se conserva mientras navegás entre las partidas de este PGN.</div>
     <div id="perf-rows" hidden></div>
@@ -173,8 +173,37 @@ export function initPerformance({state,notify,analyzeGame,jumpGame,getAnalyses})
   const leader=leaders[0],tie=leader&&leaders.filter(x=>x.points===leader.points&&x.games===leader.games).length>1;
   const quality=done.length?done.reduce((sum,x)=>sum+x.metrics.w.quality+x.metrics.b.quality,0)/(done.length*2):null;
   const winners=leader?(tie?'Liderato compartido (datos parciales)':leader.title+' '+leader.name+' · '+leader.points+'/'+leader.games+' puntos'):'Sin ganador determinable: faltan resultados';
+  const complete=games.length>0&&done.length===games.length;
+  $('perf-complete-banner').innerHTML=complete?'<div class="perf-complete"><strong>✓ Análisis del torneo completado</strong><span>Stockfish evaluó '+games.length+' de '+games.length+' partidas. Informe integral disponible.</span></div>':'<div class="perf-pending">Análisis del torneo: '+done.length+' / '+games.length+' partidas completas</div>';
+  const openingMap=new Map();
+  for(const item of full){
+   const h=item.g.headers||{},eco=String(h.ECO||'').trim(),named=String(h.Opening||'').trim();
+   const prefix=(item.g.moves||[]).slice(0,6).map(m=>m.san).join(' ');
+   const label=named||(eco?'ECO '+eco:prefix||'Sin apertura identificada');
+   openingMap.set(label,(openingMap.get(label)||0)+1);
+  }
+  const openings=[...openingMap].sort((a,b)=>b[1]-a[1]).slice(0,6);
+  const selectedRows=full.map(x=>{
+    const side=playerSide(x.g,selectedPlayer);if(!side)return null;
+    return {game:x.g,side,metric:x.metrics[side],opp:num(x.g.headers?.[side==='w'?'BlackElo':'WhiteElo']),result:scoreFor(x.g.headers?.Result,side)};
+  }).filter(Boolean);
+  const selectedComplete=selectedRows.filter(x=>x.metric.complete);
+  const apparent=selectedComplete.map(x=>apparentPerformance(x.metric)).filter(x=>Number.isFinite(x.value));
+  const apparentAvg=apparent.length?Math.round(apparent.reduce((sum,x)=>sum+x.value,0)/apparent.length):null;
+  const rated=selectedRows.filter(x=>x.opp!==null&&x.result!==null).map(x=>({elo:x.opp,result:x.result}));
+  const fide= rated.length===selectedRows.length&&rated.length&&rated.some(x=>x.result>0)&&rated.some(x=>x.result<1)?fidePerformance(rated):null;
+  const eloLoss=fide&&selectedRows.every(x=>num(x.game.headers?.[x.side==='w'?'WhiteElo':'BlackElo'])!==null)?Math.round(fide.rating-selectedRows.reduce((sum,x)=>sum+num(x.game.headers[x.side==='w'?'WhiteElo':'BlackElo']),0)/selectedRows.length):null;
+  const kpi='<div class="perf-report-grid">'+[
+    ['Índice técnico medio',quality===null?'—':quality.toFixed(1)+'/100','No es precisión Chess.com'],
+    ['Elo aparente · '+esc(selectedPlayer||'jugador'),apparentAvg??'—','Heurística no oficial · '+apparent.length+' partidas'],
+    ['Performance FIDE*',fide?fide.rating:'—','Requiere resultados y Elo rival en todos los PGN'],
+    ['Diferencia vs Elo PGN',eloLoss===null?'—':(eloLoss>0?'+':'')+eloLoss,'Comparación orientativa; no predice variación FIDE'],
+    ['Promedio pérdida',avg===null?'—':avg.toFixed(1)+' cp','Ambos bandos, partidas completas'],
+    ['Errores graves',errors.blunder,'Total del torneo']
+  ].map(x=>'<div><small>'+x[0]+'</small><strong>'+x[1]+'</strong><span>'+x[2]+'</span></div>').join('')+'</div>';
+  const openingHTML='<section class="perf-openings"><h3>Aperturas utilizadas</h3>'+openings.map(([name,count])=>'<div class="perf-opening"><span>'+esc(name)+'</span><b>'+count+' / '+games.length+'</b></div>').join('')+'<small>Se usa el encabezado Opening o ECO si existe; de lo contrario, las seis primeras medias jugadas.</small></section>';
   const summary='<div class="perf-tournament-grid"><div><b>'+(quality===null?'—':quality.toFixed(1)+'/100')+'</b><small>Índice técnico promedio de ambos bandos</small></div><div><b>'+esc(winners.trim())+'</b><small>Líder por puntuación registrada (no confirma campeón oficial)</small></div><div><b>'+leaders.length+'</b><small>Jugadores con resultados válidos</small></div><div><b>'+done.length+'/'+games.length+'</b><small>Partidas con análisis conservado</small></div></div>';
-  $('perf-study-overview').innerHTML=summary+'<div class="perf-info"><strong>Balance integral del estudio · '+esc(event||'Todos los eventos')+'</strong><p>'+done.length+'/'+games.length+' partidas analizadas con Stockfish · '+(avg===null?'Pérdida media pendiente':'Pérdida media '+avg.toFixed(1)+' cp')+' · '+errors.inaccuracy+' imprecisiones · '+errors.mistake+' errores · '+errors.blunder+' graves.</p><p>El análisis cubre ambos bandos en todas las partidas del evento. Elegí un jugador más abajo para consultar su rendimiento individual.</p></div><div class="perf-study-games">'+full.map(x=>'<div class="perf-game-row"><span>'+esc(x.g.headers?.White||'?')+' – '+esc(x.g.headers?.Black||'?')+'</span><span>'+(x.metrics.w.complete&&x.metrics.b.complete?'Analizada':'Pendiente')+'</span></div>').join('')+'</div>';
+  $('perf-study-overview').innerHTML=kpi+openingHTML+summary+'<div class="perf-info"><strong>Balance integral del estudio · '+esc(event||'Todos los eventos')+'</strong><p>'+done.length+'/'+games.length+' partidas analizadas con Stockfish · '+(avg===null?'Pérdida media pendiente':'Pérdida media '+avg.toFixed(1)+' cp')+' · '+errors.inaccuracy+' imprecisiones · '+errors.mistake+' errores · '+errors.blunder+' graves.</p><p>El balance técnico cubre ambos bandos; el Elo aparente y el performance FIDE se refieren al jugador identificado en el PGN.</p></div><div class="perf-study-games">'+full.map(x=>'<div class="perf-game-row"><span>'+esc(x.g.headers?.White||'?')+' – '+esc(x.g.headers?.Black||'?')+'</span><span>'+(x.metrics.w.complete&&x.metrics.b.complete?'Analizada':'Pendiente')+'</span></div>').join('')+'</div>';
  }
  function renderTournament(){
   filters();renderStudyOverview();
