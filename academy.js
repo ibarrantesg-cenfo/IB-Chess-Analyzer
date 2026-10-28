@@ -13,10 +13,10 @@ export function initAcademy({notify,onBack}){
   try{
    const account=await accountDetails();if(!account?.isTeacher){close();onBack();return;}
    const requestRoot=$('academy-requests');requestRoot.replaceChildren();
+   let pendingRequests=0;
    try{
     const requests=await getAccessRequests();
-    const pendingRequests=requests.filter(x=>x.status==='pending').length;
-    const pendingStat=$('academy-stats').children[2]?.querySelector('strong');if(pendingStat)pendingStat.textContent=String(pendingRequests);
+    pendingRequests=requests.filter(x=>x.status==='pending').length;
     if(!requests.length){const empty=document.createElement('p');empty.textContent='Sin solicitudes de cuenta.';requestRoot.append(empty);}
     for(const req of requests){
       const card=document.createElement('section');card.className='academy-student';
@@ -32,7 +32,7 @@ export function initAcademy({notify,onBack}){
     }
    }catch(error){requestRoot.textContent='Solicitudes no disponibles: '+error.message;}
    const response=await myEnrollments(),items=response.items||[];
-   const total=items.length,activeCount=items.filter(x=>x.state==='active').length,pending=items.filter(x=>x.state==='pending').length;
+   const total=items.length,activeCount=items.filter(x=>x.state==='active').length,pending=pendingRequests+items.filter(x=>x.state==='pending').length;
    $('academy-notice').textContent='Las solicitudes aprobadas requieren una invitación segura antes de activar cuentas. Nunca se muestran contraseñas.';
    $('academy-stats').replaceChildren();
    for(const [value,label] of [[total,'Alumnos'],[activeCount,'Activos'],[pending,'Pendientes']]){const b=document.createElement('div');b.className='academy-stat';const n=document.createElement('strong');n.textContent=value;const t=document.createElement('span');t.textContent=label;b.append(n,t);$('academy-stats').append(b);}
