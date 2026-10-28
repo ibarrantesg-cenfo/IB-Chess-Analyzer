@@ -54,3 +54,14 @@ export async function shareWithTeacher(studyId,teacherId){
  if(teacherId===session.user.id)throw Error('El estudio ya pertenece a tu cuenta.');
  await cloudShare(studyId,teacherId);
 }
+
+export async function cloudDeleteOwned(studyId){
+ const session=await getCloudSession();
+ if(!session)throw Error('Primero iniciá sesión.');
+ if(!/^[0-9a-f-]{36}$/i.test(String(studyId)))throw Error('Identificador de estudio inválido.');
+ const {data,error}=await api.from('ib_studies')
+  .delete().eq('id',studyId).eq('owner_id',session.user.id).select('id');
+ if(error)throw error;
+ if(!data?.length)throw Error('No se eliminó el estudio. Comprobá que seas propietario y que tus permisos estén activos.');
+ return true;
+}
