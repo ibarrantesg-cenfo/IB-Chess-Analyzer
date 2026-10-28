@@ -1,7 +1,7 @@
 // Copies permitted open-license chess SVG assets during build so the website works
 // without runtime image CDNs. Source: lichess-org/lila, see PIECE_CREDITS.md.
 import { mkdir, writeFile } from 'node:fs/promises';
-const sets=['chessnut','fantasy','spatial','celtic','rhosgfx'];
+const sets=['chessnut','fantasy','spatial','celtic','rhosgfx','kiwen-suwi','totoy','papercut'];
 const pieces=['wK','wQ','wR','wB','wN','wP','bK','bQ','bR','bB','bN','bP'];
 const base='https://raw.githubusercontent.com/lichess-org/lila/master/public/piece';
 await mkdir('public/pieces',{recursive:true});
