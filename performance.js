@@ -83,7 +83,7 @@ export function initPerformance({state,notify,analyzeGame,jumpGame,getAnalyses})
   <div class="perf-tabs"><button data-perf-tab="game" class="active">Esta partida</button><button data-perf-tab="tournament">Torneo</button></div>
   <div id="perf-game"></div>
   <div id="perf-tournament" hidden>
-    <div class="perf-filters"><label>Jugador<select id="perf-player"></select></label><label>Evento<select id="perf-event"></select></label></div>
+    <div class="perf-filters"><label>Evento del estudio<select id="perf-event"></select></label><label>Desglose individual (opcional)<select id="perf-player"></select></label></div>
     <div id="perf-study-overview"></div><div id="perf-summary"></div>
     <div class="perf-actions"><button class="btn primary" id="perf-analyze-all">Analizar partidas de este torneo</button><button class="btn outline" id="perf-stop">Cancelar lote</button><button class="btn outline" id="perf-export">Exportar torneo CSV</button></div>
     <div id="perf-batch-state" class="perf-info">El análisis individual se conserva mientras navegás entre las partidas de este PGN.</div>
@@ -123,7 +123,7 @@ export function initPerformance({state,notify,analyzeGame,jumpGame,getAnalyses})
   }
   $('perf-player').innerHTML=players.map(p=>'<option value="'+esc(p)+'">'+esc(p)+'</option>').join('');
   $('perf-player').value=selectedPlayer;
-  const events=[...new Set(state.games.filter(g=>playerSide(g,selectedPlayer)).map(g=>String(g.headers?.Event||'Sin evento')))];
+  const events=[...new Set(state.games.map(g=>String(g.headers?.Event||'Sin evento')))];
   if(!events.includes(selectedEvent))selectedEvent=events.includes(state.game?.headers?.Event)?state.game.headers.Event:events[0]||'';
   $('perf-event').innerHTML=events.map(e=>'<option value="'+esc(e)+'">'+esc(e)+'</option>').join('');
   $('perf-event').value=selectedEvent;
@@ -221,7 +221,7 @@ export function initPerformance({state,notify,analyzeGame,jumpGame,getAnalyses})
   this.selectTournament();
   if(batching)return;
   const event=selectedEvent,player=selectedPlayer;
-  if(!event||!player)return notify('No encontramos un jugador y evento válidos para analizar.','err');
+  if(!state.games.length)return notify('Primero cargá un estudio con partidas.','err');
   await analyzeEntireEvent();
  }
  };
