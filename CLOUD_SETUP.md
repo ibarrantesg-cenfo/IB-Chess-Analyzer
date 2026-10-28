@@ -51,3 +51,6 @@ El editor permite añadir/retirar piezas, establecer el turno, importar/copiar F
 - Aplicar únicamente la migración tras examinarla y probar permisos en Supabase.
 - Probar que un tercer usuario no puede ver estudios compartidos entre alumno y entrenador, ni modificar un estudio que no posee.
 - Si falla el compartido de correcciones, comprobar que el propietario de la copia está autenticado y que se creó la membresía, antes de anunciar que la devolución se completó.
+
+## Conexión de producción (28 de octubre de 2026)
+El proyecto Supabase ya está creado y la migración inicial se ejecutó correctamente. La URL pública está configurada en el workflow y `VITE_SUPABASE_ANON_KEY` se añadió a las variables del repositorio. El siguiente despliegue de GitHub Pages incorpora estos valores en el cliente. Aún deben configurarse en Supabase Authentication la URL del sitio, las redirecciones y la verificación de políticas con dos cuentas; una compilación correcta no confirma autenticación ni privacidad.
