@@ -269,3 +269,11 @@
 .teacher-share select{background:#101d2e;border:1px solid #4c697c;border-radius:8px;color:#eaf7ff;padding:10px;width:100%}
 .teacher-share>#share-to-teacher{max-width:100%;white-space:normal}
 .teacher-share .studio-disclaimer{margin-top:9px}
+
+.teacher-inbox{margin:12px 0;padding:12px;background:#112431;border:1px solid #30596a;border-radius:10px}
+.teacher-inbox[hidden]{display:none}
+.teacher-inbox>strong{font-size:12px;color:#a8ead0;display:block;margin-bottom:10px}
+#teacher-inbox-list{display:grid;gap:7px;max-height:240px;overflow-y:auto}
+.teacher-submission{display:flex;flex-direction:column;text-align:left;gap:4px;background:#182e3f;color:#e9f5fb;border:1px solid #37566a;border-radius:8px;padding:10px}
+.teacher-submission small{font-size:11px;color:#adc9d0}
+.teacher-submission:hover{background:#264a4a}
