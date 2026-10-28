@@ -25,13 +25,10 @@ revoke all on public.ib_teachers from anon, authenticated;
 grant select on public.ib_teachers to authenticated;
 create policy "ib_teacher_directory" on public.ib_teachers for select to authenticated using (active=true);
 
--- Register Ian's existing confirmed account explicitly. This must be run
--- from the project SQL Editor (administrator), not from the public client.
--- Replace the email below with Ian's actual verified Supabase Auth email if different.
-insert into public.ib_teachers(teacher_id, display_name, active)
-select id,'Profe Ian',true from auth.users
-where lower(email)=lower('danielbarrantes88@gmail.com') and email_confirmed_at is not null
-on conflict (teacher_id) do update set display_name=excluded.display_name,active=true;
-
--- Verify one matching teacher exists after the migration:
+-- Register the instructor from SQL Editor after confirming the verified account.
+-- Do NOT commit a personal email address or auth user UUID to the public repository.
+-- Replace the placeholder with the verified account UUID from Authentication > Users:
+-- insert into public.ib_teachers(teacher_id,display_name,active)
+-- values ('REPLACE_WITH_VERIFIED_TEACHER_UUID'::uuid,'Profe Ian',true)
+-- on conflict (teacher_id) do update set display_name=excluded.display_name,active=true;
 select teacher_id,display_name from public.ib_teachers where active=true;
