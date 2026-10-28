@@ -375,3 +375,13 @@
 .studio-library-collapse{border:1px solid #304759;border-radius:9px;margin:10px 0;padding:9px 12px}
 .studio-library-collapse summary{cursor:pointer;color:#94d4bf;font-weight:700;font-size:12px}
 .studio-library-collapse .studio-library-tools{margin-top:12px}
+
+/* Standalone tournament performance screen */
+.performance-workspace[hidden]{display:none!important}
+.performance-workspace{padding:12px 0 32px;min-height:65vh}
+.performance-workspace .performance-panel{width:100%;max-width:none;margin-top:18px}
+.performance-source{display:flex;align-items:end;flex-wrap:wrap;gap:10px;background:#152434;border:1px solid #345165;border-radius:12px;padding:16px}
+.performance-source label{flex:1;min-width:250px;display:flex;flex-direction:column;gap:8px;font-size:12px;color:#b3c9d5}
+.performance-source select{width:100%;padding:11px;border-radius:8px;background:#0e1b2c;color:#e0f3f4;border:1px solid #476074}
+.performance-workspace .perf-tournament-grid{grid-template-columns:repeat(4,minmax(0,1fr))}
+@media(max-width:800px){.performance-workspace .perf-tournament-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.performance-source button{flex:1}}
