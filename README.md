@@ -154,3 +154,13 @@ La preferencia se recuerda por navegador y perfil.
 
 ## v2.6 — más personalización visual
 Seis paletas nuevas: nogal, océano, bosque, rosa, noche y arena (12 paletas en total), con combinación libre con ocho familias SVG diferentes más cuatro tratamientos Unicode. Nuevas familias: Kiwen Suwi, Totoy y Papercut, con atribución CC BY 4.0 documentada en `PIECE_CREDITS.md`. Las opciones se conservan de forma local por navegador y perfil. La compilación descarga las piezas SVG al paquete web; verificar la ejecución verde de GitHub Actions antes de probar.
+
+
+## v2.8 — Identidad visual y Biblioteca PGN activa
+- Favicon SVG exclusivo de IB Chess Analyzer y emblema unificado en el menú lateral (archivo `public/ib-chess-icon.svg`).
+- El apartado **Biblioteca PGN** ya no dice «Próximamente»: es una vista navegable con buscador por título, jugador y alumno, conteos, filtros de local, nube y compartidos.
+- Importar archivos PGN individuales o de torneo directamente a la biblioteca local (hasta 500 partidas por archivo; límite de 15 MB); cada partida se guarda como estudio propio con notas y variantes editables después de abrirla.
+- Abrir una partida desde cualquier tarjeta la lleva al Game Review; descargarla como PGN o eliminar una copia local tras confirmar. Los estudios en nube no pueden eliminarse desde este panel para evitar borrar entregas.
+- La lista de Supabase utiliza exactamente los permisos RLS de la cuenta activa. «Compartidos» significa acceso concedido por su propietario; no son públicos. Las partidas almacenadas localmente no se suben automáticamente a la nube.
+- Para compartir con el profesor, abrir el estudio local, pulsar «Subir estudio actual», elegir la copia de nube y seleccionar «Compartir con el profe Ian» en el editor.
+- Verificaciones: módulos JavaScript revisados sintácticamente; GitHub Actions ejecuta `npm run check`, `npm run test` y `npm run build` antes de publicar. Es necesario comprobar que el despliegue termina en verde y probar la navegación en el navegador.
