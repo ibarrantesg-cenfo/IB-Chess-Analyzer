@@ -90,7 +90,19 @@ export function initLibraryWorkspace({studio,notify,onOpen}){
     const previous=make('button','btn outline','← Volver');previous.onclick=()=>{openGroup=null;render();};
     const rename=make('button','btn outline','Renombrar estudio');
     rename.onclick=async()=>{const name=window.prompt('Nombre del estudio',all[0].collectionName);if(name===null)return;try{await studio.renameLibraryCollection(all.map(x=>x.id),name);await refresh();}catch(e){notify(e.message,'err');}};
-    heading.append(previous,make('h3','',all[0].collectionName||'Estudio'),make('span','',all.length+' partidas'),rename);back.append(heading);
+    heading.append(previous,make('h3','',all[0].collectionName||'Estudio'),make('span','',all.length+' partidas'),rename);
+    const analyzeStudy=make('button','btn primary','Analizar estudio completo');
+    analyzeStudy.onclick=async()=>{
+      try{
+        analyzeStudy.disabled=true;
+        const pgn=await studio.loadCollectionPgn(all.map(x=>x.id));
+        if(!window.IB_LOAD_STUDY)throw Error('Módulo de rendimiento no disponible.');
+        window.IB_LOAD_STUDY(pgn,all[0].collectionName||'Estudio');
+        notify('Estudio cargado. Se inicia el análisis de sus partidas en Rendimiento.');
+      }catch(e){notify('No se pudo analizar el estudio: '+e.message,'err');}
+      finally{analyzeStudy.disabled=false;}
+    };
+    heading.append(analyzeStudy);back.append(heading);
     const display=all.filter(x=>(filter==='all'||x.source===filter)&&(x.title+' '+(x.collectionName||'')).toLocaleLowerCase().includes(q));
     if(!display.length)root.append(make('div','library-empty','No hay partidas coincidentes.'));
     for(const entry of display)root.append(card(entry));
