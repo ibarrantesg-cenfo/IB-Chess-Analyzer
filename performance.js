@@ -1,3 +1,4 @@
+import { findReview } from './review-cache.js';
 import { calibrationSamples,enginePerformance,apparentPerformance } from './engine-performance.js';
 // IB Chess Analyzer — descriptive per-game metrics and opponent-adjusted tournament performance.
 // No fabricated "estimated Elo from accuracy": only opponent ratings plus results can support TPR.
@@ -191,6 +192,8 @@ export function initPerformance({state,notify,analyzeGame,jumpGame,getAnalyses})
 
  async function analyzeEntireEvent(){
   if(batching)return;
+  for(let index=0;index<state.games.length;index++){if(getAnalyses().has(index))continue;try{const saved=await findReview(state.games[index]);if(saved)getAnalyses().set(index,saved);}catch(e){console.warn(e);}}
+  renderTournament();
   const games=state.games.map((g,index)=>({g,index})).filter(({g})=>!selectedEvent||String(g.headers?.Event||'Sin evento')===selectedEvent);
   const pending=games.filter(({g,index})=>{const m=gameMetrics(g,getAnalyses().get(index));return !m.w.complete||!m.b.complete;});
   if(!pending.length){$('perf-batch-state').textContent='Todas las '+games.length+' partidas del evento ya están analizadas.';renderTournament();return;}
