@@ -103,6 +103,7 @@ navReports.onclick=()=>{window.IB_ACADEMY?.close();window.IB_LIBRARY.close();win
 
 window.IB_PREFERENCES=initPreferences(notify);
 document.querySelector('#nav-preferences').onclick=()=>window.IB_PREFERENCES.open();
+if(new URLSearchParams(location.search).get('solicitar')==='1')window.IB_PREFERENCES.open();
 
 window.IB_SET_BOARD_ORIENTATION=(color)=>{state.orientation=color==='black'?'black':'white';render();window.IB_ARROWS?.positionChanged();};
 
