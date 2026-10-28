@@ -267,6 +267,19 @@ async getLibraryPgn(source,id){
  }
  const result=await cloudOpen(id);return result.study.pgn;
 },
+async updatePlayerNames(){
+ if(!selected?.game)throw Error('No hay partida abierta.');
+ const study=ensure();
+ if(cloudSource?.shared)throw Error('Este estudio pertenece a otro usuario. Creá una copia antes de modificarlo.');
+ const game=selected.game;
+ study.pgn=game.pgn;
+ study.name=(game.headers.White||'Blancas')+' – '+(game.headers.Black||'Negras');
+ study.updated=new Date().toISOString();
+ await put(study);
+ await refreshLibrary();
+ renderNotes();
+ return true;
+},
 addEngineVariation(ply,sans,summary){try{
 if(selected.previewFen)throw Error('Volvé a la línea principal antes de guardar variantes del motor.');
 const c=new Chess(selected.positions[ply]);const legalSans=[];
