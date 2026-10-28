@@ -402,3 +402,21 @@
 .library-header-editor label{display:flex;flex-direction:column;gap:4px;font-size:11px;color:#a4c9c0}
 .library-header-editor input,.library-header-editor select{min-width:0;padding:8px;background:#0f1e30;border:1px solid #406273;border-radius:7px;color:#e5faf7}
 @media(max-width:520px){.library-header-editor{grid-template-columns:1fr}}
+
+/* Tournament review: completion banner and visual report */
+.perf-complete{margin:14px 0;padding:16px 18px;border:1px solid #338b72;background:linear-gradient(120deg,#173c37,#112c34);border-radius:12px;display:flex;flex-wrap:wrap;gap:7px 20px;align-items:center}
+.perf-complete strong{font-size:18px;color:#80efc4}
+.perf-complete span{font-size:12px;color:#bddcd3}
+.perf-pending{margin:12px 0;color:#a7becd;font-size:12px}
+.perf-report-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;margin:16px 0}
+.perf-report-grid>div{display:flex;flex-direction:column;gap:9px;background:#162b38;border:1px solid #315365;border-radius:11px;padding:16px;min-width:0}
+.perf-report-grid small{font-size:11px;color:#aac9d0}
+.perf-report-grid strong{font-size:24px;color:#79e3bb;overflow-wrap:anywhere}
+.perf-report-grid span{font-size:10px;color:#8eb0b8;line-height:1.5}
+.perf-openings{border:1px solid #334b5e;border-radius:11px;padding:16px;margin-bottom:15px}
+.perf-openings h3{font-size:15px;margin:0 0 10px}
+.perf-opening{display:flex;justify-content:space-between;gap:14px;padding:8px 0;border-bottom:1px solid #29465a;font-size:12px;color:#c8dfdf}
+.perf-opening b{color:#75d9b6;white-space:nowrap}
+.perf-openings>small{display:block;margin-top:11px;color:#8eacbd}
+@media(max-width:900px){.perf-report-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(max-width:560px){.perf-report-grid{grid-template-columns:1fr}}
