@@ -27,13 +27,13 @@ export function initAcademy({notify,onBack}){
       const reject=document.createElement('button');reject.className='btn outline';reject.textContent=req.status==='approved'?'Suspender solicitud':'Rechazar solicitud';
       const act=async status=>{try{approve.disabled=reject.disabled=true;await reviewAccessRequest(req.id,status,role.value);notify('Solicitud actualizada.');await refresh();}catch(e){notify(e.message,'err');}finally{approve.disabled=reject.disabled=false;}};
       approve.disabled=req.status==='approved';approve.textContent=req.status==='approved'?'Solicitud aprobada':'Aprobar solicitud';approve.onclick=()=>act('approved');reject.onclick=()=>act(req.status==='approved'?'suspended':'rejected');
-      const note=document.createElement('small');note.textContent=req.status==='approved'?'Solicitud aprobada. Pendiente de invitación segura y verificación de identidad.':'La aprobación no crea una cuenta ni concede permisos automáticamente.';
+      const note=document.createElement('small');note.textContent=req.status==='approved'?'Solicitud aprobada. Comprobá la activación y vinculación en «Alumnos vinculados».':'La aprobación no crea una cuenta ni concede permisos automáticamente.';
       card.append(h,desc,role,approve,reject,note);requestRoot.append(card);
     }
    }catch(error){requestRoot.textContent='Solicitudes no disponibles: '+error.message;}
    const response=await myEnrollments(),items=response.items||[];
    const total=items.length,activeCount=items.filter(x=>x.state==='active').length,pending=pendingRequests+items.filter(x=>x.state==='pending').length;
-   $('academy-notice').textContent='Las solicitudes aprobadas requieren una invitación segura antes de activar cuentas. Nunca se muestran contraseñas.';
+   $('academy-notice').textContent='Las solicitudes y las cuentas vinculadas se administran por separado. Nunca se muestran contraseñas.';
    $('academy-stats').replaceChildren();
    for(const [value,label] of [[total,'Alumnos'],[activeCount,'Activos'],[pending,'Pendientes']]){const b=document.createElement('div');b.className='academy-stat';const n=document.createElement('strong');n.textContent=value;const t=document.createElement('span');t.textContent=label;b.append(n,t);$('academy-stats').append(b);}
    $('academy-roster').replaceChildren();
