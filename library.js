@@ -1,3 +1,4 @@
+import { Chess } from 'chess.js';
 // Library workspace combining local IndexedDB studies and authorized Supabase studies.
 // The Studio module remains the single source of truth for reads and opening games.
 export function initLibraryWorkspace({studio,notify,onOpen}){
@@ -17,6 +18,47 @@ export function initLibraryWorkspace({studio,notify,onOpen}){
  const str=x=>String(x??'');
  const updateSelected=()=>{const x=$('library-selection-count');if(x)x.textContent=checked.size+' partida(s) seleccionada(s)';};
  const make=(tag,cls,value)=>{const el=document.createElement(tag);if(cls)el.className=cls;if(value!==undefined)el.textContent=value;return el;};
+ const showPreview=async entry=>{
+   try{
+     const pgn=await studio.getLibraryPgn(entry.source,entry.id);
+     const chess=new Chess();chess.loadPgn(pgn,{strict:false});
+     const history=chess.history(),headers=chess.header();
+     const modal=document.createElement('div');modal.className='library-preview-backdrop';
+     const inner=make('section','library-preview-modal');
+     const heading=make('h3','',entry.title);
+     const status=make('div','library-preview-status');
+     const board=make('div','library-preview-board');
+     const controls=make('div','library-preview-controls');
+     const close=make('button','btn outline','Cerrar');
+     close.onclick=()=>modal.remove();
+     const first=make('button','btn outline','⏮'),prev=make('button','btn outline','◀'),next=make('button','btn outline','▶'),last=make('button','btn outline','⏭');
+     let ply=0;const pieces={wk:'♔',wq:'♕',wr:'♖',wb:'♗',wn:'♘',wp:'♙',bk:'♚',bq:'♛',br:'♜',bb:'♝',bn:'♞',bp:'♟'};
+     const renderBoard=()=>{
+       const c=new Chess();
+       for(let i=0;i<ply;i++)c.move(history[i]);
+       board.replaceChildren();
+       for(let rank=7;rank>=0;rank--)for(let file=0;file<8;file++){
+         const square=String.fromCharCode(97+file)+(rank+1),piece=c.get(square);
+         const cell=make('div','library-preview-square '+((rank+file)%2===0?'light':'dark'),piece?pieces[piece.color+piece.type]:'');
+         board.append(cell);
+       }
+       status.textContent=(headers.White||'?')+' – '+(headers.Black||'?')+' · '+ply+'/'+history.length+' medias jugadas'+(ply?' · '+history[ply-1]:'');
+     };
+     first.onclick=()=>{ply=0;renderBoard();};
+     prev.onclick=()=>{ply=Math.max(0,ply-1);renderBoard();};
+     next.onclick=()=>{ply=Math.min(history.length,ply+1);renderBoard();};
+     last.onclick=()=>{ply=history.length;renderBoard();};
+     controls.append(first,prev,next,last,close);
+     inner.append(heading,status,board,controls);
+     if(entry.source==='local'){
+       const rename=make('button','btn primary','Renombrar esta partida');
+       rename.onclick=async()=>{const name=window.prompt('Nuevo nombre de la partida',entry.title);if(name===null)return;try{await studio.renameLibraryItem('local',entry.id,name);heading.textContent=name;await refresh();notify('Nombre actualizado.');}catch(e){notify(e.message,'err');}};
+       inner.append(rename);
+     }
+     modal.append(inner);modal.onclick=e=>{if(e.target===modal)modal.remove();};
+     document.body.append(modal);renderBoard();
+   }catch(e){notify('No se pudo mostrar el tablero: '+e.message,'err');}
+ };
  const card=entry=>{
    const wrap=make('article','library-card');
    const header=make('div','library-card-head');
@@ -39,7 +81,8 @@ export function initLibraryWorkspace({studio,notify,onOpen}){
      const a=document.createElement('a');a.href=url;a.download='IB_'+entry.title.replace(/[^a-z0-9_-]+/gi,'_').slice(0,65)+'.pgn';a.click();
      setTimeout(()=>URL.revokeObjectURL(url),1500);
    }catch(e){notify('No se pudo exportar: '+e.message,'err');}};
-   actions.append(open,download);
+   const previewButton=make('button','btn outline','Ver tablero');previewButton.onclick=()=>showPreview(entry);
+   actions.append(previewButton,open,download);
    if(entry.source==='local'){
      const rename=make('button','btn outline','Editar nombre');
      rename.onclick=async()=>{const name=window.prompt('Nombre de la partida',entry.title);if(name===null)return;try{await studio.renameLibraryItem('local',entry.id,name);await refresh();}catch(e){notify(e.message,'err');}};
