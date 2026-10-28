@@ -16,7 +16,8 @@ export function initPreferences(notify){
  </div></section>`;
  document.body.append(sheet);initAudioPreferences();
  const el=id=>document.getElementById(id),settingsKey='ib-chess-theme-v1';
- const applyTheme=v=>{document.documentElement.dataset.theme=v;localStorage.setItem(settingsKey,v);};
+ const applyTheme=v=>{document.documentElement.dataset.theme=v==='system'?(window.matchMedia('(prefers-color-scheme: light)').matches?'light':'dark'):v;localStorage.setItem(settingsKey,v);};
+ const media=window.matchMedia('(prefers-color-scheme: light)');media.addEventListener?.('change',()=>{if(localStorage.getItem(settingsKey)==='system')applyTheme('system');});
  applyTheme(localStorage.getItem(settingsKey)||'dark');
  el('prefs-theme').value=localStorage.getItem(settingsKey)||'dark';
  el('prefs-theme').onchange=e=>applyTheme(e.target.value);
