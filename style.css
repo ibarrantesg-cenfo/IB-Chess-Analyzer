@@ -420,3 +420,7 @@
 .perf-openings>small{display:block;margin-top:11px;color:#8eacbd}
 @media(max-width:900px){.perf-report-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
 @media(max-width:560px){.perf-report-grid{grid-template-columns:1fr}}
+
+/* v3: per-game PGN summary and opt-in cloud account backup */
+.library-game-details{font-size:11px;line-height:1.6;color:#a7dbce;padding:8px 10px;background:#102e34;border-radius:7px;overflow-wrap:anywhere}
+#library-sync{white-space:normal}
