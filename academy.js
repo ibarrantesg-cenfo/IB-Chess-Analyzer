@@ -2,7 +2,7 @@ import {accountDetails,myEnrollments,setStudentEnrollment,cloudAvailable,getAcce
 export function initAcademy({notify,onBack}){
  const page=document.querySelector('main.main'),layout=page.querySelector('.layout'),toolbar=page.querySelector('.toolbar'),tools=page.querySelector('.workspace-tools'),screen=document.createElement('section');
  screen.className='academy-screen';screen.hidden=true;
- screen.innerHTML='<header class="academy-head"><div><div class="eyebrow">IB CHESS ACADEMY · ADMINISTRACIÓN</div><h2>Academia · Profe Ian</h2><p>Alumnos, solicitudes, planes y vigencias en un espacio independiente.</p></div><button class="btn outline" id="academy-refresh">↻ Actualizar</button></header><div id="academy-notice" role="status"></div><div class="academy-stats" id="academy-stats"></div><h3>Solicitudes de cuentas</h3><div class="academy-roster" id="academy-requests"></div><h3>Alumnos vinculados</h3><div class="academy-roster" id="academy-roster"></div>';
+ screen.innerHTML='<header class="academy-head"><div><div class="eyebrow">IB CHESS ACADEMY · ADMINISTRACIÓN</div><h2>Academia · Profe Ian</h2><p>Alumnos, solicitudes, planes y vigencias en un espacio independiente.</p></div><button class="btn outline" id="academy-refresh">↻ Actualizar</button></header><div id="academy-notice" role="status"></div><div class="academy-stats" id="academy-stats"></div><h3>Solicitudes pendientes</h3><div class="academy-roster" id="academy-requests"></div><details class="academy-history" id="academy-history"><summary><span>Historial de solicitudes</span><span id="academy-history-count">0 registros</span></summary><div class="academy-history-body" id="academy-history-list"></div></details><h3>Alumnos vinculados</h3><div class="academy-roster" id="academy-roster"></div>';
  page.insertBefore(screen,page.querySelector('footer'));
  const $=id=>screen.querySelector('#'+id);
  let active=false;
@@ -12,28 +12,53 @@ export function initAcademy({notify,onBack}){
   if(!active)return;
   try{
    const account=await accountDetails();if(!account?.isTeacher){close();onBack();return;}
-   const requestRoot=$('academy-requests');requestRoot.replaceChildren();
+   const requestRoot=$('academy-requests'), historyRoot=$('academy-history-list');
+   const historyOpen=$('academy-history').open;
+   requestRoot.replaceChildren();historyRoot.replaceChildren();
    let pendingRequests=0;
    try{
     const requests=await getAccessRequests();
-    pendingRequests=requests.filter(x=>x.status==='pending').length;
-    if(!requests.length){const empty=document.createElement('p');empty.textContent='Sin solicitudes de cuenta.';requestRoot.append(empty);}
-    for(const req of requests){
-      const card=document.createElement('section');card.className='academy-student';
-      const h=document.createElement('h3');h.textContent=req.full_name+' · '+req.email;
-      const desc=document.createElement('p');desc.textContent='Solicita: '+req.requested_role+' · Estado: '+req.status;
-      const role=document.createElement('select');for(const [v,t] of [['student','Alumno'],['teacher','Profesor']]){const o=document.createElement('option');o.value=v;o.textContent=t;role.append(o);}role.value=req.granted_role||req.requested_role;
-      const approve=document.createElement('button');approve.className='btn primary';approve.textContent='Aprobar solicitud';
-      const reject=document.createElement('button');reject.className='btn outline';reject.textContent=req.status==='approved'?'Suspender solicitud':'Rechazar solicitud';
-      const act=async status=>{try{approve.disabled=reject.disabled=true;await reviewAccessRequest(req.id,status,role.value);notify('Solicitud actualizada.');await refresh();}catch(e){notify(e.message,'err');}finally{approve.disabled=reject.disabled=false;}};
-      approve.disabled=req.status==='approved';approve.textContent=req.status==='approved'?'Solicitud aprobada':'Aprobar solicitud';approve.onclick=()=>act('approved');reject.onclick=()=>act(req.status==='approved'?'suspended':'rejected');
-      const copy=document.createElement('button');copy.className='btn outline';copy.textContent='Copiar correo para invitar';
-      copy.onclick=async()=>{try{await navigator.clipboard.writeText(req.email);notify('Correo copiado. En Supabase → Authentication → Users → Add user → Send invitation, pegalo para enviar la invitación.');}catch(e){notify('No se pudo copiar el correo.','err');}};
-      copy.hidden=req.status!=='approved';
-      const note=document.createElement('small');note.textContent=req.status==='approved'?'Solicitud aprobada. Si aún no tiene cuenta, enviá la invitación desde Supabase Authentication → Users. La vinculación automática requiere activar la migración de onboarding.':'La aprobación no crea una cuenta ni concede permisos automáticamente.';
-      card.append(h,desc,role,approve,reject,copy,note);requestRoot.append(card);
+    const pending=requests.filter(r=>r.status==='pending');
+    const archived=requests.filter(r=>r.status!=='pending').sort((a,b)=>new Date(b.reviewed_at||b.created_at)-new Date(a.reviewed_at||a.created_at));
+    pendingRequests=pending.length;
+    $('academy-history-count').textContent=archived.length+' '+(archived.length===1?'registro':'registros');
+    if(!pending.length){const empty=document.createElement('p');empty.className='academy-muted';empty.textContent='No hay solicitudes por revisar.';requestRoot.append(empty);}
+    for(const req of pending){
+      const card=document.createElement('section');card.className='academy-student academy-request';
+      const h=document.createElement('h3');h.textContent=req.full_name;
+      const email=document.createElement('p');email.className='academy-muted';email.textContent=req.email;
+      const desc=document.createElement('p');desc.textContent='Rol solicitado: '+(req.requested_role==='teacher'?'Profesor':'Alumno');
+      const actions=document.createElement('div');actions.className='academy-request-actions';
+      const role=document.createElement('select');role.setAttribute('aria-label','Rol que se aprobará');
+      for(const [v,t] of [['student','Alumno'],['teacher','Profesor']]){const o=document.createElement('option');o.value=v;o.textContent=t;role.append(o);}
+      role.value=req.requested_role;
+      const approve=document.createElement('button');approve.className='btn primary';approve.textContent='Aprobar';
+      const reject=document.createElement('button');reject.className='btn outline';reject.textContent='Rechazar';
+      const act=async status=>{approve.disabled=true;reject.disabled=true;try{await reviewAccessRequest(req.id,status,role.value);notify(status==='approved'?'Solicitud aprobada.':'Solicitud rechazada.');await refresh();}catch(e){notify(e.message,'err');approve.disabled=false;reject.disabled=false;}};
+      approve.onclick=()=>act('approved');reject.onclick=()=>act('rejected');
+      const note=document.createElement('small');note.textContent='La aprobación autoriza una futura invitación, no crea credenciales por sí sola.';
+      actions.append(role,approve,reject);card.append(h,email,desc,actions,note);requestRoot.append(card);
     }
-   }catch(error){requestRoot.textContent='Solicitudes no disponibles: '+error.message;}
+    if(!archived.length){const empty=document.createElement('p');empty.className='academy-muted';empty.textContent='Todavía no hay solicitudes resueltas.';historyRoot.append(empty);}
+    for(const req of archived){
+      const item=document.createElement('div');item.className='academy-history-entry';
+      const info=document.createElement('div');info.className='academy-history-info';
+      const name=document.createElement('strong');name.textContent=req.full_name;
+      const email=document.createElement('small');email.textContent=req.email;
+      const meta=document.createElement('small');meta.textContent='Rol: '+(req.granted_role==='teacher'?'Profesor':req.granted_role==='student'?'Alumno':req.requested_role==='teacher'?'Profesor solicitado':'Alumno solicitado')+' · '+(req.reviewed_at?new Date(req.reviewed_at).toLocaleDateString('es-CR'):'Sin fecha de revisión');
+      info.append(name,email,meta);
+      const badge=document.createElement('span');badge.className='academy-history-status '+(req.status==='approved'?'approved':'other');
+      badge.textContent=({approved:'Aprobada',rejected:'Rechazada',suspended:'Suspendida'})[req.status]||req.status;
+      item.append(info,badge);
+      if(req.status==='approved'){
+        const copy=document.createElement('button');copy.className='btn outline academy-history-copy';copy.textContent='Copiar correo';
+        copy.onclick=async()=>{try{await navigator.clipboard.writeText(req.email);notify('Correo copiado para la invitación.');}catch(e){notify('No se pudo copiar el correo.','err');}};
+        item.append(copy);
+      }
+      historyRoot.append(item);
+    }
+    $('academy-history').open=historyOpen;
+   }catch(error){requestRoot.textContent='No se pudieron cargar las solicitudes: '+error.message;}
    const response=await myEnrollments(),items=response.items||[];
    const total=items.length,activeCount=items.filter(x=>x.state==='active').length,pending=pendingRequests+items.filter(x=>x.state==='pending').length;
    $('academy-notice').textContent='Las solicitudes y las cuentas vinculadas se administran por separado. Nunca se muestran contraseñas.';
