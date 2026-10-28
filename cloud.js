@@ -125,7 +125,7 @@ export async function submitAccessRequest(email,fullName,requestedRole='student'
 }
 export async function getAccessRequests(){
  const account=await accountDetails();if(!account?.isTeacher)throw Error('Solo profesores autorizados.');
- const {data,error}=await api.from('ib_access_requests').select('id,email,full_name,requested_role,granted_role,status,created_at').order('created_at',{ascending:false});
+ const {data,error}=await api.from('ib_access_requests').select('id,email,full_name,requested_role,granted_role,status,created_at,reviewed_at').order('created_at',{ascending:false});
  if(error)throw error;return data||[];
 }
 export async function reviewAccessRequest(id,status,grantedRole){
