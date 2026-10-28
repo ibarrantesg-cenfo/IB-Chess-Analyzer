@@ -451,3 +451,8 @@
 :root[data-theme="light"] .prefs-overlay{background:#0b202c8f}
 :root[data-theme="system"]{color-scheme:light dark}
 @media(prefers-color-scheme:light){:root[data-theme="system"]{background:#f3f7f8;color:#1c3040}:root[data-theme="system"] body{background:#f3f7f8;color:#1c3040}}
+
+/* Audio preferences */
+.prefs-block .audio-row{display:flex;flex-direction:row;align-items:center;gap:9px}
+.prefs-block .audio-row input{width:auto;accent-color:#76ddba}
+.prefs-block input[type="range"]{accent-color:#79d8b8;padding:0;height:28px}
