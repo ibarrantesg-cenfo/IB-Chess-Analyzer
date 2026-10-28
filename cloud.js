@@ -115,3 +115,23 @@ export async function setStudentEnrollment(id,state,plan,expiresAt){
 }
 
 export function onAccountChange(callback){if(!api)return ()=>{};const {data}=api.auth.onAuthStateChange(()=>{queueMicrotask(()=>callback());});return ()=>data.subscription.unsubscribe();}
+
+export async function submitAccessRequest(email,fullName,requestedRole='student'){
+ if(!api)throw Error('Supabase no está configurado.');
+ const payload={email:String(email).trim().toLowerCase(),full_name:String(fullName).trim(),requested_role:requestedRole==='teacher'?'teacher':'student'};
+ if(!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(payload.email)||payload.full_name.length<2)throw Error('Ingresá un correo y nombre válidos.');
+ const {error}=await api.from('ib_access_requests').insert(payload);
+ if(error)throw error;return true;
+}
+export async function getAccessRequests(){
+ const account=await accountDetails();if(!account?.isTeacher)throw Error('Solo profesores autorizados.');
+ const {data,error}=await api.from('ib_access_requests').select('id,email,full_name,requested_role,granted_role,status,created_at').order('created_at',{ascending:false});
+ if(error)throw error;return data||[];
+}
+export async function reviewAccessRequest(id,status,grantedRole){
+ const session=await getCloudSession(),account=await accountDetails();
+ if(!session||!account?.isTeacher)throw Error('Solo profesores autorizados.');
+ if(!['approved','rejected','suspended'].includes(status)||!['student','teacher'].includes(grantedRole))throw Error('Decisión inválida.');
+ const {error}=await api.from('ib_access_requests').update({status,granted_role:grantedRole,reviewed_at:new Date().toISOString(),reviewed_by:session.user.id}).eq('id',id);
+ if(error)throw error;
+}
