@@ -80,14 +80,14 @@ export function initPerformance({state,notify,analyzeGame,jumpGame,getAnalyses})
  box.className='panel performance-panel';
  box.innerHTML=`
   <div class="panel-heading"><div><div class="eyebrow">ESTADÍSTICAS · IB CHESS ACADEMY</div><h2>Rendimiento y torneos</h2></div><span class="small-pill">BETA</span></div>
-  <div class="perf-tabs"><button data-perf-tab="game" class="active">Esta partida</button><button data-perf-tab="tournament">Torneo</button></div>
-  <div id="perf-game"></div>
-  <div id="perf-tournament" hidden>
-    <div class="perf-filters"><label>Evento del estudio<select id="perf-event"></select></label><label>Desglose individual (opcional)<select id="perf-player"></select></label></div>
-    <div id="perf-study-overview"></div><div id="perf-summary"></div>
+  <div class="perf-tabs" hidden><button data-perf-tab="game">Esta partida</button><button data-perf-tab="tournament" class="active">Torneo</button></div>
+  <div id="perf-game" hidden></div>
+  <div id="perf-tournament">
+    <div class="perf-filters"><label>Evento del estudio<select id="perf-event"></select></label><label hidden>Jugador<select id="perf-player"></select></label></div>
+    <div id="perf-study-overview"></div><div id="perf-summary" hidden></div>
     <div class="perf-actions"><button class="btn primary" id="perf-analyze-all">Analizar partidas de este torneo</button><button class="btn outline" id="perf-stop">Cancelar lote</button><button class="btn outline" id="perf-export">Exportar torneo CSV</button></div>
     <div id="perf-batch-state" class="perf-info">El análisis individual se conserva mientras navegás entre las partidas de este PGN.</div>
-    <div id="perf-rows"></div>
+    <div id="perf-rows" hidden></div>
   </div>
   <p class="perf-disclaimer">El Elo aparente es una transformación heurística del índice técnico de Stockfish, sin calibración estadística ni equivalencia con rating oficial. El performance de torneo aplica la tabla Ra + dp de FIDE al Elo indicado en el PGN. Para ser un rendimiento FIDE verificable, los ratings, las partidas efectivamente jugadas y el ritmo deben proceder de datos oficiales.</p>`;
  screen.append(box);
@@ -113,7 +113,7 @@ export function initPerformance({state,notify,analyzeGame,jumpGame,getAnalyses})
   finally{$('performance-load').disabled=false;}
  };
 
- let selectedPlayer='',selectedEvent='',activeTab='game',batchCancelled=false,batching=false;
+ let selectedPlayer='',selectedEvent='',activeTab='tournament',batchCancelled=false,batching=false;
  const playerList=()=>{const count=new Map();for(const g of state.games)for(const name of [g.headers?.White,g.headers?.Black])if(name)count.set(name,(count.get(name)||0)+1);return [...count.keys()].sort((a,b)=>count.get(b)-count.get(a)||a.localeCompare(b));};
  function filters(restore=true){
   const previous=selectedPlayer;
@@ -173,7 +173,7 @@ export function initPerformance({state,notify,analyzeGame,jumpGame,getAnalyses})
   $('perf-summary').insertAdjacentHTML('beforeend','<div class="perf-info"><strong>Balance técnico del evento</strong><p>'+esc(conclusion)+'</p><p>Partidas evaluadas: '+analyzed.length+'/'+t.rows.length+' · Pérdida media: '+(avgLoss===null?'—':avgLoss.toFixed(1)+' cp')+' · Imprecisiones: '+errorTotals.inaccuracy+' · Errores: '+errorTotals.mistake+' · Graves: '+errorTotals.blunder+'</p></div>'+(headerWarnings.length?'<div class="perf-info"><strong>Datos PGN a verificar</strong><p>'+headerWarnings.map(esc).join(' · ')+'</p></div>':''));
   $('perf-rows').innerHTML=t.rows.length?t.rows.map(r=>'<button class="perf-game-row" data-open-game="'+r.index+'"><span>R'+esc(r.round)+' · '+esc(r.opponent)+'</span><span>'+(r.elo??'s/Elo')+' · '+(r.result===null?'Sin resultado':r.result)+' pt · '+(r.technical.complete?r.technical.quality.toFixed(1)+'/100':'sin analizar')+'</span></button>').join(''):'<p>Este evento no contiene partidas de ese jugador.</p>';
  }
- function render(){renderGame();if(activeTab==='tournament')renderTournament();}
+ function render(){renderTournament();}
  box.querySelector('.perf-tabs').onclick=e=>{const b=e.target.closest('[data-perf-tab]');if(!b)return;activeTab=b.dataset.perfTab;box.querySelectorAll('[data-perf-tab]').forEach(x=>x.classList.toggle('active',x===b));$('perf-game').hidden=activeTab!=='game';$('perf-tournament').hidden=activeTab!=='tournament';render();};
  $('perf-player').onchange=e=>{selectedPlayer=e.target.value;selectedEvent='';renderTournament();};
  $('perf-event').onchange=e=>{selectedEvent=e.target.value;renderTournament();};
