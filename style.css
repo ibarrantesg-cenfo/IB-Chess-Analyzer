@@ -497,3 +497,24 @@
 :root[data-theme="light"] :is(.square.light,.square.dark,.piece,.white-piece,.black-piece){filter:none}
 :root[data-theme="light"] :is(button,input,select,textarea):focus-visible{outline:2px solid #107a60;outline-offset:2px}
 @media(prefers-color-scheme:light){:root[data-theme="system"]{color-scheme:light}}
+
+/* v3.2 Library preview: responsive board consistent with main analyzer */
+.library-preview-modal{width:min(96vw,760px);max-height:min(94dvh,950px);padding:18px 22px;overflow-y:auto;gap:12px}
+.library-preview-board{width:min(100%,500px);max-width:500px;aspect-ratio:1;border-radius:8px;overflow:hidden;border:2px solid #526c70}
+.library-preview-square{position:relative;min-width:0;min-height:0;overflow:hidden;isolation:isolate;font-size:clamp(20px,5vw,48px)}
+.library-preview-square.light{background:var(--board-light,#c2d1cb)}
+.library-preview-square.dark{background:var(--board-dark,#678c86)}
+.library-preview-piece{display:block;position:absolute;width:94%;height:94%;object-fit:contain;z-index:2;inset:3%;pointer-events:none}
+.library-preview-glyph{display:flex;align-items:center;justify-content:center;width:100%;height:100%;font-size:clamp(22px,5vw,49px);line-height:1;position:absolute;inset:0;color:inherit}
+.library-preview-piece + .library-preview-glyph{visibility:hidden}
+.library-preview-controls{position:sticky;bottom:-18px;z-index:4;padding:10px;background:inherit;border-top:1px solid #4c6671}
+.library-preview-editor{padding:12px;border:1px solid #49616b;border-radius:10px}
+.library-preview-editor summary{font-weight:700;cursor:pointer;color:#79d9b5;padding:4px}
+.library-preview-editor .library-header-editor{padding:14px 0}
+.library-preview-editor .library-header-editor label{min-width:0}
+.library-preview-editor .library-header-editor input{width:100%;max-width:100%;box-sizing:border-box}
+:root[data-theme="light"] .library-preview-modal{background:#fff;color:#183041}
+:root[data-theme="light"] .library-preview-editor{border-color:#c5d7df}
+:root[data-theme="light"] .library-preview-editor summary{color:#106a52}
+:root[data-theme="light"] .library-preview-controls{background:#fff;border-color:#d1e0e6}
+@media(max-width:520px){.library-preview-modal{padding:12px;width:98vw}.library-preview-board{width:100%}.library-preview-controls{gap:5px}.library-preview-controls button{padding:9px 10px}}
