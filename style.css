@@ -518,3 +518,10 @@
 :root[data-theme="light"] .library-preview-editor summary{color:#106a52}
 :root[data-theme="light"] .library-preview-controls{background:#fff;border-color:#d1e0e6}
 @media(max-width:520px){.library-preview-modal{padding:12px;width:98vw}.library-preview-board{width:100%}.library-preview-controls{gap:5px}.library-preview-controls button{padding:9px 10px}}
+
+/* Robust preview grid: show glyph fallback until an SVG actually loads. */
+.library-preview-board{display:grid!important;grid-template-columns:repeat(8,minmax(0,1fr))!important;grid-template-rows:repeat(8,minmax(0,1fr))!important}
+.library-preview-square{display:flex!important;align-items:center;justify-content:center;min-width:0;min-height:0}
+.library-preview-square .library-preview-glyph{visibility:visible}
+.library-preview-square.has-piece-image .library-preview-glyph{visibility:hidden}
+.library-preview-square:not(.has-piece-image) .library-preview-piece{display:none}
