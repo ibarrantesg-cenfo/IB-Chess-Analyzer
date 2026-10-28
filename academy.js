@@ -27,8 +27,11 @@ export function initAcademy({notify,onBack}){
       const reject=document.createElement('button');reject.className='btn outline';reject.textContent=req.status==='approved'?'Suspender solicitud':'Rechazar solicitud';
       const act=async status=>{try{approve.disabled=reject.disabled=true;await reviewAccessRequest(req.id,status,role.value);notify('Solicitud actualizada.');await refresh();}catch(e){notify(e.message,'err');}finally{approve.disabled=reject.disabled=false;}};
       approve.disabled=req.status==='approved';approve.textContent=req.status==='approved'?'Solicitud aprobada':'Aprobar solicitud';approve.onclick=()=>act('approved');reject.onclick=()=>act(req.status==='approved'?'suspended':'rejected');
-      const note=document.createElement('small');note.textContent=req.status==='approved'?'Solicitud aprobada. Comprobá la activación y vinculación en «Alumnos vinculados».':'La aprobación no crea una cuenta ni concede permisos automáticamente.';
-      card.append(h,desc,role,approve,reject,note);requestRoot.append(card);
+      const copy=document.createElement('button');copy.className='btn outline';copy.textContent='Copiar correo para invitar';
+      copy.onclick=async()=>{try{await navigator.clipboard.writeText(req.email);notify('Correo copiado. En Supabase → Authentication → Users → Add user → Send invitation, pegalo para enviar la invitación.');}catch(e){notify('No se pudo copiar el correo.','err');}};
+      copy.hidden=req.status!=='approved';
+      const note=document.createElement('small');note.textContent=req.status==='approved'?'Solicitud aprobada. Si aún no tiene cuenta, enviá la invitación desde Supabase Authentication → Users. La vinculación automática requiere activar la migración de onboarding.':'La aprobación no crea una cuenta ni concede permisos automáticamente.';
+      card.append(h,desc,role,approve,reject,copy,note);requestRoot.append(card);
     }
    }catch(error){requestRoot.textContent='Solicitudes no disponibles: '+error.message;}
    const response=await myEnrollments(),items=response.items||[];
