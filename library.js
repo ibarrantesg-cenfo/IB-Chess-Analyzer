@@ -9,11 +9,11 @@ export function initLibraryWorkspace({studio,notify,onOpen}){
  const panel=document.createElement('section');panel.className='library-workspace';panel.hidden=true;
  panel.innerHTML=`<header class="library-header"><div><div class="eyebrow">IB CHESS ACADEMY · BIBLIOTECA</div><h2>Mis partidas y estudios</h2><p>Buscá, abrí y exportá tus estudios locales o sincronizados. Los compartidos respetan los permisos de Supabase.</p></div><label class="btn primary library-upload">＋ Importar PGN a biblioteca<input type="file" id="library-import-file" accept=".pgn,.txt" multiple hidden/></label></header>
  <div class="library-toolbar"><label class="library-search-label">Buscar estudios<input id="library-query" type="search" placeholder="Jugador, título o alumno…"/></label><label>Ubicación<select id="library-origin"><option value="all">Todos</option><option value="local">Guardados en este navegador</option><option value="cloud">Guardados en la nube</option><option value="shared">Compartidos conmigo</option></select></label><button class="btn outline" id="library-refresh">↻ Actualizar</button></div>
- <div id="library-counts" class="library-counts"></div><div id="library-warning" class="library-warning" hidden></div><div id="library-items" class="library-items" aria-live="polite"></div>
+ <div class="library-organize"><input id="library-folder-name" placeholder="Nombre del estudio"/><button class="btn outline" id="library-group">Agrupar seleccionadas</button></div><div id="library-counts" class="library-counts"></div><div id="library-back" hidden></div><div id="library-warning" class="library-warning" hidden></div><div id="library-items" class="library-items" aria-live="polite"></div>
  <p class="library-footnote">Local: guardado solamente en este navegador. Nube: accesible con tu cuenta. Los estudios compartidos no se pueden sobrescribir desde la biblioteca; abrilos para corregirlos mediante una copia propia.</p>`;
  page.insertBefore(panel,page.querySelector('footer'));
  const $=id=>document.getElementById(id);
- let items=[],userId=null,busy=false,visible=false;
+ let items=[],userId=null,busy=false,visible=false,openGroup=null;const checked=new Set();
  const str=x=>String(x??'');
  const make=(tag,cls,value)=>{const el=document.createElement(tag);if(cls)el.className=cls;if(value!==undefined)el.textContent=value;return el;};
  const card=entry=>{
@@ -22,6 +22,7 @@ export function initLibraryWorkspace({studio,notify,onOpen}){
    header.append(make('strong','',entry.title));
    const badge=make('span','library-source '+(entry.shared?'shared':entry.source),entry.shared?'Compartido':entry.source==='cloud'?'En la nube':'Local');
    header.append(badge);wrap.append(header);
+   if(entry.source==='local'){const select=make('label','library-checkbox');const check=document.createElement('input');check.type='checkbox';check.checked=checked.has(entry.id);check.onchange=()=>{if(check.checked)checked.add(entry.id);else checked.delete(entry.id);};select.append(check,document.createTextNode(' Seleccionar'));wrap.append(select);}
    wrap.append(make('p','library-subtitle',entry.student));
    const metadata=make('small','library-card-date',entry.date?new Date(entry.date).toLocaleDateString('es-CR'):'Sin fecha');
    wrap.append(metadata);
@@ -39,6 +40,11 @@ export function initLibraryWorkspace({studio,notify,onOpen}){
    }catch(e){notify('No se pudo exportar: '+e.message,'err');}};
    actions.append(open,download);
    if(entry.source==='local'){
+     const rename=make('button','btn outline','Editar nombre');
+     rename.onclick=async()=>{const name=window.prompt('Nombre de la partida',entry.title);if(name===null)return;try{await studio.renameLibraryItem('local',entry.id,name);await refresh();}catch(e){notify(e.message,'err');}};
+     actions.append(rename);
+   }
+   if(entry.source==='local'){
      const remove=make('button','btn outline library-delete','Eliminar local');
      remove.onclick=async()=>{
        if(!window.confirm('¿Eliminar este estudio guardado en este navegador? Esta acción no se puede deshacer.'))return;
@@ -51,16 +57,37 @@ export function initLibraryWorkspace({studio,notify,onOpen}){
  };
  function render(){
   const q=$('library-query').value.trim().toLocaleLowerCase(),filter=$('library-origin').value;
-  const shown=items.filter(x=>(filter==='all'||(filter==='shared'?x.shared:x.source===filter))&&(x.title+' '+x.student).toLocaleLowerCase().includes(q));
+  const filtered=items.filter(x=>(filter==='all'||(filter==='shared'?x.shared:x.source===filter))&&(x.title+' '+x.student+' '+(x.collectionName||'')).toLocaleLowerCase().includes(q));
+  const groups=new Map();
+  for(const x of filtered){const key=x.collectionId&&x.source==='local'?'collection:'+x.collectionId:x.source+':'+x.id;if(!groups.has(key))groups.set(key,[]);groups.get(key).push(x);}
   const counts=$('library-counts');counts.replaceChildren();
-  for(const [name,count] of [['Estudios',items.length],['Locales',items.filter(x=>x.source==='local').length],['En nube',items.filter(x=>x.source==='cloud').length],['Compartidos',items.filter(x=>x.shared).length]]){
+  for(const [name,count] of [['Estudios',groups.size],['Partidas',items.length],['En nube',items.filter(x=>x.source==='cloud').length],['Compartidos',items.filter(x=>x.shared).length]]){
     const box=make('div','library-stat');box.append(make('strong','',String(count)),make('small','',name));counts.append(box);
   }
   const root=$('library-items');root.replaceChildren();
-  if(!shown.length){
-    const empty=make('div','library-empty',items.length?'No encontramos estudios con estos filtros.':'Tu biblioteca está vacía. Importá un PGN y guardalo desde el editor para comenzar.');
-    root.append(empty);
-  }else for(const entry of shown)root.append(card(entry));
+  const back=$('library-back');back.replaceChildren();back.hidden=!openGroup;
+  if(openGroup){
+    const all=items.filter(x=>x.collectionId&&('collection:'+x.collectionId)===openGroup);
+    if(!all.length){openGroup=null;render();return;}
+    const heading=make('div','library-folder-heading');
+    const previous=make('button','btn outline','← Volver');previous.onclick=()=>{openGroup=null;render();};
+    const rename=make('button','btn outline','Renombrar estudio');
+    rename.onclick=async()=>{const name=window.prompt('Nombre del estudio',all[0].collectionName);if(name===null)return;try{await studio.renameLibraryCollection(all.map(x=>x.id),name);await refresh();}catch(e){notify(e.message,'err');}};
+    heading.append(previous,make('h3','',all[0].collectionName||'Estudio'),make('span','',all.length+' partidas'),rename);back.append(heading);
+    const display=all.filter(x=>(filter==='all'||x.source===filter)&&(x.title+' '+(x.collectionName||'')).toLocaleLowerCase().includes(q));
+    if(!display.length)root.append(make('div','library-empty','No hay partidas coincidentes.'));
+    for(const entry of display)root.append(card(entry));
+    return;
+  }
+  if(!groups.size){root.append(make('div','library-empty',items.length?'Sin resultados.':'Tu biblioteca está vacía.'));return;}
+  for(const [key,entries] of groups){
+    if(key.startsWith('collection:')){
+      const wrap=make('article','library-card library-folder');
+      const head=make('div','library-card-head');head.append(make('strong','',entries[0].collectionName||'Estudio'),make('span','library-source local',entries.length+' partidas'));
+      wrap.append(head,make('p','library-subtitle','Estudio con varias partidas'));
+      const open=make('button','btn primary','Abrir estudio');open.onclick=()=>{openGroup=key;render();};wrap.append(open);root.append(wrap);
+    }else root.append(card(entries[0]));
+  }
  }
  async function refresh(){
   if(busy)return;busy=true;$('library-refresh').disabled=true;
@@ -69,7 +96,7 @@ export function initLibraryWorkspace({studio,notify,onOpen}){
     const account=await import('./cloud.js').then(x=>x.getCloudSession().catch(()=>null));
     userId=account?.user?.id||null;
     items=[
-      ...result.locals.map(x=>({source:'local',id:x.id,title:str(x.name||'Estudio sin nombre'),student:str(x.student||'Sin alumno'),date:x.updated,shared:false})),
+      ...result.locals.map(x=>({source:'local',id:x.id,title:str(x.name||'Estudio sin nombre'),student:str(x.student||'Sin alumno'),date:x.updated,shared:false,collectionId:x.collectionId||null,collectionName:x.collectionName||null})),
       ...result.remote.map(x=>({source:'cloud',id:x.id,title:str(x.title||'Estudio sin nombre'),student:str(x.student_label||'Sin alumno'),date:x.updated_at,shared:x.owner_id!==userId}))
     ].sort((a,b)=>str(b.date).localeCompare(str(a.date)));
     const warn=$('library-warning');
@@ -90,6 +117,12 @@ export function initLibraryWorkspace({studio,notify,onOpen}){
  home.onclick=()=>switchView(false);
  nav.onclick=()=>switchView(true);
  $('library-refresh').onclick=refresh;
+ $('library-group').onclick=async()=>{
+  if(!checked.size)return notify('Seleccioná partidas locales para agrupar.','err');
+  const name=$('library-folder-name').value.trim();
+  try{const count=await studio.organizeLibraryItems([...checked],name);checked.clear();$('library-folder-name').value='';await refresh();notify(count+' partidas agrupadas en '+name+'.');}
+  catch(e){notify('No se pudo agrupar: '+e.message,'err');}
+ };
  $('library-query').oninput=render;
  $('library-origin').onchange=render;
  $('library-import-file').onchange=async e=>{
@@ -97,7 +130,7 @@ export function initLibraryWorkspace({studio,notify,onOpen}){
    if(!files.length)return;
    let added=0,invalid=0;
    for(const file of files){
-     try{const result=await studio.importLibraryPgn(await file.text());added+=result.inserted;invalid+=result.invalid;}
+     try{const result=await studio.importLibraryPgn(await file.text(),'Sin alumno',file.name.replace(/\.(pgn|txt)$/i,''));added+=result.inserted;invalid+=result.invalid;}
      catch(err){invalid++;notify('No se pudo importar '+file.name+': '+err.message,'err');}
    }
    await refresh();
