@@ -525,3 +525,8 @@
 .library-preview-square .library-preview-glyph{visibility:visible}
 .library-preview-square.has-piece-image .library-preview-glyph{visibility:hidden}
 .library-preview-square:not(.has-piece-image) .library-preview-piece{display:none}
+
+.prefs-enrollment{display:grid;grid-template-columns:minmax(120px,1.2fr) minmax(110px,.8fr) minmax(110px,1fr) minmax(130px,1fr) auto;gap:9px;align-items:center;padding:12px;border:1px solid #405b68;border-radius:9px;margin:9px 0}
+.prefs-enrollment strong{font-size:13px;overflow-wrap:anywhere}
+.prefs-enrollment :is(input,select){min-width:0;width:100%}
+@media(max-width:850px){.prefs-enrollment{grid-template-columns:1fr 1fr}.prefs-enrollment strong{grid-column:1/-1}}
