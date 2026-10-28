@@ -25,3 +25,29 @@ export async function cloudReviewCopy(source, originalOwnerId){
  await cloudShare(copy.id,originalOwnerId);
  return copy;
 }
+
+export async function accountDetails(){
+ const session=await getCloudSession();if(!session)return null;
+ const [profile,teacher,teachers]=await Promise.all([
+  api.from('ib_profiles').select('display_name').eq('user_id',session.user.id).maybeSingle(),
+  api.from('ib_teachers').select('teacher_id,display_name').eq('teacher_id',session.user.id).maybeSingle(),
+  api.from('ib_teachers').select('teacher_id,display_name').eq('active',true).order('display_name')
+ ]);
+ for(const r of [profile,teacher,teachers])if(r.error)throw r.error;
+ return {id:session.user.id,email:session.user.email,name:profile.data?.display_name||'',isTeacher:Boolean(teacher.data),teachers:teachers.data||[]};
+}
+export async function saveAccountName(displayName){
+ const session=await getCloudSession();if(!session)throw Error('Iniciá sesión.');
+ const name=String(displayName).trim();
+ if(name.length<1||name.length>80)throw Error('El nombre debe contener entre 1 y 80 caracteres.');
+ const {error}=await api.from('ib_profiles').upsert({user_id:session.user.id,display_name:name},{onConflict:'user_id'});
+ if(error)throw error;
+}
+export async function shareWithTeacher(studyId,teacherId){
+ const session=await getCloudSession();if(!session)throw Error('Iniciá sesión.');
+ const {data,error}=await api.from('ib_teachers').select('teacher_id').eq('teacher_id',teacherId).eq('active',true).maybeSingle();
+ if(error)throw error;
+ if(!data)throw Error('El profesor no está habilitado en el directorio.');
+ if(teacherId===session.user.id)throw Error('El estudio ya pertenece a tu cuenta.');
+ await cloudShare(studyId,teacherId);
+}
