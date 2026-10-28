@@ -1,5 +1,5 @@
 import { initAcademy } from './academy.js';
-import { accountDetails,onAccountChange } from './cloud.js';
+import { accountDetails,onAccountChange,completeApprovedStudentOnboarding,myEnrollments } from './cloud.js';
 import { playChessSound,soundSettings } from './chess-audio.js';
 import { initPreferences } from './preferences.js';
 import { findReview,saveReview } from './review-cache.js';
@@ -115,9 +115,13 @@ academyNav.onclick=()=>{window.IB_PERFORMANCE.hide();window.IB_LIBRARY.close();w
 let roleCheck=0;
 async function updateAccountNavigation(){
  const check=++roleCheck;
- try{const account=await accountDetails();if(check!==roleCheck)return;const isTeacher=Boolean(account?.isTeacher);academyNav.hidden=!isTeacher;
+ try{await completeApprovedStudentOnboarding().catch(e=>console.warn('Vinculación pendiente:',e.message));const account=await accountDetails();if(check!==roleCheck)return;const isTeacher=Boolean(account?.isTeacher);academyNav.hidden=!isTeacher;
  if(!isTeacher&&window.IB_ACADEMY){window.IB_ACADEMY.close();}
- document.querySelector('.top-status').title=account?(isTeacher?'Profesor autorizado: '+account.name:'Cuenta de alumno: '+account.name):'Sin sesión';
+ const indicator=document.querySelector('.top-status');
+ indicator.title=account?(isTeacher?'Profesor autorizado: '+account.name:'Cuenta de alumno: '+account.name):'Sin sesión';
+ if(account?.isTeacher){indicator.innerHTML='<span class="live-dot"></span> Profesor · Academia';}
+ else if(account){try{const memberships=(await myEnrollments()).items||[];const valid=memberships.find(x=>x.state==='active'&&(!x.expires_at||new Date(x.expires_at).getTime()>Date.now()));indicator.innerHTML=valid?'<span class="live-dot"></span> Alumno · '+String(valid.plan||'Activo').replace(/[&<>]/g,''):'<span class="live-dot"></span> Sin acceso activo';}catch(e){indicator.textContent='Cuenta de alumno';}}
+ else indicator.innerHTML='<span class="live-dot"></span> Sin sesión';
  }catch(e){academyNav.hidden=true;window.IB_ACADEMY?.close();console.warn('No se pudo consultar el rol',e);}
 }
 onAccountChange(updateAccountNavigation);updateAccountNavigation();
