@@ -109,7 +109,7 @@ export function initLibraryWorkspace({studio,notify,onOpen}){
   visible=toLibrary;
   panel.hidden=!toLibrary;layout.hidden=toLibrary;toolbar.hidden=toLibrary;tools.hidden=toLibrary;
   home.classList.toggle('active',!toLibrary);nav.classList.toggle('active',toLibrary);
-  title.innerHTML=toLibrary?'Biblioteca PGN <span class="version">WEB v2.8</span>':'Game Review <span class="version">WEB v2.8</span>';
+  title.innerHTML=toLibrary?'Biblioteca PGN <span class="version">WEB v2.9</span>':'Game Review <span class="version">WEB v2.9</span>';
   description.textContent=toLibrary?'Todos tus estudios de ajedrez, organizados en un solo lugar.':'Importá una partida, explorá cada decisión y dejá que Stockfish evalúe las posiciones.';
   if(toLibrary)refresh();
   window.scrollTo?.(0,0);
