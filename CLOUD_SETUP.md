@@ -10,8 +10,9 @@ Actualmente el sitio publicado guarda partidas, comentarios, variantes y etiquet
 
 ## 2. Conectar la web sin secretos privados
 En GitHub, repositorio > Settings > Secrets and variables > Actions > **Variables**, crear:
-- `VITE_SUPABASE_URL`: URL pública del proyecto (https://...supabase.co).
 - `VITE_SUPABASE_ANON_KEY`: clave anon/publishable destinada al cliente, **nunca** secret/service_role.
+
+La URL pública del proyecto Supabase `https://ctnymqmzzppfymrteqha.supabase.co` ya está preconfigurada en `.github/workflows/deploy.yml`; no hace falta crear una segunda variable.
 
 Volver a ejecutar `Publicar IB Chess Analyzer` en GitHub Actions. Son variables incorporadas a la build estática y visibles para el navegador. RLS es la barrera de seguridad, no el secreto de la clave pública.
 
