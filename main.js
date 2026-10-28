@@ -80,7 +80,7 @@ document.querySelectorAll('.player-edit').forEach(button=>button.addEventListene
 document.querySelector('#nav-reports').onclick=()=>{
  document.querySelector('#nav-review').click();
  const target=document.querySelector('.performance-panel, #performance-panel, .performance-section');
- if(target)target.scrollIntoView({behavior:'smooth',block:'start'});
+ if(target){window.IB_PERFORMANCE?.selectTournament?.();target.scrollIntoView({behavior:'smooth',block:'start'});}
  else notify('El rendimiento aparece después de analizar una partida.');
 };
 window.IB_STUDIO=initStudio(state,{render:()=>{render();window.IB_LIVE?.positionChanged(true);},renderPreview:()=>{render();window.IB_LIVE?.positionChanged();},notify,loadPGN:loadText,jump});
@@ -93,5 +93,5 @@ window.IB_LIVE=initLiveAnalysis({getFen:()=>state.previewFen||state.positions[st
 
 window.IB_PERFORMANCE=initPerformance({state,notify,analyzeGame:analyze,jumpGame:i=>{if(state.busy)return;chooseGame(i);},getAnalyses:()=>state.analysisCache});
 
-window.IB_LOAD_STUDY=(pgn,source)=>{loadText(pgn,source);document.querySelector('#nav-reports').click();window.IB_PERFORMANCE?.selectTournament?.();};
+window.IB_LOAD_STUDY=(pgn,source)=>{loadText(pgn,source);document.querySelector('#nav-reports').click();window.IB_PERFORMANCE?.analyzeCurrentStudy?.();};
 window.IB_LIBRARY=initLibraryWorkspace({studio:window.IB_STUDIO,notify,onOpen:()=>{window.IB_WORKSPACE?.refresh();}});
