@@ -14,7 +14,7 @@ const schemes={
   sand:{name:'Arena cálida',light:'#f8efd7',dark:'#b99e75'}
 };
 const styles=new Set(['classic','flat','outline','bold','chessnut','fantasy','spatial','celtic','rhosgfx','kiwen-suwi','totoy','papercut']);
-const graphicSets=new Set(['chessnut','fantasy','spatial','celtic','rhosgfx']);
+const graphicSets=new Set(['chessnut','fantasy','spatial','celtic','rhosgfx','kiwen-suwi','totoy','papercut']);
 const storage='ib-chess-board-appearance-v1';
 const colorOk=c=>/^#[0-9a-f]{6}$/i.test(c);
 export function initBoardAppearance({refreshPieces}={}){
