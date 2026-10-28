@@ -7,7 +7,7 @@ export function initAcademy({notify,onBack}){
  const $=id=>screen.querySelector('#'+id);
  let active=false;
  const close=()=>{active=false;screen.hidden=true;document.querySelector('#nav-academy')?.classList.remove('active');};
- const show=async()=>{const account=await accountDetails().catch(()=>null);if(!account?.isTeacher){notify('Solo un profesor autorizado puede abrir Academia.','err');return;}active=true;screen.hidden=false;layout.hidden=true;toolbar.hidden=true;tools.hidden=true;document.querySelector('#nav-academy')?.classList.add('active');document.querySelector('.topbar h1').textContent='Academia';window.scrollTo(0,0);await refresh();};
+ const show=async()=>{const account=await accountDetails().catch(()=>null);if(!account?.isTeacher){notify('Solo un profesor autorizado puede abrir Academia.','err');return;}active=true;screen.hidden=false;layout.hidden=true;toolbar.hidden=true;tools.hidden=true;document.querySelector('#nav-academy')?.classList.add('active');document.querySelector('.topbar h1').textContent='Academia';document.querySelector('.topbar p').textContent='Administrá alumnos, solicitudes y suscripciones desde tu cuenta de profesor.';window.scrollTo(0,0);await refresh();};
  const refresh=async()=>{
   if(!active)return;
   try{
@@ -15,6 +15,8 @@ export function initAcademy({notify,onBack}){
    const requestRoot=$('academy-requests');requestRoot.replaceChildren();
    try{
     const requests=await getAccessRequests();
+    const pendingRequests=requests.filter(x=>x.status==='pending').length;
+    const pendingStat=$('academy-stats').children[2]?.querySelector('strong');if(pendingStat)pendingStat.textContent=String(pendingRequests);
     if(!requests.length){const empty=document.createElement('p');empty.textContent='Sin solicitudes de cuenta.';requestRoot.append(empty);}
     for(const req of requests){
       const card=document.createElement('section');card.className='academy-student';
@@ -25,13 +27,13 @@ export function initAcademy({notify,onBack}){
       const reject=document.createElement('button');reject.className='btn outline';reject.textContent=req.status==='approved'?'Suspender solicitud':'Rechazar solicitud';
       const act=async status=>{try{approve.disabled=reject.disabled=true;await reviewAccessRequest(req.id,status,role.value);notify('Solicitud actualizada.');await refresh();}catch(e){notify(e.message,'err');}finally{approve.disabled=reject.disabled=false;}};
       approve.onclick=()=>act('approved');reject.onclick=()=>act(req.status==='approved'?'suspended':'rejected');
-      const note=document.createElement('small');note.textContent='La aprobación registra la decisión. La activación de credenciales requiere el servicio seguro de invitaciones.';
+      const note=document.createElement('small');note.textContent=req.status==='approved'?'Solicitud aprobada. Pendiente de invitación segura y verificación de identidad.':'La aprobación no crea una cuenta ni concede permisos automáticamente.';
       card.append(h,desc,role,approve,reject,note);requestRoot.append(card);
     }
    }catch(error){requestRoot.textContent='Solicitudes no disponibles: '+error.message;}
    const response=await myEnrollments(),items=response.items||[];
    const total=items.length,activeCount=items.filter(x=>x.state==='active').length,pending=items.filter(x=>x.state==='pending').length;
-   $('academy-notice').textContent='Gestioná las solicitudes desde tu cuenta. Solo Supabase Auth valida identidades; nunca se muestran contraseñas.';
+   $('academy-notice').textContent='Las solicitudes aprobadas requieren una invitación segura antes de activar cuentas. Nunca se muestran contraseñas.';
    $('academy-stats').replaceChildren();
    for(const [value,label] of [[total,'Alumnos'],[activeCount,'Activos'],[pending,'Pendientes']]){const b=document.createElement('div');b.className='academy-stat';const n=document.createElement('strong');n.textContent=value;const t=document.createElement('span');t.textContent=label;b.append(n,t);$('academy-stats').append(b);}
    $('academy-roster').replaceChildren();
