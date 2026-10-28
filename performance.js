@@ -84,7 +84,7 @@ export function initPerformance({state,notify,analyzeGame,jumpGame,getAnalyses})
   <div id="perf-game"></div>
   <div id="perf-tournament" hidden>
     <div class="perf-filters"><label>Jugador<select id="perf-player"></select></label><label>Evento<select id="perf-event"></select></label></div>
-    <div id="perf-summary"></div>
+    <div id="perf-study-overview"></div><div id="perf-summary"></div>
     <div class="perf-actions"><button class="btn primary" id="perf-analyze-all">Analizar partidas de este torneo</button><button class="btn outline" id="perf-stop">Cancelar lote</button><button class="btn outline" id="perf-export">Exportar torneo CSV</button></div>
     <div id="perf-batch-state" class="perf-info">El análisis individual se conserva mientras navegás entre las partidas de este PGN.</div>
     <div id="perf-rows"></div>
@@ -142,8 +142,17 @@ export function initPerformance({state,notify,analyzeGame,jumpGame,getAnalyses})
   const completed=current.headers.Result&&['1-0','0-1','1/2-1/2'].includes(current.headers.Result)?current.headers.Result:'Sin resultado';
   $('perf-game').innerHTML='<div class="perf-result">'+esc(current.headers.White||'?')+' <strong>'+completed+'</strong> '+esc(current.headers.Black||'?')+'</div>'+'<div class="perf-engine"><h3>Elo aparente de esta partida · Stockfish</h3><div class="perf-engine-pair"><div><b>'+(aw.value??'—')+'</b><small>Blancas · '+(aw.value?'±'+aw.spread+' orientativo':'Pendiente de análisis')+'</small></div><div><b>'+(ab.value??'—')+'</b><small>Negras · '+(ab.value?'±'+ab.spread+' orientativo':'Pendiente de análisis')+'</small></div></div><p>'+(aw.value||ab.value?'Cifra heurística inmediata derivada de las jugadas analizadas. No es Elo oficial ni estimación estadísticamente validada.':'Analizá toda la partida para obtener el Elo aparente de ambos bandos.')+'</p></div>'+statHTML('Blancas · '+esc(current.headers.White||'?'),m.w)+statHTML('Negras · '+esc(current.headers.Black||'?'),m.b);
  }
+ function renderStudyOverview(){
+  const event=selectedEvent;
+  const games=state.games.map((g,index)=>({g,index})).filter(({g})=>!event||String(g.headers?.Event||'Sin evento')===event);
+  const full=games.map(({g,index})=>({g,index,metrics:gameMetrics(g,getAnalyses().get(index))}));
+  const done=full.filter(x=>x.metrics.w.complete&&x.metrics.b.complete);
+  const avg=done.length?done.reduce((sum,x)=>sum+x.metrics.w.avg+x.metrics.b.avg,0)/(done.length*2):null;
+  const errors=done.reduce((acc,x)=>{for(const color of ['w','b'])for(const type of ['inaccuracy','mistake','blunder'])acc[type]+=x.metrics[color].counts[type]||0;return acc;},{inaccuracy:0,mistake:0,blunder:0});
+  $('perf-study-overview').innerHTML='<div class="perf-info"><strong>Balance integral del estudio · '+esc(event||'Todos los eventos')+'</strong><p>'+done.length+'/'+games.length+' partidas analizadas con Stockfish · '+(avg===null?'Pérdida media pendiente':'Pérdida media '+avg.toFixed(1)+' cp')+' · '+errors.inaccuracy+' imprecisiones · '+errors.mistake+' errores · '+errors.blunder+' graves.</p><p>El análisis cubre ambos bandos en todas las partidas del evento. Elegí un jugador más abajo para consultar su rendimiento individual.</p></div><div class="perf-study-games">'+full.map(x=>'<div class="perf-game-row"><span>'+esc(x.g.headers?.White||'?')+' – '+esc(x.g.headers?.Black||'?')+'</span><span>'+(x.metrics.w.complete&&x.metrics.b.complete?'Analizada':'Pendiente')+'</span></div>').join('')+'</div>';
+ }
  function renderTournament(){
-  filters();
+  filters();renderStudyOverview();
   const t=tournamentStats(state.games,selectedPlayer,selectedEvent,getAnalyses());
   const reference=calibrationSamples(state.games,getAnalyses());
   const estimated=t.rows.map(r=>({row:r,...enginePerformance(r.technical.complete?r.technical.quality:null,reference,{excludeIndex:r.index,excludePlayer:selectedPlayer.toLowerCase()})})).filter(r=>r.value!==null);
@@ -180,26 +189,29 @@ export function initPerformance({state,notify,analyzeGame,jumpGame,getAnalyses})
    const link=document.createElement('a'),url=URL.createObjectURL(blob);link.href=url;link.download='IB_Torneo_'+selectedPlayer.replace(/[^a-z0-9-]/gi,'_')+'.csv';link.click();setTimeout(()=>URL.revokeObjectURL(url),1000);
  };
 
- $('perf-analyze-all').onclick=async()=>{
+ async function analyzeEntireEvent(){
   if(batching)return;
-  const t=tournamentStats(state.games,selectedPlayer,selectedEvent,getAnalyses());
-  const pending=t.rows.filter(r=>!r.technical.complete);
-  if(!pending.length)return notify('Todas las partidas seleccionadas ya están analizadas.');
+  const games=state.games.map((g,index)=>({g,index})).filter(({g})=>!selectedEvent||String(g.headers?.Event||'Sin evento')===selectedEvent);
+  const pending=games.filter(({g,index})=>{const m=gameMetrics(g,getAnalyses().get(index));return !m.w.complete||!m.b.complete;});
+  if(!pending.length){$('perf-batch-state').textContent='Todas las '+games.length+' partidas del evento ya están analizadas.';renderTournament();return;}
   batching=true;batchCancelled=false;$('perf-analyze-all').disabled=true;
   const prior=state.games.indexOf(state.game);
   try{
-    for(let i=0;i<pending.length;i++){
-      if(batchCancelled)break;
-      $('perf-batch-state').textContent='Analizando '+(i+1)+'/'+pending.length+' · '+pending[i].opponent;
-      jumpGame(pending[i].index);
-      const ok=await analyzeGame();
-      if(!ok||batchCancelled)break;
-      renderTournament();
-    }
-    $('perf-batch-state').textContent=batchCancelled?'Lote cancelado. Se conservaron las partidas completadas.':'Análisis del lote finalizado.';
-  }catch(e){$('perf-batch-state').textContent='Error en lote: '+e.message;notify(e.message,'err');}
-  finally{batching=false;$('perf-analyze-all').disabled=false;if(!batchCancelled&&prior>=0)jumpGame(prior);render();}
- };
+   for(let i=0;i<pending.length;i++){
+     if(batchCancelled)break;
+     $('perf-batch-state').textContent='Stockfish · Partida '+(i+1)+' de '+pending.length+' · '+(pending[i].g.headers.White||'?')+' – '+(pending[i].g.headers.Black||'?');
+     jumpGame(pending[i].index);
+     const ok=await analyzeGame();
+     if(!ok||batchCancelled)break;
+     renderTournament();
+   }
+   $('perf-batch-state').textContent=batchCancelled?'Análisis detenido; se conservaron los resultados completos.':'Análisis integral completado: '+games.length+' partidas del evento.';
+  }catch(e){$('perf-batch-state').textContent='Error: '+e.message;notify(e.message,'err');}
+  finally{batching=false;$('perf-analyze-all').disabled=false;if(prior>=0)jumpGame(prior);render();}
+ }
+ $('perf-analyze-all').textContent='Analizar todas las partidas del evento';
+ $('perf-analyze-all').onclick=analyzeEntireEvent;
+
  filters(false);render();
  return {render,gameChanged:render,analysisFinished:render,
  show(){screen.hidden=false;layout.hidden=true;toolbar.hidden=true;tools.hidden=true;document.querySelector('#nav-reports')?.classList.add('active');document.querySelector('.topbar h1').textContent='Rendimiento';refreshStudies().catch(e=>notify(e.message,'err'));window.scrollTo(0,0);this.selectTournament();},
@@ -210,7 +222,7 @@ export function initPerformance({state,notify,analyzeGame,jumpGame,getAnalyses})
   if(batching)return;
   const event=selectedEvent,player=selectedPlayer;
   if(!event||!player)return notify('No encontramos un jugador y evento válidos para analizar.','err');
-  $('perf-analyze-all').click();
+  await analyzeEntireEvent();
  }
  };
 }
