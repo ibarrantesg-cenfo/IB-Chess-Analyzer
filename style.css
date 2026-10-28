@@ -456,3 +456,44 @@
 .prefs-block .audio-row{display:flex;flex-direction:row;align-items:center;gap:9px}
 .prefs-block .audio-row input{width:auto;accent-color:#76ddba}
 .prefs-block input[type="range"]{accent-color:#79d8b8;padding:0;height:28px}
+
+/* v3.1 — Accessible full light theme: all app surfaces, charts and Stockfish panels.
+   Preserve .board squares, chess pieces and custom appearance palettes. */
+:root[data-theme="light"],:root[data-theme="light"] body{color-scheme:light;--light-ink:#142b3b;--light-muted:#476374;--light-edge:#c7d8e1;--light-accent:#11634b;background:#f3f7f9;color:var(--light-ink)}
+:root[data-theme="light"] :is(.main,.sidebar,.panel,.library-workspace,.performance-workspace,.prefs-dialog,.prefs-block,.library-preview-modal){color:var(--light-ink)}
+:root[data-theme="light"] :is(.sidebar,.panel,.studio-panel,.chart-panel,.review-panel,.moves-panel,.engine-panel,.performance-panel,.library-card,.library-folder,.library-toolbar,.library-stat,.performance-source,.prefs-dialog,.prefs-block,.library-preview-modal,.studio-library-collapse,.library-folder-heading,.library-organize,.perf-openings){background:#fff;border-color:var(--light-edge);box-shadow:none}
+:root[data-theme="light"] :is(.topbar h1,.panel-heading h2,.panel-heading h3,.library-header h2,.library-card-head strong,.perf-openings h3,.prefs-dialog h2,.prefs-dialog h3,.review-move,.player strong,.library-folder-heading h3){color:var(--light-ink)}
+:root[data-theme="light"] :is(.eyebrow,.section-caption,.topbar p,.main footer,.sidebar-bottom,.player small,.player-tag,.panel-heading small,.hint,.review-detail p,.metric-row,.metric-row strong,.mini-label,.stats span,.engine-footer,.move-no,.engine-panel label,.settings label,.label-inline,.studio-panel label,.library-subtitle,.library-card-date,.perf-info,.perf-pending,.library-footnote,.prefs-block label,.prefs-block p,.prefs-block small,.library-preview-status,.perf-openings>small){color:var(--light-muted)}
+:root[data-theme="light"] :is(.board-compact-eval,.perf-info,.perf-study-games,.perf-game-row,.perf-report-grid>div,.perf-tournament-grid>div,.perf-engine,.perf-color,.perf-complete,.live-analysis-card,.studio-library-tools,.library-game-details,.library-folder-heading){background:#eaf4f1;color:#173d3b;border-color:#b5d6ca}
+:root[data-theme="light"] :is(.board-compact-eval strong,.chart-panel strong,.pv,.perf-report-grid strong,.perf-opening b,.perf-complete strong,.review-badge,.studio-library-collapse summary){color:#087454}
+:root[data-theme="light"] :is(.board-compact-eval small,.perf-report-grid small,.perf-report-grid span,.perf-complete span,.perf-opening,.perf-game-row,.perf-info p,.perf-color small){color:#39596a}
+:root[data-theme="light"] :is(.review-detail .metric-row,.stats,.perf-opening){border-color:#d3e3e7}
+:root[data-theme="light"] .hint{background:#f7fafc;border-color:#abc1cd}
+:root[data-theme="light"] :is(.settings select,.label-inline select,.studio-panel input:not([type=checkbox]),.studio-panel select,.studio-panel textarea,.performance-source select,.library-toolbar input,.library-toolbar select,.library-organize input,.library-header-editor input,.library-header-editor select,.prefs-block input,.prefs-block select){background:#fff;color:#152d3b;border:1px solid #92afbf}
+:root[data-theme="light"] :is(.btn.outline,.btn.subtle,.controls button,.player-edit,.small-pill,.library-source,.version){background:#eaf1f5;color:#1b4556;border-color:#bdd0db}
+:root[data-theme="light"] :is(.btn.primary,.upload){background:#1c805f;color:#fff}
+:root[data-theme="light"] :is(.btn.primary,.upload,.controls button,.btn.outline,.move,.nav){transition:background-color .15s,color .15s}
+:root[data-theme="light"] :is(.btn.outline,.btn.subtle,.controls button):hover{background:#d8e9ee;color:#12394b}
+:root[data-theme="light"] .nav{color:#36576a}
+:root[data-theme="light"] .nav:hover{background:#e4f0f3;color:#105a49}
+:root[data-theme="light"] .nav.active{background:#d5efe3;color:#0a5b45}
+:root[data-theme="light"] .move{color:#234456}
+:root[data-theme="light"] .move:hover{background:#e0ecef;color:#173e48}
+:root[data-theme="light"] .move.selected{background:#1b765b;color:#fff}
+:root[data-theme="light"] .mark.best{color:#006448}
+:root[data-theme="light"] .mark.inaccuracy{color:#805300}
+:root[data-theme="light"] :is(.mark.mistake,.mark.blunder){color:#a73335}
+:root[data-theme="light"] .review-badge{background:#d7efe4}
+:root[data-theme="light"] .review-badge.inaccuracy{background:#fff0c9;color:#745007}
+:root[data-theme="light"] .review-badge.mistake{background:#ffe5cb;color:#873e12}
+:root[data-theme="light"] .review-badge.blunder{background:#fbe0df;color:#9a2631}
+:root[data-theme="light"] .top-status{background:#e7f5ef;color:#155d47;border-color:#b7d9cb}
+:root[data-theme="light"] .top-status small{color:#477166}
+:root[data-theme="light"] .side-badge{background:#dcefe7;color:#145b46}
+:root[data-theme="light"] .sidebar-bottom a{color:#0d6a53}
+:root[data-theme="light"] #chart{background:#f4f8fa}
+:root[data-theme="light"] .engine-panel :is(.pv,.live-score,.live-line){color:#0a604e}
+:root[data-theme="light"] .engine-panel :is(.live-line,.live-analysis-card,.live-pv){background:#e4f3ec;border-color:#b2d7cb}
+:root[data-theme="light"] :is(.square.light,.square.dark,.piece,.white-piece,.black-piece){filter:none}
+:root[data-theme="light"] :is(button,input,select,textarea):focus-visible{outline:2px solid #107a60;outline-offset:2px}
+@media(prefers-color-scheme:light){:root[data-theme="system"]{color-scheme:light}}
