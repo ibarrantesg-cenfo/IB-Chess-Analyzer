@@ -276,6 +276,7 @@ async updatePlayerNames(){
  study.name=(game.headers.White||'Blancas')+' – '+(game.headers.Black||'Negras');
  study.updated=new Date().toISOString();
  await put(study);
+ if(cloudSource&&!cloudSource.shared)await cloudSave(study);
  await refreshLibrary();
  renderNotes();
  return true;
