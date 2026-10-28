@@ -36,12 +36,16 @@ export function initLibraryWorkspace({studio,notify,onOpen}){
      close.onclick=()=>modal.remove();
      const first=make('button','btn outline','⏮'),prev=make('button','btn outline','◀'),next=make('button','btn outline','▶'),last=make('button','btn outline','⏭');
      let ply=0;let orientation=localStorage.getItem('ib-board-orientation')==='black'?'black':'white';const glyphs={wk:'♔',wq:'♕',wr:'♖',wb:'♗',wn:'♘',wp:'♙',bk:'♚',bq:'♛',br:'♜',bb:'♝',bn:'♞',bp:'♟'};
+     const pieceImageCache=new Map();
      const renderBoard=()=>{
        try{
          const position=new Chess();
          for(let i=0;i<ply;i++)position.move(history[i]);
          const ranks=orientation==='black'?[1,2,3,4,5,6,7,8]:[8,7,6,5,4,3,2,1];
          const files=orientation==='black'?[7,6,5,4,3,2,1,0]:[0,1,2,3,4,5,6,7];
+         let selectedSet=null;
+         try{selectedSet=window.IB_APPEARANCE?.getPieceSet?.()||null;}catch(error){console.warn(error);}
+         const base=import.meta.env.BASE_URL||'/';
          const cells=[];
          for(const rank of ranks)for(const file of files){
            const square=String.fromCharCode(97+file)+rank,piece=position.get(square);
@@ -52,28 +56,23 @@ export function initLibraryWorkspace({studio,notify,onOpen}){
              glyph.className='library-preview-glyph piece '+(piece.color==='w'?'white-piece':'black-piece');
              glyph.textContent=glyphs[piece.color+piece.type]||'?';
              cell.appendChild(glyph);
+             if(selectedSet){
+               const code=piece.color+piece.type.toUpperCase(),key=selectedSet+'/'+code;
+               const image=document.createElement('img');
+               image.className='library-preview-piece';image.alt=code;image.decoding='sync';
+               image.src=base+'pieces/'+encodeURIComponent(selectedSet)+'/'+code+'.svg';
+               image.onerror=()=>{pieceImageCache.set(key,false);image.remove();};
+               if(pieceImageCache.get(key)===true)cell.classList.add('has-piece-image');
+               else if(pieceImageCache.get(key)!==false){
+                 image.onload=()=>{pieceImageCache.set(key,true);if(image.isConnected)cell.classList.add('has-piece-image');};
+               }
+               if(pieceImageCache.get(key)!==false)cell.appendChild(image);
+             }
            }
            cells.push(cell);
          }
          board.replaceChildren(...cells);
          status.textContent=(headers.White||'?')+' – '+(headers.Black||'?')+' · '+ply+'/'+history.length+' medias jugadas'+(ply?' · '+history[ply-1]:'');
-         // Optional appearance images must never prevent the basic board from rendering.
-         let selectedSet=null;
-         try{selectedSet=window.IB_APPEARANCE?.getPieceSet?.()||null;}catch(error){console.warn('Appearance fallback',error);}
-         if(selectedSet){
-           const base=import.meta.env.BASE_URL||'/';
-           for(let i=0;i<cells.length;i++){
-             const rank=ranks[Math.floor(i/8)],file=files[i%8],piece=position.get(String.fromCharCode(97+file)+rank);
-             if(!piece)continue;
-             const img=document.createElement('img');
-             img.className='library-preview-piece';
-             img.alt=piece.color+piece.type;
-             img.onerror=()=>{img.remove();};
-             img.onload=()=>{if(img.isConnected)cells[i].classList.add('has-piece-image');};
-             img.src=base+'pieces/'+encodeURIComponent(selectedSet)+'/'+piece.color+piece.type.toUpperCase()+'.svg';
-             cells[i].appendChild(img);
-           }
-         }
        }catch(error){
          console.error('Error rendering library preview board',error);
          status.textContent='Error al dibujar el tablero: '+error.message;
