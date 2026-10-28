@@ -1,3 +1,5 @@
+import { findReview } from './review-cache.js';
+import { gameMetrics } from './performance.js';
 import { Chess } from 'chess.js';
 // Library workspace combining local IndexedDB studies and authorized Supabase studies.
 // The Studio module remains the single source of truth for reads and opening games.
@@ -69,6 +71,28 @@ export function initLibraryWorkspace({studio,notify,onOpen}){
      document.body.append(modal);renderBoard();
    }catch(e){notify('No se pudo mostrar el tablero: '+e.message,'err');}
  };
+ const reportCache=new Map();
+ async function studyReport(entries){
+  const fingerprint=entries.map(x=>x.id+':'+x.date).join('|');
+  if(reportCache.has(fingerprint))return reportCache.get(fingerprint);
+  let completed=0,qualitySum=0,qualityCount=0,points=0,played=0;
+  for(const entry of entries){
+    try{
+      const chess=new Chess();chess.loadPgn(await studio.getLibraryPgn('local',entry.id),{strict:false});
+      const h=chess.header(),review=await findReview({headers:h,moves:chess.history({verbose:true})});
+      if(review){
+        const metrics=gameMetrics({moves:chess.history({verbose:true})},review);
+        if(metrics.w.complete&&metrics.b.complete){
+          completed++;
+          qualitySum+=metrics.w.quality+metrics.b.quality;qualityCount+=2;
+        }
+      }
+      if(['1-0','0-1','1/2-1/2'].includes(h.Result)){played++;points+=h.Result==='1/2-1/2'?1:1;}
+    }catch(e){console.warn('Resumen de estudio no disponible',e);}
+  }
+  const result={completed,total:entries.length,quality:qualityCount?qualitySum/qualityCount:null,played};
+  reportCache.set(fingerprint,result);return result;
+ }
  const card=entry=>{
    const wrap=make('article','library-card');
    const header=make('div','library-card-head');
@@ -166,7 +190,17 @@ export function initLibraryWorkspace({studio,notify,onOpen}){
     if(key.startsWith('collection:')){
       const wrap=make('article','library-card library-folder');
       const head=make('div','library-card-head');head.append(make('strong','',entries[0].collectionName||'Estudio'),make('span','library-source local',entries.length+' partidas'));
-      wrap.append(head,make('p','library-subtitle','Estudio con varias partidas'));
+      wrap.append(head);
+      const status=make('p','library-subtitle','Comprobando análisis guardados…');wrap.append(status);
+      studyReport(entries).then(result=>{
+        status.textContent=result.completed===result.total?'✓ Análisis del torneo completado · '+result.completed+'/'+result.total+' partidas':'Análisis · '+result.completed+'/'+result.total+' partidas completadas';
+        if(result.quality!==null)status.textContent+=' · Índice técnico '+result.quality.toFixed(1)+'/100';
+        if(result.played)status.textContent+=' · '+result.played+' resultados PGN';
+        const report=make('button','btn outline','Ver informe extendido');
+        report.onclick=async()=>{try{const pgn=await studio.loadCollectionPgn(entries.map(x=>x.id));window.IB_OPEN_REPORT?.(pgn,entries[0].collectionName||'Estudio');}
+         catch(e){notify('No se pudo abrir el informe: '+e.message,'err');}};
+        wrap.append(report);
+      }).catch(()=>{status.textContent='No se pudo recuperar el resumen del análisis';});
       const open=make('button','btn primary','Abrir estudio');open.onclick=()=>{openGroup=key;render();};wrap.append(open);root.append(wrap);
     }else root.append(card(entries[0]));
   }
