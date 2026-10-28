@@ -8,7 +8,7 @@ export function initPreferences(notify){
  <label>Correo electrónico<input id="prefs-email" type="email" autocomplete="email" placeholder="alumno@correo.com"></label>
  <label>Usuario / nombre visible<input id="prefs-name" maxlength="80" placeholder="Profe Ian"></label>
  <label>Contraseña <span class="prefs-pass"><input id="prefs-password" type="password" autocomplete="current-password" placeholder="Mínimo 12 caracteres"><button id="prefs-show-password" type="button" class="btn outline">Mostrar</button></span></label>
- <div class="prefs-actions"><button type="button" class="btn primary" id="prefs-login">Iniciar sesión</button><button type="button" class="btn outline" id="prefs-register">Crear cuenta</button><button type="button" class="btn outline" id="prefs-reset">Recuperar acceso</button></div>
+ <div class="prefs-actions"><button type="button" class="btn primary" id="prefs-login">Iniciar sesión</button><button type="button" class="btn outline" id="prefs-register" hidden disabled title="El registro requiere una invitación aprobada">Crear cuenta</button><button type="button" class="btn outline" id="prefs-reset">Recuperar acceso</button></div>
  <div class="prefs-actions"><button type="button" class="btn outline" id="prefs-save-name">Guardar nombre visible</button><button type="button" class="btn outline" id="prefs-change-password">Cambiar contraseña</button><button type="button" class="btn outline" id="prefs-logout">Cerrar sesión</button></div>
  <small>Las contraseñas se envían exclusivamente a Supabase Auth por conexión segura; nunca quedan guardadas en el estudio ni son visibles para el profesor.</small>
  </div>
@@ -68,7 +68,7 @@ export function initPreferences(notify){
  const run=fn=>async()=>{try{await fn();await refresh();}catch(e){notify(e.message||String(e),'err');}};
  el('request-send').onclick=run(async()=>{await submitAccessRequest(el('request-email').value,el('request-name').value,el('request-role').value);notify('Solicitud recibida. El profesor debe revisarla.');});
  el('prefs-login').onclick=run(async()=>{await passwordSignIn(el('prefs-email').value.trim(),el('prefs-password').value);notify('Sesión iniciada.');});
- el('prefs-register').onclick=run(async()=>{const pass=el('prefs-password').value;if(pass.length<12)throw Error('Elegí una contraseña de al menos 12 caracteres.');await passwordSignUp(el('prefs-email').value.trim(),pass,el('prefs-name').value.trim());notify('Cuenta solicitada. Revisá el correo para confirmarla.');});
+
  el('prefs-reset').onclick=run(async()=>{await resetAccountPassword(el('prefs-email').value.trim());notify('Si existe una cuenta con ese correo, se envió el enlace de recuperación.');});
  el('prefs-save-name').onclick=run(async()=>{await saveAccountName(el('prefs-name').value);notify('Nombre visible actualizado.');});
  el('prefs-change-password').onclick=run(async()=>{if(el('prefs-password').value.length<12)throw Error('Mínimo 12 caracteres.');await updateAccountPassword(el('prefs-password').value);notify('Contraseña actualizada.');el('prefs-password').value='';});
