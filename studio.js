@@ -237,6 +237,16 @@ async deleteLibraryItem(source,id){
  if(source==='cloud')throw Error('Eliminación en la nube deshabilitada para proteger los estudios compartidos.');
  throw Error('Origen desconocido.');
 },
+async loadCollectionPgn(ids){
+ const segments=[];
+ for(const id of ids){
+   const item=await transaction('readonly',store=>store.get(id));
+   if(!item?.pgn)throw Error('No se pudo recuperar una de las partidas del estudio.');
+   segments.push(item.pgn.trim());
+ }
+ if(!segments.length)throw Error('El estudio no contiene partidas.');
+ return segments.join('\n\n');
+},
 async listLibraryItems(){
  const locals=await getAll();
  let remote=[],error='';
