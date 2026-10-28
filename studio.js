@@ -263,6 +263,16 @@ async loadCollectionPgn(ids){
  if(!segments.length)throw Error('El estudio no contiene partidas.');
  return segments.join('\n\n');
 },
+async syncLocalLibrary(){
+ if(!cloudAvailable||!await getCloudSession())throw Error('Iniciá sesión para sincronizar.');
+ const locals=await getAll(),remote=await cloudList(),remoteIds=new Set(remote.map(x=>x.id));
+ let uploaded=0,skipped=0,errors=[];
+ for(const item of locals){
+  if(remoteIds.has(item.id)){skipped++;continue;}
+  try{await cloudSave(item);uploaded++;}catch(e){errors.push(item.name+': '+e.message);}
+ }
+ return {uploaded,skipped,errors};
+},
 async listLibraryItems(){
  const locals=await getAll();
  let remote=[],error='';
