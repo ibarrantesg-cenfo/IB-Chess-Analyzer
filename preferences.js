@@ -1,9 +1,10 @@
+import { initAudioPreferences } from './chess-audio.js';
 import {cloudAvailable,getCloudSession,passwordSignIn,passwordSignUp,resetAccountPassword,updateAccountPassword,accountDetails,saveAccountName,cloudLogout} from './cloud.js';
 export function initPreferences(notify){
  const sheet=document.createElement('div');sheet.className='prefs-overlay';sheet.hidden=true;
  sheet.innerHTML=`<section class="prefs-dialog" role="dialog" aria-modal="true" aria-label="Preferencias de IB Chess"><header><h2>Preferencias y cuenta</h2><button type="button" id="prefs-close" class="btn outline">Cerrar ✕</button></header>
  <div class="prefs-layout"><div class="prefs-block"><h3>Apariencia</h3><label>Tema<select id="prefs-theme"><option value="dark">Oscuro</option><option value="light">Claro</option><option value="system">Usar configuración del sistema</option></select></label><p>Se recuerda por navegador.</p></div>
- <div class="prefs-block"><h3>Cuenta del alumno / profesor</h3><p id="prefs-session">Comprobando sesión…</p>
+ <div class="prefs-block" id="prefs-audio"></div><div class="prefs-block"><h3>Cuenta del alumno / profesor</h3><p id="prefs-session">Comprobando sesión…</p>
  <label>Correo electrónico<input id="prefs-email" type="email" autocomplete="email" placeholder="alumno@correo.com"></label>
  <label>Usuario / nombre visible<input id="prefs-name" maxlength="80" placeholder="Richard Howell"></label>
  <label>Contraseña <span class="prefs-pass"><input id="prefs-password" type="password" autocomplete="current-password" placeholder="Mínimo 12 caracteres"><button id="prefs-show-password" type="button" class="btn outline">Mostrar</button></span></label>
@@ -13,7 +14,7 @@ export function initPreferences(notify){
  </div>
  <div class="prefs-block"><h3>Administración de alumnos</h3><p id="prefs-teacher-status">Solo disponible para profesores autorizados.</p><p>Para otorgar cuentas sin compartir contraseñas, lo más seguro es invitar a cada alumno y permitir que establezca su propia clave mediante un enlace de acceso. La creación administrativa de cuentas requiere una función protegida de servidor.</p><div class="prefs-actions"><button type="button" class="btn outline" id="prefs-copy-invite">Copiar enlace de registro</button></div></div>
  </div></section>`;
- document.body.append(sheet);
+ document.body.append(sheet);initAudioPreferences();
  const el=id=>document.getElementById(id),settingsKey='ib-chess-theme-v1';
  const applyTheme=v=>{document.documentElement.dataset.theme=v;localStorage.setItem(settingsKey,v);};
  applyTheme(localStorage.getItem(settingsKey)||'dark');
