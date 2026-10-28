@@ -151,3 +151,6 @@ El proceso de build falla si no puede obtener/validar las imágenes,
 para evitar publicar una versión visualmente incompleta.
 Créditos y licencias: [PIECE_CREDITS.md](PIECE_CREDITS.md).
 La preferencia se recuerda por navegador y perfil.
+
+## v2.6 — más personalización visual
+Seis paletas nuevas: nogal, océano, bosque, rosa, noche y arena (12 paletas en total), con combinación libre con ocho familias SVG diferentes más cuatro tratamientos Unicode. Nuevas familias: Kiwen Suwi, Totoy y Papercut, con atribución CC BY 4.0 documentada en `PIECE_CREDITS.md`. Las opciones se conservan de forma local por navegador y perfil. La compilación descarga las piezas SVG al paquete web; verificar la ejecución verde de GitHub Actions antes de probar.
