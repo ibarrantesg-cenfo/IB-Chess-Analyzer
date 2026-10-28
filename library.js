@@ -37,27 +37,47 @@ export function initLibraryWorkspace({studio,notify,onOpen}){
      const first=make('button','btn outline','⏮'),prev=make('button','btn outline','◀'),next=make('button','btn outline','▶'),last=make('button','btn outline','⏭');
      let ply=0;let orientation=localStorage.getItem('ib-board-orientation')==='black'?'black':'white';const glyphs={wk:'♔',wq:'♕',wr:'♖',wb:'♗',wn:'♘',wp:'♙',bk:'♚',bq:'♛',br:'♜',bb:'♝',bn:'♞',bp:'♟'};
      const renderBoard=()=>{
-       const c=new Chess();
-       for(let i=0;i<ply;i++)c.move(history[i]);
-       board.replaceChildren();
-       const ranks=orientation==='black'?[1,2,3,4,5,6,7,8]:[8,7,6,5,4,3,2,1];
-       const files=orientation==='black'?[7,6,5,4,3,2,1,0]:[0,1,2,3,4,5,6,7];
-       const selectedSet=window.IB_APPEARANCE?.getPieceSet?.();
-       for(const rank of ranks)for(const file of files){
-         const square=String.fromCharCode(97+file)+rank,piece=c.get(square);
-         const cell=make('div','library-preview-square '+((rank+file)%2===0?'light':'dark'));
-         if(piece){
-           const glyph=make('span','library-preview-glyph piece '+(piece.color==='w'?'white-piece':'black-piece'),glyphs[piece.color+piece.type]);
-           if(selectedSet){
-             const image=document.createElement('img');image.className='library-preview-piece';image.alt=piece.color+piece.type;
-             image.src=new URL('pieces/'+selectedSet+'/'+piece.color+piece.type.toUpperCase()+'.svg',import.meta.env.BASE_URL.startsWith('http')?import.meta.env.BASE_URL:location.origin+import.meta.env.BASE_URL).href;
-             image.onerror=()=>image.remove();cell.append(image);
+       try{
+         const position=new Chess();
+         for(let i=0;i<ply;i++)position.move(history[i]);
+         const ranks=orientation==='black'?[1,2,3,4,5,6,7,8]:[8,7,6,5,4,3,2,1];
+         const files=orientation==='black'?[7,6,5,4,3,2,1,0]:[0,1,2,3,4,5,6,7];
+         const cells=[];
+         for(const rank of ranks)for(const file of files){
+           const square=String.fromCharCode(97+file)+rank,piece=position.get(square);
+           const cell=document.createElement('div');
+           cell.className='library-preview-square '+((rank+file)%2===0?'light':'dark');
+           if(piece){
+             const glyph=document.createElement('span');
+             glyph.className='library-preview-glyph piece '+(piece.color==='w'?'white-piece':'black-piece');
+             glyph.textContent=glyphs[piece.color+piece.type]||'?';
+             cell.appendChild(glyph);
            }
-           cell.append(glyph);
+           cells.push(cell);
          }
-         board.append(cell);
+         board.replaceChildren(...cells);
+         status.textContent=(headers.White||'?')+' – '+(headers.Black||'?')+' · '+ply+'/'+history.length+' medias jugadas'+(ply?' · '+history[ply-1]:'');
+         // Optional appearance images must never prevent the basic board from rendering.
+         let selectedSet=null;
+         try{selectedSet=window.IB_APPEARANCE?.getPieceSet?.()||null;}catch(error){console.warn('Appearance fallback',error);}
+         if(selectedSet){
+           const base=import.meta.env.BASE_URL||'/';
+           for(let i=0;i<cells.length;i++){
+             const rank=ranks[Math.floor(i/8)],file=files[i%8],piece=position.get(String.fromCharCode(97+file)+rank);
+             if(!piece)continue;
+             const img=document.createElement('img');
+             img.className='library-preview-piece';
+             img.alt=piece.color+piece.type;
+             img.onerror=()=>{img.remove();};
+             img.onload=()=>{if(img.isConnected)cells[i].classList.add('has-piece-image');};
+             img.src=base+'pieces/'+encodeURIComponent(selectedSet)+'/'+piece.color+piece.type.toUpperCase()+'.svg';
+             cells[i].appendChild(img);
+           }
+         }
+       }catch(error){
+         console.error('Error rendering library preview board',error);
+         status.textContent='Error al dibujar el tablero: '+error.message;
        }
-       status.textContent=(headers.White||'?')+' – '+(headers.Black||'?')+' · '+ply+'/'+history.length+' medias jugadas'+(ply?' · '+history[ply-1]:'');
      };
      first.onclick=()=>{ply=0;renderBoard();};
      prev.onclick=()=>{ply=Math.max(0,ply-1);renderBoard();};
