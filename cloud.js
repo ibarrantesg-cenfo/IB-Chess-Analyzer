@@ -149,3 +149,10 @@ export async function assertCloudStudyAccess(){
   throw Error('Tu acceso a estudios en la nube no está activo o venció. Contactá a Profe Ian. Tus archivos no fueron eliminados.');
  return true;
 }
+
+export async function completeApprovedStudentOnboarding(){
+ const session=await getCloudSession();if(!session)return 'not_authenticated';
+ const {data,error}=await api.rpc('ib_complete_approved_student_onboarding');
+ if(error){if(error.code==='PGRST202'||error.code==='42883')return 'setup_required';throw error;}
+ return data;
+}
