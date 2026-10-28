@@ -70,7 +70,12 @@ export function tournamentStats(games,name,event,analyses){
   return {rows,rated:rated.length,scored:scored.length,points,performance,fide,allWon:rated.length&&rated.every(r=>r.result===1),allLost:rated.length&&rated.every(r=>r.result===0),quality,analyzed:qualityRows.length};
 }
 export function initPerformance({state,notify,analyzeGame,jumpGame,getAnalyses}){
- const left=document.querySelector('.board-column');
+ const page=document.querySelector('main.main');
+ const layout=page.querySelector('.layout'),toolbar=page.querySelector('.toolbar'),tools=page.querySelector('.workspace-tools');
+ const screen=document.createElement('section');screen.className='performance-workspace';screen.hidden=true;
+ screen.innerHTML='<header class="library-header"><div><div class="eyebrow">IB CHESS ACADEMY · RENDIMIENTO</div><h2>Rendimiento de eventos</h2><p>Seleccioná un estudio completo, comprobá los datos PGN y analizá sus partidas con Stockfish.</p></div></header><div class="performance-source"><label>Estudio de la biblioteca <select id="performance-study"><option value="">Elegí un estudio…</option></select></label><button type="button" class="btn outline" id="performance-reload">Actualizar estudios</button><button type="button" class="btn primary" id="performance-load">Cargar estudio</button></div><p id="performance-source-status" class="perf-info">Los estudios locales se cargan completos. Los estudios de una sola partida también están disponibles.</p>';
+ page.insertBefore(screen,page.querySelector('footer'));
+ const left=screen;
  const box=document.createElement('div');
  box.className='panel performance-panel';
  box.innerHTML=`
@@ -85,8 +90,29 @@ export function initPerformance({state,notify,analyzeGame,jumpGame,getAnalyses})
     <div id="perf-rows"></div>
   </div>
   <p class="perf-disclaimer">El Elo aparente es una transformación heurística del índice técnico de Stockfish, sin calibración estadística ni equivalencia con rating oficial. El performance de torneo aplica la tabla Ra + dp de FIDE al Elo indicado en el PGN. Para ser un rendimiento FIDE verificable, los ratings, las partidas efectivamente jugadas y el ritmo deben proceder de datos oficiales.</p>`;
- left.append(box);
+ screen.append(box);
  const $=id=>document.getElementById(id);
+ let studyOptions=new Map();
+ async function refreshStudies(){
+  const data=await window.IB_STUDIO?.listLibraryItems();if(!data)return;
+  studyOptions=new Map();const groups=new Map();
+  for(const item of data.locals){const key=item.collectionId?'local-group:'+item.collectionId:'local:'+item.id;if(!groups.has(key))groups.set(key,{name:item.collectionName||item.name||'Partida',ids:[]});groups.get(key).ids.push(item.id);}
+  for(const [key,group] of groups)studyOptions.set(key,{label:group.name+' ('+group.ids.length+' partidas · local)',ids:group.ids});
+  for(const item of data.remote)studyOptions.set('cloud:'+item.id,{label:(item.title||'Estudio')+' (nube)',id:item.id});
+  const select=$('performance-study'),previous=select.value;select.replaceChildren();const intro=document.createElement('option');intro.value='';intro.textContent='Seleccioná un estudio…';select.append(intro);
+  for(const [id,item] of studyOptions){const opt=document.createElement('option');opt.value=id;opt.textContent=item.label;select.append(opt);}
+  if(studyOptions.has(previous))select.value=previous;
+  if(data.error)$('performance-source-status').textContent='Nube: '+data.error;
+ }
+ $('performance-reload').onclick=()=>refreshStudies().catch(e=>notify(e.message,'err'));
+ $('performance-load').onclick=async()=>{
+  const option=studyOptions.get($('performance-study').value);if(!option)return notify('Seleccioná primero un estudio.','err');
+  try{ $('performance-load').disabled=true;const pgn=option.ids?await window.IB_STUDIO.loadCollectionPgn(option.ids):await window.IB_STUDIO.getLibraryPgn('cloud',option.id);
+   window.IB_LOAD_STUDY?.(pgn,option.label);$('performance-source-status').textContent='Estudio cargado: '+option.label+' · análisis iniciado.';
+  }catch(e){notify('No se pudo cargar el estudio: '+e.message,'err');}
+  finally{$('performance-load').disabled=false;}
+ };
+
  let selectedPlayer='',selectedEvent='',activeTab='game',batchCancelled=false,batching=false;
  const playerList=()=>{const count=new Map();for(const g of state.games)for(const name of [g.headers?.White,g.headers?.Black])if(name)count.set(name,(count.get(name)||0)+1);return [...count.keys()].sort((a,b)=>count.get(b)-count.get(a)||a.localeCompare(b));};
  function filters(restore=true){
@@ -176,7 +202,9 @@ export function initPerformance({state,notify,analyzeGame,jumpGame,getAnalyses})
  };
  filters(false);render();
  return {render,gameChanged:render,analysisFinished:render,
- selectTournament(){activeTab='tournament';box.querySelectorAll('[data-perf-tab]').forEach(x=>x.classList.toggle('active',x.dataset.perfTab==='tournament'));$('perf-game').hidden=true;$('perf-tournament').hidden=false;filters(false);renderTournament();box.scrollIntoView({behavior:'smooth',block:'start'});},
+ show(){screen.hidden=false;layout.hidden=true;toolbar.hidden=true;tools.hidden=true;document.querySelector('#nav-reports')?.classList.add('active');document.querySelector('.topbar h1').textContent='Rendimiento';refreshStudies().catch(e=>notify(e.message,'err'));window.scrollTo(0,0);this.selectTournament();},
+ hide(){screen.hidden=true;document.querySelector('#nav-reports')?.classList.remove('active');},
+ selectTournament(){activeTab='tournament';box.querySelectorAll('[data-perf-tab]').forEach(x=>x.classList.toggle('active',x.dataset.perfTab==='tournament'));$('perf-game').hidden=true;$('perf-tournament').hidden=false;filters(false);renderTournament();},
  async analyzeCurrentStudy(){
   this.selectTournament();
   if(batching)return;
