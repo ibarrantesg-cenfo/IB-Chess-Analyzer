@@ -313,3 +313,16 @@
 .library-empty{grid-column:1/-1;text-align:center;padding:40px 18px;color:#aabed2;border:1px dashed #3b5068;border-radius:12px}
 @media(max-width:1050px){.library-items{grid-template-columns:1fr}}
 @media(max-width:700px){.library-counts{grid-template-columns:repeat(2,1fr)}.library-header{flex-direction:column;align-items:stretch}.library-header h2{font-size:23px}.library-toolbar label{width:100%}.library-toolbar .btn{width:100%}}
+
+/* v2.9: expandable multi-game study collections */
+.library-organize{display:flex;gap:9px;flex-wrap:wrap;align-items:center;margin-top:12px}
+.library-organize input{flex:1;min-width:230px;background:#101e2b;color:#e8f4ff;border:1px solid #385367;border-radius:8px;padding:11px}
+.library-folder{border-color:#447665;background:linear-gradient(145deg,#183b37,#142536)}
+.library-folder>.btn{align-self:flex-start;margin-top:auto}
+.library-folder-heading{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin:0 0 18px;padding:12px 14px;border:1px solid #375565;border-radius:11px;background:#142b36}
+.library-folder-heading h3{font:700 19px Outfit,sans-serif;margin:0;color:#b5f3d9}
+.library-folder-heading span{font-size:11px;color:#a3b8cb}
+.library-checkbox{display:flex;align-items:center;gap:6px;color:#adbfcd;font-size:11px}
+.library-checkbox input{accent-color:#7adbbb}
+.library-card-actions .btn{padding:8px 11px}
+@media(max-width:700px){.library-folder-heading{align-items:stretch;flex-direction:column}.library-organize>*{width:100%}}
