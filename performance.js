@@ -150,7 +150,26 @@ export function initPerformance({state,notify,analyzeGame,jumpGame,getAnalyses})
   const done=full.filter(x=>x.metrics.w.complete&&x.metrics.b.complete);
   const avg=done.length?done.reduce((sum,x)=>sum+x.metrics.w.avg+x.metrics.b.avg,0)/(done.length*2):null;
   const errors=done.reduce((acc,x)=>{for(const color of ['w','b'])for(const type of ['inaccuracy','mistake','blunder'])acc[type]+=x.metrics[color].counts[type]||0;return acc;},{inaccuracy:0,mistake:0,blunder:0});
-  $('perf-study-overview').innerHTML='<div class="perf-info"><strong>Balance integral del estudio · '+esc(event||'Todos los eventos')+'</strong><p>'+done.length+'/'+games.length+' partidas analizadas con Stockfish · '+(avg===null?'Pérdida media pendiente':'Pérdida media '+avg.toFixed(1)+' cp')+' · '+errors.inaccuracy+' imprecisiones · '+errors.mistake+' errores · '+errors.blunder+' graves.</p><p>El análisis cubre ambos bandos en todas las partidas del evento. Elegí un jugador más abajo para consultar su rendimiento individual.</p></div><div class="perf-study-games">'+full.map(x=>'<div class="perf-game-row"><span>'+esc(x.g.headers?.White||'?')+' – '+esc(x.g.headers?.Black||'?')+'</span><span>'+(x.metrics.w.complete&&x.metrics.b.complete?'Analizada':'Pendiente')+'</span></div>').join('')+'</div>';
+  const leaderboard=new Map();
+  for(const item of full){
+   const h=item.g.headers||{},result=h.Result||'*';
+   const score=result==='1-0'?[1,0]:result==='0-1'?[0,1]:result==='1/2-1/2'?[.5,.5]:null;
+   for(const [idx,color] of [['White','w'],['Black','b']]){
+    const name=String(h[idx]||'').trim();if(!name||name==='?'||!score)continue;
+    const key=name.toLocaleLowerCase(),old=leaderboard.get(key)||{name,points:0,games:0,quality:[],elo:h[idx+'Elo']||null,title:h[idx+'Title']||''};
+    old.points+=score[idx==='White'?0:1];old.games++;
+    if(!old.elo&&h[idx+'Elo'])old.elo=h[idx+'Elo'];
+    if(!old.title&&h[idx+'Title'])old.title=h[idx+'Title'];
+    if(item.metrics[color].complete)old.quality.push(item.metrics[color].quality);
+    leaderboard.set(key,old);
+   }
+  }
+  const leaders=[...leaderboard.values()].sort((a,b)=>b.points-a.points||b.games-a.games);
+  const leader=leaders[0],tie=leader&&leaders.filter(x=>x.points===leader.points&&x.games===leader.games).length>1;
+  const quality=done.length?done.reduce((sum,x)=>sum+x.metrics.w.quality+x.metrics.b.quality,0)/(done.length*2):null;
+  const winners=leader?(tie?'Liderato compartido (datos parciales)':leader.title+' '+leader.name+' · '+leader.points+'/'+leader.games+' puntos'):'Sin ganador determinable: faltan resultados';
+  const summary='<div class="perf-tournament-grid"><div><b>'+(quality===null?'—':quality.toFixed(1)+'/100')+'</b><small>Índice técnico promedio de ambos bandos</small></div><div><b>'+esc(winners.trim())+'</b><small>Líder por puntuación registrada (no confirma campeón oficial)</small></div><div><b>'+leaders.length+'</b><small>Jugadores con resultados válidos</small></div><div><b>'+done.length+'/'+games.length+'</b><small>Partidas con análisis conservado</small></div></div>';
+  $('perf-study-overview').innerHTML=summary+'<div class="perf-info"><strong>Balance integral del estudio · '+esc(event||'Todos los eventos')+'</strong><p>'+done.length+'/'+games.length+' partidas analizadas con Stockfish · '+(avg===null?'Pérdida media pendiente':'Pérdida media '+avg.toFixed(1)+' cp')+' · '+errors.inaccuracy+' imprecisiones · '+errors.mistake+' errores · '+errors.blunder+' graves.</p><p>El análisis cubre ambos bandos en todas las partidas del evento. Elegí un jugador más abajo para consultar su rendimiento individual.</p></div><div class="perf-study-games">'+full.map(x=>'<div class="perf-game-row"><span>'+esc(x.g.headers?.White||'?')+' – '+esc(x.g.headers?.Black||'?')+'</span><span>'+(x.metrics.w.complete&&x.metrics.b.complete?'Analizada':'Pendiente')+'</span></div>').join('')+'</div>';
  }
  function renderTournament(){
   filters();renderStudyOverview();
