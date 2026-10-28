@@ -113,3 +113,5 @@ export async function setStudentEnrollment(id,state,plan,expiresAt){
  const {error}=await api.from('ib_enrollments').update(payload).eq('id',id).eq('teacher_id',session.user.id);
  if(error)throw error;
 }
+
+export function onAccountChange(callback){if(!api)return ()=>{};const {data}=api.auth.onAuthStateChange(()=>{queueMicrotask(()=>callback());});return ()=>data.subscription.unsubscribe();}
