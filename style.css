@@ -554,3 +554,26 @@
 
 /* Native hidden wins over button/grid/card display declarations. */
 .prefs-dialog [hidden]{display:none!important}
+
+/* Academy request queue and compact approval history */
+.academy-history{margin:20px 0 28px;background:#142536;border:1px solid #345064;border-radius:12px;overflow:hidden}
+.academy-history summary{display:flex;align-items:center;justify-content:space-between;gap:12px;cursor:pointer;padding:17px 19px;font-weight:650;list-style:none}
+.academy-history summary::-webkit-details-marker{display:none}
+.academy-history summary>span:first-child::before{content:'▸';display:inline-block;margin-right:12px;color:#75dcb9;transition:transform .2s}
+.academy-history[open] summary>span:first-child::before{transform:rotate(90deg)}
+.academy-history summary>span:last-child{font-size:12px;font-weight:400;color:#a2bacb}
+.academy-history-body{padding:0 19px 15px}
+.academy-history-entry{border-top:1px solid #30495a;padding:14px 0;display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+.academy-history-info{display:grid;gap:4px;flex:1;min-width:180px}
+.academy-history-info strong{font-size:13px;overflow-wrap:anywhere}
+.academy-history-info small,.academy-muted{font-size:12px;color:#a2b9c9}
+.academy-history-status{font-size:11px;border-radius:99px;padding:5px 10px;background:#304051;color:#d2e2ed}
+.academy-history-status.approved{background:#174b3c;color:#8df2c9}
+.academy-history-copy{font-size:11px}
+.academy-request-actions{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin:12px 0}
+.academy-request-actions select{background:#0c1b2c;border:1px solid #49657a;border-radius:8px;color:#e9f4f8;padding:9px}
+:root[data-theme="light"] .academy-history{background:#fff;border-color:#c5d7df}
+:root[data-theme="light"] .academy-history-entry{border-color:#dbe5eb}
+:root[data-theme="light"] .academy-history-info small,:root[data-theme="light"] .academy-muted{color:#526c7b}
+:root[data-theme="light"] .academy-history-status.approved{color:#17624e;background:#dff6ec}
+:root[data-theme="light"] .academy-request-actions select{background:#fff;color:#183447;border-color:#a3bdcb}
