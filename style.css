@@ -371,3 +371,7 @@
 .studio-panel .studio-grid{margin-bottom:10px}
 .studio-panel .studio-actions{gap:7px}
 @media(max-width:760px){.board-compact-eval{flex-wrap:wrap}.board-compact-eval small{max-width:none;width:100%}.board-compact-eval strong{margin-left:auto}}
+
+.studio-library-collapse{border:1px solid #304759;border-radius:9px;margin:10px 0;padding:9px 12px}
+.studio-library-collapse summary{cursor:pointer;color:#94d4bf;font-weight:700;font-size:12px}
+.studio-library-collapse .studio-library-tools{margin-top:12px}
