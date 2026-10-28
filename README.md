@@ -135,3 +135,19 @@ En la barra superior hay un selector **♟ Apariencia**. Ofrece seis temas de ta
 - Las anotaciones no se guardan en el PGN ni en los estudios; son marcas temporales para enseñar.
 - El editor de piezas tiene prioridad sobre las flechas cuando está habilitado.
 - La apariencia de cada navegador y perfil se guarda en localStorage por origen (dominio + protocolo). Cambiar de github.io a .com crea otra identidad de almacenamiento y el aspecto anterior no migra automáticamente.
+
+
+## v2.4 — Colecciones reales de piezas
+En **Apariencia → Estilo de piezas** hay cinco nuevas colecciones SVG ilustradas:
+Chessnut (moderna), Fantasy (artística), Spatial (geométrica),
+Celtic (decorativa) y RhosGFX (pixel art), además de los cuatro
+tratamientos Unicode anteriores. La mini galería muestra las seis piezas
+de ambos colores del conjunto elegido.
+
+Las imágenes SVG se descargan de los recursos públicos licenciados de
+Lichess *durante la compilación* y se incluyen en `dist/pieces`: no se
+requiere un CDN externo cuando el alumno abre la aplicación.
+El proceso de build falla si no puede obtener/validar las imágenes,
+para evitar publicar una versión visualmente incompleta.
+Créditos y licencias: [PIECE_CREDITS.md](PIECE_CREDITS.md).
+La preferencia se recuerda por navegador y perfil.
