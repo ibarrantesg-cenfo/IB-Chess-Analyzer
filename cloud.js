@@ -84,3 +84,32 @@ export async function updateAccountPassword(password){
  if(!api)throw Error('Conexión de Supabase no configurada.');
  const {error}=await api.auth.updateUser({password});if(error)throw error;
 }
+
+export async function myEnrollments(){
+ const session=await getCloudSession();if(!session)throw Error('Iniciá sesión.');
+ const details=await accountDetails();
+ if(details?.isTeacher){
+  const {data,error}=await api.from('ib_enrollments').select('id,student_id,state,plan,expires_at,created_at').eq('teacher_id',session.user.id).order('created_at',{ascending:false});
+  if(error)throw error;
+  const ids=(data||[]).map(x=>x.student_id);
+  let profiles=[];
+  if(ids.length){const r=await api.from('ib_profiles').select('user_id,display_name').in('user_id',ids);if(r.error)throw r.error;profiles=r.data||[];}
+  const names=new Map(profiles.map(x=>[x.user_id,x.display_name]));
+  return {teacher:true,items:(data||[]).map(x=>({...x,name:names.get(x.student_id)||'Alumno sin nombre'}))};
+ }
+ const {data,error}=await api.from('ib_enrollments').select('id,teacher_id,state,plan,expires_at').eq('student_id',session.user.id);
+ if(error)throw error;return {teacher:false,items:data||[]};
+}
+export async function requestTeacher(teacherId){
+ const session=await getCloudSession();if(!session)throw Error('Iniciá sesión.');
+ const {error}=await api.from('ib_enrollments').insert({teacher_id:teacherId,student_id:session.user.id,state:'pending',plan:'Sin plan'});
+ if(error)throw error;
+}
+export async function setStudentEnrollment(id,state,plan,expiresAt){
+ const session=await getCloudSession();const account=await accountDetails();
+ if(!session||!account?.isTeacher)throw Error('Cuenta de profesor requerida.');
+ if(!['pending','active','paused','ended'].includes(state))throw Error('Estado inválido.');
+ const payload={state,plan:String(plan||'Sin plan').slice(0,80),expires_at:expiresAt||null};
+ const {error}=await api.from('ib_enrollments').update(payload).eq('id',id).eq('teacher_id',session.user.id);
+ if(error)throw error;
+}
