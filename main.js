@@ -88,6 +88,7 @@ window.IB_LIVE=initLiveAnalysis({getFen:()=>state.previewFen||state.positions[st
 
 window.IB_PERFORMANCE=initPerformance({state,notify,analyzeGame:analyze,jumpGame:i=>{if(state.busy)return;chooseGame(i);},getAnalyses:()=>state.analysisCache});
 
+window.IB_OPEN_REPORT=async(pgn,source)=>{loadText(pgn,source);document.querySelector('#nav-reports').click();for(let i=0;i<state.games.length;i++){try{const saved=await findReview(state.games[i]);if(saved)state.analysisCache.set(i,saved);}catch(e){console.warn(e);}}window.IB_PERFORMANCE?.analysisFinished();};
 window.IB_LOAD_STUDY=(pgn,source)=>{loadText(pgn,source);document.querySelector('#nav-reports').click();window.IB_PERFORMANCE?.analyzeCurrentStudy?.();};
 window.IB_LIBRARY=initLibraryWorkspace({studio:window.IB_STUDIO,notify,onOpen:()=>{window.IB_WORKSPACE?.refresh();}});
 const navReview=document.querySelector('#nav-review'),navLibrary=document.querySelector('#nav-library'),navReports=document.querySelector('#nav-reports');
