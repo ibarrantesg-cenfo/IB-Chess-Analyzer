@@ -551,3 +551,6 @@
 :root[data-theme="light"] :is(.academy-head p,.academy-stat span,.academy-fields label,#academy-notice){color:#48677a}
 :root[data-theme="light"] .academy-fields :is(input,select){background:white;color:#19384a;border-color:#a3bdcb}
 @media(max-width:650px){.academy-fields{grid-template-columns:1fr}.academy-head{flex-wrap:wrap}.academy-stats{gap:6px}.academy-stat{padding:12px}}
+
+/* Native hidden wins over button/grid/card display declarations. */
+.prefs-dialog [hidden]{display:none!important}
