@@ -7,7 +7,7 @@ export function initLibraryWorkspace({studio,notify,onOpen}){
  const title=page.querySelector('.topbar h1'),description=page.querySelector('.topbar p');
  const toolbar=page.querySelector('.toolbar'),tools=page.querySelector('.workspace-tools');
  const panel=document.createElement('section');panel.className='library-workspace';panel.hidden=true;
- panel.innerHTML=`<header class="library-header"><div><div class="eyebrow">IB CHESS ACADEMY · BIBLIOTECA</div><h2>Mis partidas y estudios</h2><p>Buscá, abrí y exportá tus estudios locales o sincronizados. Los compartidos respetan los permisos de Supabase.</p></div><button class="btn primary" id="library-import">＋ Importar PGN</button></header>
+ panel.innerHTML=`<header class="library-header"><div><div class="eyebrow">IB CHESS ACADEMY · BIBLIOTECA</div><h2>Mis partidas y estudios</h2><p>Buscá, abrí y exportá tus estudios locales o sincronizados. Los compartidos respetan los permisos de Supabase.</p></div><label class="btn primary library-upload">＋ Importar PGN a biblioteca<input type="file" id="library-import-file" accept=".pgn,.txt" multiple hidden/></label></header>
  <div class="library-toolbar"><label class="library-search-label">Buscar estudios<input id="library-query" type="search" placeholder="Jugador, título o alumno…"/></label><label>Ubicación<select id="library-origin"><option value="all">Todos</option><option value="local">Guardados en este navegador</option><option value="cloud">Guardados en la nube</option><option value="shared">Compartidos conmigo</option></select></label><button class="btn outline" id="library-refresh">↻ Actualizar</button></div>
  <div id="library-counts" class="library-counts"></div><div id="library-warning" class="library-warning" hidden></div><div id="library-items" class="library-items" aria-live="polite"></div>
  <p class="library-footnote">Local: guardado solamente en este navegador. Nube: accesible con tu cuenta. Los estudios compartidos no se pueden sobrescribir desde la biblioteca; abrilos para corregirlos mediante una copia propia.</p>`;
@@ -37,7 +37,17 @@ export function initLibraryWorkspace({studio,notify,onOpen}){
      const a=document.createElement('a');a.href=url;a.download='IB_'+entry.title.replace(/[^a-z0-9_-]+/gi,'_').slice(0,65)+'.pgn';a.click();
      setTimeout(()=>URL.revokeObjectURL(url),1500);
    }catch(e){notify('No se pudo exportar: '+e.message,'err');}};
-   actions.append(open,download);wrap.append(actions);return wrap;
+   actions.append(open,download);
+   if(entry.source==='local'){
+     const remove=make('button','btn outline library-delete','Eliminar local');
+     remove.onclick=async()=>{
+       if(!window.confirm('¿Eliminar este estudio guardado en este navegador? Esta acción no se puede deshacer.'))return;
+       try{await studio.deleteLibraryItem('local',entry.id);notify('Estudio local eliminado.');await refresh();}
+       catch(e){notify('No se pudo eliminar: '+e.message,'err');}
+     };
+     actions.append(remove);
+   }
+   wrap.append(actions);return wrap;
  };
  function render(){
   const q=$('library-query').value.trim().toLocaleLowerCase(),filter=$('library-origin').value;
@@ -82,6 +92,16 @@ export function initLibraryWorkspace({studio,notify,onOpen}){
  $('library-refresh').onclick=refresh;
  $('library-query').oninput=render;
  $('library-origin').onchange=render;
- $('library-import').onclick=()=>{switchView(false);document.querySelector('#file-input')?.click();};
+ $('library-import-file').onchange=async e=>{
+   const files=[...e.target.files||[]];e.target.value='';
+   if(!files.length)return;
+   let added=0,invalid=0;
+   for(const file of files){
+     try{const result=await studio.importLibraryPgn(await file.text());added+=result.inserted;invalid+=result.invalid;}
+     catch(err){invalid++;notify('No se pudo importar '+file.name+': '+err.message,'err');}
+   }
+   await refresh();
+   notify(added+' partida(s) guardadas en biblioteca local'+(invalid?' · '+invalid+' omitidas':'')+'.');
+ };
  return {refresh,open:()=>switchView(true),close:()=>switchView(false)};
 }
