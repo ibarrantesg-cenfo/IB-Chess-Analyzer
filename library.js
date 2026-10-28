@@ -40,9 +40,21 @@ export function initLibraryWorkspace({studio,notify,onOpen}){
        const c=new Chess();
        for(let i=0;i<ply;i++)c.move(history[i]);
        board.replaceChildren();
-       for(let rank=7;rank>=0;rank--)for(let file=0;file<8;file++){
-         const square=String.fromCharCode(97+file)+(rank+1),piece=c.get(square);
-         const cell=make('div','library-preview-square '+((rank+file)%2===0?'light':'dark'),piece?pieces[piece.color+piece.type]:'');
+       const ranks=orientation==='black'?[1,2,3,4,5,6,7,8]:[8,7,6,5,4,3,2,1];
+       const files=orientation==='black'?[7,6,5,4,3,2,1,0]:[0,1,2,3,4,5,6,7];
+       const selectedSet=window.IB_APPEARANCE?.getPieceSet?.();
+       for(const rank of ranks)for(const file of files){
+         const square=String.fromCharCode(97+file)+rank,piece=c.get(square);
+         const cell=make('div','library-preview-square '+((rank+file)%2===0?'light':'dark'));
+         if(piece){
+           const glyph=make('span','library-preview-glyph piece '+(piece.color==='w'?'white-piece':'black-piece'),glyphs[piece.color+piece.type]);
+           if(selectedSet){
+             const image=document.createElement('img');image.className='library-preview-piece';image.alt=piece.color+piece.type;
+             image.src=new URL('pieces/'+selectedSet+'/'+piece.color+piece.type.toUpperCase()+'.svg',import.meta.env.BASE_URL.startsWith('http')?import.meta.env.BASE_URL:location.origin+import.meta.env.BASE_URL).href;
+             image.onerror=()=>image.remove();cell.append(image);
+           }
+           cell.append(glyph);
+         }
          board.append(cell);
        }
        status.textContent=(headers.White||'?')+' – '+(headers.Black||'?')+' · '+ply+'/'+history.length+' medias jugadas'+(ply?' · '+history[ply-1]:'');
@@ -51,7 +63,8 @@ export function initLibraryWorkspace({studio,notify,onOpen}){
      prev.onclick=()=>{ply=Math.max(0,ply-1);renderBoard();};
      next.onclick=()=>{ply=Math.min(history.length,ply+1);renderBoard();};
      last.onclick=()=>{ply=history.length;renderBoard();};
-     controls.append(first,prev,next,last,close);
+     const flip=make('button','btn outline','⇅ Girar');flip.onclick=()=>{orientation=orientation==='white'?'black':'white';renderBoard();};
+     controls.append(first,prev,next,last,flip,close);
      inner.append(heading,status,board,controls);
      if(entry.source==='local'){
        const form=make('div','library-header-editor');
@@ -65,7 +78,7 @@ export function initLibraryWorkspace({studio,notify,onOpen}){
        save.onclick=async()=>{try{save.disabled=true;const changes={};for(const [key] of fields)changes[key]=inputs[key].value;changes.Result=result.value;
         const updated=await studio.updateLibraryHeaders(entry.id,changes);heading.textContent=updated.name;await refresh();notify('Datos del PGN actualizados.');modal.remove();}
         catch(e){notify(e.message,'err');}finally{save.disabled=false;}};
-       inner.append(form,save);
+       const editor=document.createElement('details');editor.className='library-preview-editor';const summary=document.createElement('summary');summary.textContent='✎ Editar participantes y datos PGN';editor.append(summary,form,save);inner.append(editor);
 
      }
      modal.append(inner);modal.onclick=e=>{if(e.target===modal)modal.remove();};
