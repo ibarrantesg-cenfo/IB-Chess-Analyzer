@@ -1,8 +1,8 @@
-import {accountDetails,myEnrollments,setStudentEnrollment,cloudAvailable} from './cloud.js';
+import {accountDetails,myEnrollments,setStudentEnrollment,cloudAvailable,getAccessRequests,reviewAccessRequest} from './cloud.js';
 export function initAcademy({notify,onBack}){
  const page=document.querySelector('main.main'),layout=page.querySelector('.layout'),toolbar=page.querySelector('.toolbar'),tools=page.querySelector('.workspace-tools'),screen=document.createElement('section');
  screen.className='academy-screen';screen.hidden=true;
- screen.innerHTML='<header class="academy-head"><div><div class="eyebrow">IB CHESS ACADEMY · ADMINISTRACIÓN</div><h2>Academia · Profe Ian</h2><p>Alumnos, solicitudes, planes y vigencias en un espacio independiente.</p></div><button class="btn outline" id="academy-refresh">↻ Actualizar</button></header><div id="academy-notice" role="status"></div><div class="academy-stats" id="academy-stats"></div><div class="academy-roster" id="academy-roster"></div>';
+ screen.innerHTML='<header class="academy-head"><div><div class="eyebrow">IB CHESS ACADEMY · ADMINISTRACIÓN</div><h2>Academia · Profe Ian</h2><p>Alumnos, solicitudes, planes y vigencias en un espacio independiente.</p></div><button class="btn outline" id="academy-refresh">↻ Actualizar</button></header><div id="academy-notice" role="status"></div><div class="academy-stats" id="academy-stats"></div><h3>Solicitudes de cuentas</h3><div class="academy-roster" id="academy-requests"></div><h3>Alumnos vinculados</h3><div class="academy-roster" id="academy-roster"></div>';
  page.insertBefore(screen,page.querySelector('footer'));
  const $=id=>screen.querySelector('#'+id);
  let active=false;
@@ -12,6 +12,23 @@ export function initAcademy({notify,onBack}){
   if(!active)return;
   try{
    const account=await accountDetails();if(!account?.isTeacher){close();onBack();return;}
+   const requestRoot=$('academy-requests');requestRoot.replaceChildren();
+   try{
+    const requests=await getAccessRequests();
+    if(!requests.length){const empty=document.createElement('p');empty.textContent='Sin solicitudes de cuenta.';requestRoot.append(empty);}
+    for(const req of requests){
+      const card=document.createElement('section');card.className='academy-student';
+      const h=document.createElement('h3');h.textContent=req.full_name+' · '+req.email;
+      const desc=document.createElement('p');desc.textContent='Solicita: '+req.requested_role+' · Estado: '+req.status;
+      const role=document.createElement('select');for(const [v,t] of [['student','Alumno'],['teacher','Profesor']]){const o=document.createElement('option');o.value=v;o.textContent=t;role.append(o);}role.value=req.granted_role||req.requested_role;
+      const approve=document.createElement('button');approve.className='btn primary';approve.textContent='Aprobar solicitud';
+      const reject=document.createElement('button');reject.className='btn outline';reject.textContent=req.status==='approved'?'Suspender solicitud':'Rechazar solicitud';
+      const act=async status=>{try{approve.disabled=reject.disabled=true;await reviewAccessRequest(req.id,status,role.value);notify('Solicitud actualizada.');await refresh();}catch(e){notify(e.message,'err');}finally{approve.disabled=reject.disabled=false;}};
+      approve.onclick=()=>act('approved');reject.onclick=()=>act(req.status==='approved'?'suspended':'rejected');
+      const note=document.createElement('small');note.textContent='La aprobación registra la decisión. La activación de credenciales requiere el servicio seguro de invitaciones.';
+      card.append(h,desc,role,approve,reject,note);requestRoot.append(card);
+    }
+   }catch(error){requestRoot.textContent='Solicitudes no disponibles: '+error.message;}
    const response=await myEnrollments(),items=response.items||[];
    const total=items.length,activeCount=items.filter(x=>x.state==='active').length,pending=items.filter(x=>x.state==='pending').length;
    $('academy-notice').textContent='Gestioná las solicitudes desde tu cuenta. Solo Supabase Auth valida identidades; nunca se muestran contraseñas.';
