@@ -9,7 +9,7 @@ create table if not exists public.ib_access_requests(
  created_at timestamptz not null default now(),
  reviewed_at timestamptz,
  reviewed_by uuid references auth.users(id),
- constraint valid_request_email check(length(email) between 5 and 254 and email ~* '^[^[:space:]@]+@[^[:space:]@]+\\.[^[:space:]@]+$'),
+ constraint valid_request_email check(length(email) between 5 and 254 and email ~* '^[^[:space:]@]+@[^[:space:]@]+[.][^[:space:]@]+$'),
  constraint valid_request_name check(length(full_name) between 2 and 80)
 );
 create unique index if not exists ib_request_email_unique on public.ib_access_requests(lower(email));
