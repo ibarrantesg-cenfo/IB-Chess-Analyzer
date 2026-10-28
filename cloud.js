@@ -65,3 +65,22 @@ export async function cloudDeleteOwned(studyId){
  if(!data?.length)throw Error('No se eliminó el estudio. Comprobá que seas propietario y que tus permisos estén activos.');
  return true;
 }
+
+export async function passwordSignIn(email,password){
+ if(!api)throw Error('Conexión de Supabase no configurada.');
+ const {data,error}=await api.auth.signInWithPassword({email,password});
+ if(error)throw error;return data;
+}
+export async function passwordSignUp(email,password,displayName){
+ if(!api)throw Error('Conexión de Supabase no configurada.');
+ const {data,error}=await api.auth.signUp({email,password,options:{emailRedirectTo:location.origin+location.pathname,data:{display_name:displayName}}});
+ if(error)throw error;return data;
+}
+export async function resetAccountPassword(email){
+ if(!api)throw Error('Conexión de Supabase no configurada.');
+ const {error}=await api.auth.resetPasswordForEmail(email,{redirectTo:location.origin+location.pathname});if(error)throw error;
+}
+export async function updateAccountPassword(password){
+ if(!api)throw Error('Conexión de Supabase no configurada.');
+ const {error}=await api.auth.updateUser({password});if(error)throw error;
+}
