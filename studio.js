@@ -188,7 +188,38 @@ el('studio-export').onclick=exportStudy;
  el('studio-comment-panel').hidden=false;
  tree=initVariationBoard(selected,{render:callbacks.renderPreview,notify,isEditing:()=>paint,save:v=>{ensure();const i=active.variations.findIndex(x=>x.id===v.id);if(i>=0)active.variations[i]=v;else active.variations.push(v);change();renderNotes();}});
  refreshLibrary();renderNotes();
- return {addEngineVariation(ply,sans,summary){try{
+ return {
+async listLibraryItems(){
+ const locals=await getAll();
+ let remote=[],error='';
+ if(cloudAvailable){
+  try{const session=await getCloudSession();if(session)remote=await cloudList();}
+  catch(e){error=e.message;}
+ }
+ return {locals,remote,error};
+},
+async openLibraryItem(source,id){
+ if(source==='local'){
+  const item=await transaction('readonly',store=>store.get(id));
+  if(!item)throw Error('Este estudio local ya no existe.');
+  callbacks.loadPGN(item.pgn,'biblioteca local');
+  active=item;cloudSource=null;el('studio-student').value=item.student||'';renderNotes();
+ }else if(source==='cloud'){
+  const opened=await cloudOpen(id),item=opened.study;
+  callbacks.loadPGN(item.pgn,'biblioteca compartida');
+  active=structuredClone(item);cloudSource={id,ownerId:opened.ownerId,shared:opened.shared};
+  el('studio-student').value=item.student||'';renderNotes();
+ }else throw Error('Origen desconocido.');
+ return active;
+},
+async getLibraryPgn(source,id){
+ if(source==='local'){
+  const study=await transaction('readonly',store=>store.get(id));if(!study)throw Error('Estudio no disponible.');
+  return study.pgn;
+ }
+ const result=await cloudOpen(id);return result.study.pgn;
+},
+addEngineVariation(ply,sans,summary){try{
 if(selected.previewFen)throw Error('Volvé a la línea principal antes de guardar variantes del motor.');
 const c=new Chess(selected.positions[ply]);const legalSans=[];
 for(const m of sans){legalSans.push(c.move(m).san);}
