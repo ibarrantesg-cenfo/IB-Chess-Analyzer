@@ -9,12 +9,13 @@ export function initLibraryWorkspace({studio,notify,onOpen}){
  const panel=document.createElement('section');panel.className='library-workspace';panel.hidden=true;
  panel.innerHTML=`<header class="library-header"><div><div class="eyebrow">IB CHESS ACADEMY · BIBLIOTECA</div><h2>Mis partidas y estudios</h2><p>Buscá, abrí y exportá tus estudios locales o sincronizados. Los compartidos respetan los permisos de Supabase.</p></div><label class="btn primary library-upload">＋ Importar PGN a biblioteca<input type="file" id="library-import-file" accept=".pgn,.txt" multiple hidden/></label></header>
  <div class="library-toolbar"><label class="library-search-label">Buscar estudios<input id="library-query" type="search" placeholder="Jugador, título o alumno…"/></label><label>Ubicación<select id="library-origin"><option value="all">Todos</option><option value="local">Guardados en este navegador</option><option value="cloud">Guardados en la nube</option><option value="shared">Compartidos conmigo</option></select></label><button class="btn outline" id="library-refresh">↻ Actualizar</button></div>
- <div class="library-organize"><input id="library-folder-name" placeholder="Nombre del estudio"/><button class="btn outline" id="library-group">Agrupar seleccionadas</button></div><div id="library-counts" class="library-counts"></div><div id="library-back" hidden></div><div id="library-warning" class="library-warning" hidden></div><div id="library-items" class="library-items" aria-live="polite"></div>
+ <div class="library-organize"><input id="library-folder-name" placeholder="Nombre del estudio"/><button class="btn outline" id="library-select-all">Seleccionar partidas sin estudio</button><button class="btn primary" id="library-group">Crear estudio con seleccionadas</button><small id="library-selection-count">0 partidas seleccionadas</small></div><div id="library-counts" class="library-counts"></div><div id="library-back" hidden></div><div id="library-warning" class="library-warning" hidden></div><div id="library-items" class="library-items" aria-live="polite"></div>
  <p class="library-footnote">Local: guardado solamente en este navegador. Nube: accesible con tu cuenta. Los estudios compartidos no se pueden sobrescribir desde la biblioteca; abrilos para corregirlos mediante una copia propia.</p>`;
  page.insertBefore(panel,page.querySelector('footer'));
  const $=id=>document.getElementById(id);
  let items=[],userId=null,busy=false,visible=false,openGroup=null;const checked=new Set();
  const str=x=>String(x??'');
+ const updateSelected=()=>{const x=$('library-selection-count');if(x)x.textContent=checked.size+' partida(s) seleccionada(s)';};
  const make=(tag,cls,value)=>{const el=document.createElement(tag);if(cls)el.className=cls;if(value!==undefined)el.textContent=value;return el;};
  const card=entry=>{
    const wrap=make('article','library-card');
@@ -22,7 +23,7 @@ export function initLibraryWorkspace({studio,notify,onOpen}){
    header.append(make('strong','',entry.title));
    const badge=make('span','library-source '+(entry.shared?'shared':entry.source),entry.shared?'Compartido':entry.source==='cloud'?'En la nube':'Local');
    header.append(badge);wrap.append(header);
-   if(entry.source==='local'){const select=make('label','library-checkbox');const check=document.createElement('input');check.type='checkbox';check.checked=checked.has(entry.id);check.onchange=()=>{if(check.checked)checked.add(entry.id);else checked.delete(entry.id);};select.append(check,document.createTextNode(' Seleccionar'));wrap.append(select);}
+   if(entry.source==='local'){const select=make('label','library-checkbox');const check=document.createElement('input');check.type='checkbox';check.checked=checked.has(entry.id);check.onchange=()=>{if(check.checked)checked.add(entry.id);else checked.delete(entry.id);updateSelected();};select.append(check,document.createTextNode(' Seleccionar'));wrap.append(select);}
    wrap.append(make('p','library-subtitle',entry.student));
    const metadata=make('small','library-card-date',entry.date?new Date(entry.date).toLocaleDateString('es-CR'):'Sin fecha');
    wrap.append(metadata);
@@ -101,7 +102,7 @@ export function initLibraryWorkspace({studio,notify,onOpen}){
     ].sort((a,b)=>str(b.date).localeCompare(str(a.date)));
     const warn=$('library-warning');
     warn.hidden=!result.error;warn.textContent=result.error?'No se pudo consultar la nube: '+result.error:'';
-    render();
+    render();updateSelected();
   }catch(e){notify('Error en biblioteca: '+e.message,'err');}
   finally{busy=false;$('library-refresh').disabled=false;}
  }
@@ -117,10 +118,11 @@ export function initLibraryWorkspace({studio,notify,onOpen}){
  home.onclick=()=>switchView(false);
  nav.onclick=()=>switchView(true);
  $('library-refresh').onclick=refresh;
+ $('library-select-all').onclick=()=>{for(const x of items)if(x.source==='local'&&!x.collectionId)checked.add(x.id);render();updateSelected();};
  $('library-group').onclick=async()=>{
   if(!checked.size)return notify('Seleccioná partidas locales para agrupar.','err');
   const name=$('library-folder-name').value.trim();
-  try{const count=await studio.organizeLibraryItems([...checked],name);checked.clear();$('library-folder-name').value='';await refresh();notify(count+' partidas agrupadas en '+name+'.');}
+  try{const count=await studio.organizeLibraryItems([...checked],name);checked.clear();$('library-folder-name').value='';await refresh();updateSelected();notify(count+' partidas agrupadas en '+name+'.');}
   catch(e){notify('No se pudo agrupar: '+e.message,'err');}
  };
  $('library-query').oninput=render;
