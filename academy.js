@@ -26,7 +26,7 @@ export function initAcademy({notify,onBack}){
       const approve=document.createElement('button');approve.className='btn primary';approve.textContent='Aprobar solicitud';
       const reject=document.createElement('button');reject.className='btn outline';reject.textContent=req.status==='approved'?'Suspender solicitud':'Rechazar solicitud';
       const act=async status=>{try{approve.disabled=reject.disabled=true;await reviewAccessRequest(req.id,status,role.value);notify('Solicitud actualizada.');await refresh();}catch(e){notify(e.message,'err');}finally{approve.disabled=reject.disabled=false;}};
-      approve.onclick=()=>act('approved');reject.onclick=()=>act(req.status==='approved'?'suspended':'rejected');
+      approve.disabled=req.status==='approved';approve.textContent=req.status==='approved'?'Solicitud aprobada':'Aprobar solicitud';approve.onclick=()=>act('approved');reject.onclick=()=>act(req.status==='approved'?'suspended':'rejected');
       const note=document.createElement('small');note.textContent=req.status==='approved'?'Solicitud aprobada. Pendiente de invitación segura y verificación de identidad.':'La aprobación no crea una cuenta ni concede permisos automáticamente.';
       card.append(h,desc,role,approve,reject,note);requestRoot.append(card);
     }
@@ -41,7 +41,7 @@ export function initAcademy({notify,onBack}){
    for(const item of items){
     const card=document.createElement('section');card.className='academy-student';
     const heading=document.createElement('div');heading.className='academy-student-head';
-    const name=document.createElement('h3');name.textContent=item.name||'Alumno';const state=document.createElement('span');state.textContent=item.state;heading.append(name,state);
+    const name=document.createElement('h3');name.textContent=item.name&&item.name!=='Alumno sin nombre'?item.name:'Alumno · perfil pendiente de completar';const state=document.createElement('span');state.textContent=item.state;heading.append(name,state);
     const fields=document.createElement('div');fields.className='academy-fields';
     const status=document.createElement('select');for(const [value,label] of [['pending','Pendiente'],['active','Activo'],['paused','Pausado'],['ended','Finalizado']]){const o=document.createElement('option');o.value=value;o.textContent=label;status.append(o);}status.value=item.state;
     const plan=document.createElement('input');plan.placeholder='Plan de suscripción';plan.value=item.plan||'Sin plan';plan.maxLength=80;
