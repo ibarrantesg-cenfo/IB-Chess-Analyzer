@@ -530,3 +530,24 @@
 .prefs-enrollment strong{font-size:13px;overflow-wrap:anywhere}
 .prefs-enrollment :is(input,select){min-width:0;width:100%}
 @media(max-width:850px){.prefs-enrollment{grid-template-columns:1fr 1fr}.prefs-enrollment strong{grid-column:1/-1}}
+
+/* Teacher-only Academy workspace */
+#nav-academy[hidden],.academy-screen[hidden]{display:none!important}
+.academy-screen{min-height:65vh;padding:12px 0 35px}
+.academy-head{display:flex;justify-content:space-between;gap:18px;align-items:start;margin-bottom:19px}
+.academy-head h2{font-family:Outfit,sans-serif;font-size:30px;margin:8px 0}
+.academy-head p{color:#9eb6c4;font-size:13px}
+.academy-stats{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px;margin:15px 0 24px}
+.academy-stat,.academy-student{background:#152638;border:1px solid #344b5c;border-radius:12px;padding:17px}
+.academy-stat strong{display:block;color:#78dfb7;font-size:30px}.academy-stat span{font-size:12px;color:#9eb8c4}
+.academy-roster{display:grid;gap:12px}.academy-student-head{display:flex;align-items:center;justify-content:space-between;gap:10px}
+.academy-student h3{font-size:16px;margin:0}.academy-student-head span{color:#88d9b5;font-size:12px}
+.academy-fields{display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;margin:15px 0}
+.academy-fields label{display:grid;gap:6px;font-size:11px;color:#a3bacb}
+.academy-fields input,.academy-fields select{width:100%;min-width:0;border:1px solid #49657a;border-radius:8px;background:#0c1b2c;color:#e9f4f8;padding:11px}
+#academy-notice{font-size:12px;color:#a9c7cc;line-height:1.7}
+:root[data-theme="light"] :is(.academy-stat,.academy-student){background:white;color:#183447;border-color:#c5d7df}
+:root[data-theme="light"] .academy-stat strong{color:#15755a}
+:root[data-theme="light"] :is(.academy-head p,.academy-stat span,.academy-fields label,#academy-notice){color:#48677a}
+:root[data-theme="light"] .academy-fields :is(input,select){background:white;color:#19384a;border-color:#a3bdcb}
+@media(max-width:650px){.academy-fields{grid-template-columns:1fr}.academy-head{flex-wrap:wrap}.academy-stats{gap:6px}.academy-stat{padding:12px}}
