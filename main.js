@@ -77,12 +77,6 @@ document.querySelectorAll('.player-edit').forEach(button=>button.addEventListene
  try{chess.loadPgn(state.game.pgn,{strict:false});const headers={...chess.header(),[side]:name};chess.setHeader(side,name);state.game.pgn=chess.pgn();state.game.headers=headers;state.analysisCache.clear();render();await window.IB_STUDIO?.updatePlayerNames();notify('Nombres guardados en el estudio y en su biblioteca correspondiente.');}
  catch(e){notify('Error al editar el jugador: '+e.message,'err');}
 }));
-document.querySelector('#nav-reports').onclick=()=>{
- document.querySelector('#nav-review').click();
- const target=document.querySelector('.performance-panel, #performance-panel, .performance-section');
- if(target){window.IB_PERFORMANCE?.selectTournament?.();target.scrollIntoView({behavior:'smooth',block:'start'});}
- else notify('El rendimiento aparece después de analizar una partida.');
-};
 window.IB_STUDIO=initStudio(state,{render:()=>{render();window.IB_LIVE?.positionChanged(true);},renderPreview:()=>{render();window.IB_LIVE?.positionChanged();},notify,loadPGN:loadText,jump});
 window.IB_WORKSPACE=initWorkspace();
 window.IB_APPEARANCE=initBoardAppearance({refreshPieces:()=>{if(state.game){$('#board').innerHTML=boardHTML();window.IB_ARROWS?.positionChanged();}}});
@@ -95,3 +89,8 @@ window.IB_PERFORMANCE=initPerformance({state,notify,analyzeGame:analyze,jumpGame
 
 window.IB_LOAD_STUDY=(pgn,source)=>{loadText(pgn,source);document.querySelector('#nav-reports').click();window.IB_PERFORMANCE?.analyzeCurrentStudy?.();};
 window.IB_LIBRARY=initLibraryWorkspace({studio:window.IB_STUDIO,notify,onOpen:()=>{window.IB_WORKSPACE?.refresh();}});
+const navReview=document.querySelector('#nav-review'),navLibrary=document.querySelector('#nav-library'),navReports=document.querySelector('#nav-reports');
+navReview.onclick=()=>{window.IB_PERFORMANCE.hide();window.IB_LIBRARY.close();};
+navLibrary.onclick=()=>{window.IB_PERFORMANCE.hide();window.IB_LIBRARY.open();};
+navReports.onclick=()=>{window.IB_LIBRARY.close();window.IB_PERFORMANCE.show();navReview.classList.remove('active');navLibrary.classList.remove('active');};
+
