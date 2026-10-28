@@ -68,13 +68,13 @@ $('#first').onclick=()=>jump(0);$('#back').onclick=()=>jump(state.move-1);$('#ne
 const g=parsePGN(demo);state.games=g;chooseGame(0);$('#black-name').textContent=state.game.headers.Black||'Negras';$('#white-name').textContent=state.game.headers.White||'Blancas';
 const initialRender=render;render=function(){initialRender();$('#black-name').textContent=state.game?.headers.Black||'Negras';$('#white-name').textContent=state.game?.headers.White||'Blancas';const cp=state.evaluations[state.move]?.cp;$('#eval-fill').style.height=(cp==null?50:(50+Math.tanh(cp/430)*46))+'%';$('#board-eval-value').textContent=state.previewFen?'Variante':fmtEv(cp);$('#board-eval-note').textContent=state.previewFen?'Evaluación en el panel de variantes':cp==null?'Análisis pendiente':'Ventaja '+(Math.abs(cp)<30?'equilibrada':cp>0?'blancas':'negras');};render();
 
-document.querySelectorAll('.player-edit').forEach(button=>button.addEventListener('click',()=>{
+document.querySelectorAll('.player-edit').forEach(button=>button.addEventListener('click',async()=>{
  const side=button.dataset.side,old=state.game?.headers?.[side]||'';
  const next=window.prompt('Nombre del jugador ('+(side==='White'?'blancas':'negras')+')',old);
  if(next===null)return;const name=next.trim().slice(0,90);
  if(!name)return notify('El nombre no puede estar vacío.','err');
  const chess=new Chess();
- try{chess.loadPgn(state.game.pgn,{strict:false});const headers={...chess.header(),[side]:name};chess.setHeader(side,name);state.game.pgn=chess.pgn();state.game.headers=headers;state.analysisCache.clear();render();window.IB_STUDIO?.gameChanged();notify('Jugador actualizado. Guardá el estudio para conservar los cambios.');}
+ try{chess.loadPgn(state.game.pgn,{strict:false});const headers={...chess.header(),[side]:name};chess.setHeader(side,name);state.game.pgn=chess.pgn();state.game.headers=headers;state.analysisCache.clear();render();await window.IB_STUDIO?.updatePlayerNames();notify('Nombres guardados en el estudio y en su biblioteca correspondiente.');}
  catch(e){notify('Error al editar el jugador: '+e.message,'err');}
 }));
 document.querySelector('#nav-reports').onclick=()=>{
