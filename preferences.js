@@ -74,6 +74,6 @@ export function initPreferences(notify){
  el('prefs-change-password').onclick=run(async()=>{if(el('prefs-password').value.length<12)throw Error('Mínimo 12 caracteres.');await updateAccountPassword(el('prefs-password').value);notify('Contraseña actualizada.');el('prefs-password').value='';});
  el('prefs-logout').onclick=run(async()=>{await cloudLogout();notify('Sesión cerrada.');});
  el('prefs-reload-enrollments').onclick=()=>renderEnrollments();
- el('prefs-copy-invite').onclick=()=>{navigator.clipboard.writeText(location.origin+location.pathname).then(()=>notify('Enlace de acceso copiado.'));};
+ el('prefs-copy-invite').onclick=()=>{navigator.clipboard.writeText(location.origin+location.pathname+'?solicitar=1').then(()=>notify('Enlace para solicitar una cuenta copiado.'));};
  return {open:()=>{sheet.hidden=false;refresh();},close};
 }
