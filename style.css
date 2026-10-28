@@ -259,3 +259,13 @@
 .appearance-preview-piece.preview-black{color:#142233;-webkit-text-stroke:.5px #f1f0e8;text-shadow:0 1px 1px #0005}
 .appearance-preview-piece.preview-bold{-webkit-text-stroke:2px #162533}
 .appearance-preview-piece.preview-flat{text-shadow:none;-webkit-text-stroke:0}
+
+/* v2.7 — Academy accounts and teacher sharing */
+.teacher-account,.teacher-share{background:#142a32;border:1px solid #365e61;padding:13px;border-radius:10px;margin:12px 0}
+.teacher-account>strong{display:block;color:#a7efd2;font-size:13px;margin-bottom:8px}
+.teacher-account .studio-actions{align-items:center}
+.teacher-account small{color:#9ebcc7;font-size:11px;line-height:1.5}
+.teacher-share>label{display:grid;gap:7px;color:#b8d2e2;font-size:12px;margin-bottom:10px}
+.teacher-share select{background:#101d2e;border:1px solid #4c697c;border-radius:8px;color:#eaf7ff;padding:10px;width:100%}
+.teacher-share>#share-to-teacher{max-width:100%;white-space:normal}
+.teacher-share .studio-disclaimer{margin-top:9px}
