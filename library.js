@@ -10,7 +10,7 @@ export function initLibraryWorkspace({studio,notify,onOpen}){
  panel.innerHTML=`<header class="library-header"><div><div class="eyebrow">IB CHESS ACADEMY · BIBLIOTECA</div><h2>Mis partidas y estudios</h2><p>Buscá, abrí y exportá tus estudios locales o sincronizados. Los compartidos respetan los permisos de Supabase.</p></div><label class="btn primary library-upload">＋ Importar PGN a biblioteca<input type="file" id="library-import-file" accept=".pgn,.txt" multiple hidden/></label></header>
  <div class="library-toolbar"><label class="library-search-label">Buscar estudios<input id="library-query" type="search" placeholder="Jugador, título o alumno…"/></label><label>Ubicación<select id="library-origin"><option value="all">Todos</option><option value="local">Guardados en este navegador</option><option value="cloud">Guardados en la nube</option><option value="shared">Compartidos conmigo</option></select></label><button class="btn outline" id="library-refresh">↻ Actualizar</button></div>
  <div class="library-organize"><input id="library-folder-name" placeholder="Nombre del estudio"/><button class="btn outline" id="library-select-all">Seleccionar partidas sin estudio</button><button class="btn primary" id="library-group">Crear estudio con seleccionadas</button><small id="library-selection-count">0 partidas seleccionadas</small></div><div id="library-counts" class="library-counts"></div><div id="library-back" hidden></div><div id="library-warning" class="library-warning" hidden></div><div id="library-items" class="library-items" aria-live="polite"></div>
- <p class="library-footnote">Local: guardado solamente en este navegador. Nube: accesible con tu cuenta. Los estudios compartidos no se pueden sobrescribir desde la biblioteca; abrilos para corregirlos mediante una copia propia.</p>`;
+ <p class="library-footnote">Local: guardado solamente en este navegador. Nube: accesible con tu cuenta. Solo el propietario puede eliminar un estudio de la nube. Los estudios compartidos por alumnos son de lectura y se corrigen mediante una copia propia.</p>`;
  page.insertBefore(panel,page.querySelector('footer'));
  const $=id=>document.getElementById(id);
  let items=[],userId=null,busy=false,visible=false,openGroup=null;const checked=new Set();
@@ -53,6 +53,22 @@ export function initLibraryWorkspace({studio,notify,onOpen}){
        catch(e){notify('No se pudo eliminar: '+e.message,'err');}
      };
      actions.append(remove);
+   }
+   if(entry.source==='cloud'&&!entry.shared){
+     const removeCloud=make('button','btn outline library-delete','Eliminar de la nube');
+     removeCloud.onclick=async()=>{
+       const agreed=window.confirm('¿Eliminar definitivamente de Supabase el estudio «'+entry.title+'»? Se retirará también a las personas con quienes lo compartiste. Esta operación no se puede deshacer.');
+       if(!agreed)return;
+       try{
+         removeCloud.disabled=true;
+         const {cloudDeleteOwned}=await import('./cloud.js');
+         await cloudDeleteOwned(entry.id);
+         notify('Estudio eliminado de la nube.');
+         await refresh();
+       }catch(e){notify('No se pudo eliminar de la nube: '+e.message,'err');}
+       finally{removeCloud.disabled=false;}
+     };
+     actions.append(removeCloud);
    }
    wrap.append(actions);return wrap;
  };
