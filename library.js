@@ -51,9 +51,19 @@ export function initLibraryWorkspace({studio,notify,onOpen}){
      controls.append(first,prev,next,last,close);
      inner.append(heading,status,board,controls);
      if(entry.source==='local'){
-       const rename=make('button','btn primary','Renombrar esta partida');
-       rename.onclick=async()=>{const name=window.prompt('Nuevo nombre de la partida',entry.title);if(name===null)return;try{await studio.renameLibraryItem('local',entry.id,name);heading.textContent=name;await refresh();notify('Nombre actualizado.');}catch(e){notify(e.message,'err');}};
-       inner.append(rename);
+       const form=make('div','library-header-editor');
+       const fields=[['White','Blancas'],['WhiteTitle','Título blancas (GM, MI, MF, CM, etc.)'],['WhiteElo','Elo blancas'],['Black','Negras'],['BlackTitle','Título negras'],['BlackElo','Elo negras'],['Event','Evento'],['Round','Ronda']];
+       const inputs={};
+       for(const [key,label] of fields){const l=make('label','',label);const input=document.createElement('input');input.value=headers[key]||'';input.placeholder=label;l.append(input);form.append(l);inputs[key]=input;}
+       const resultLabel=make('label','','Resultado');const result=document.createElement('select');
+       for(const v of ['*','1-0','0-1','1/2-1/2']){const o=document.createElement('option');o.value=v;o.textContent=v;result.append(o);}
+       result.value=headers.Result||'*';resultLabel.append(result);form.append(resultLabel);
+       const save=make('button','btn primary','Guardar datos de partida');
+       save.onclick=async()=>{try{save.disabled=true;const changes={};for(const [key] of fields)changes[key]=inputs[key].value;changes.Result=result.value;
+        const updated=await studio.updateLibraryHeaders(entry.id,changes);heading.textContent=updated.name;await refresh();notify('Datos del PGN actualizados.');modal.remove();}
+        catch(e){notify(e.message,'err');}finally{save.disabled=false;}};
+       inner.append(form,save);
+
      }
      modal.append(inner);modal.onclick=e=>{if(e.target===modal)modal.remove();};
      document.body.append(modal);renderBoard();
