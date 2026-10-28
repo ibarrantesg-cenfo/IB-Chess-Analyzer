@@ -88,12 +88,12 @@ export function initPerformance({state,notify,analyzeGame,jumpGame,getAnalyses})
  left.append(box);
  const $=id=>document.getElementById(id);
  let selectedPlayer='',selectedEvent='',activeTab='game',batchCancelled=false,batching=false;
- const playerList=()=>[...new Set(state.games.flatMap(g=>[g.headers?.White,g.headers?.Black]).filter(Boolean))].sort((a,b)=>a.localeCompare(b));
+ const playerList=()=>{const count=new Map();for(const g of state.games)for(const name of [g.headers?.White,g.headers?.Black])if(name)count.set(name,(count.get(name)||0)+1);return [...count.keys()].sort((a,b)=>count.get(b)-count.get(a)||a.localeCompare(b));};
  function filters(restore=true){
   const previous=selectedPlayer;
   const players=playerList();
   if(!restore||!players.includes(selectedPlayer)){
-    const current=state.game?.headers||{};selectedPlayer=players.includes(current.White)?current.White:players[0]||'';
+    const current=state.game?.headers||{};selectedPlayer=players[0]||'';
   }
   $('perf-player').innerHTML=players.map(p=>'<option value="'+esc(p)+'">'+esc(p)+'</option>').join('');
   $('perf-player').value=selectedPlayer;
@@ -165,5 +165,14 @@ export function initPerformance({state,notify,analyzeGame,jumpGame,getAnalyses})
   finally{batching=false;$('perf-analyze-all').disabled=false;if(!batchCancelled&&prior>=0)jumpGame(prior);render();}
  };
  filters(false);render();
- return {render,gameChanged:render,analysisFinished:render};
+ return {render,gameChanged:render,analysisFinished:render,
+ selectTournament(){activeTab='tournament';box.querySelectorAll('[data-perf-tab]').forEach(x=>x.classList.toggle('active',x.dataset.perfTab==='tournament'));$('perf-game').hidden=true;$('perf-tournament').hidden=false;filters(false);renderTournament();box.scrollIntoView({behavior:'smooth',block:'start'});},
+ async analyzeCurrentStudy(){
+  this.selectTournament();
+  if(batching)return;
+  const event=selectedEvent,player=selectedPlayer;
+  if(!event||!player)return notify('No encontramos un jugador y evento válidos para analizar.','err');
+  $('perf-analyze-all').click();
+ }
+ };
 }
