@@ -189,6 +189,33 @@ el('studio-export').onclick=exportStudy;
  tree=initVariationBoard(selected,{render:callbacks.renderPreview,notify,isEditing:()=>paint,save:v=>{ensure();const i=active.variations.findIndex(x=>x.id===v.id);if(i>=0)active.variations[i]=v;else active.variations.push(v);change();renderNotes();}});
  refreshLibrary();renderNotes();
  return {
+async importLibraryPgn(text,studentLabel='Sin alumno'){
+ if(typeof text!=='string'||text.length>15_000_000)throw Error('Archivo PGN demasiado grande (máximo 15 MB).');
+ const clean=text.replace(/\r/g,'');
+ const starts=[...clean.matchAll(/^\[Event\s+"/gm)].map(match=>match.index);
+ const segments=starts.length>1?starts.map((at,i)=>clean.slice(at,starts[i+1]??clean.length)):[clean];
+ if(segments.length>500)throw Error('Por seguridad, importá un máximo de 500 partidas por archivo.');
+ let inserted=0,invalid=0;
+ for(const segment of segments){
+  try{
+   const game=new Chess();game.loadPgn(segment,{strict:false});
+   if(!game.history().length){invalid++;continue;}
+   const header=game.header(),name=[header.White||'Blancas',header.Black||'Negras'].join(' – ');
+   const now=new Date().toISOString();
+   await put({id:crypto.randomUUID(),name,student:String(studentLabel||'Sin alumno').slice(0,100),pgn:game.pgn(),comments:{},variations:[],diagrams:[],created:now,updated:now});
+   inserted++;
+  }catch{invalid++;}
+ }
+ await refreshLibrary();
+ return {inserted,invalid};
+},
+async deleteLibraryItem(source,id){
+ if(source==='local'){
+  await del(id);if(active?.id===id)active=null;await refreshLibrary();return;
+ }
+ if(source==='cloud')throw Error('Eliminación en la nube deshabilitada para proteger los estudios compartidos.');
+ throw Error('Origen desconocido.');
+},
 async listLibraryItems(){
  const locals=await getAll();
  let remote=[],error='';
