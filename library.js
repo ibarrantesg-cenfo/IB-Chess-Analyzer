@@ -35,7 +35,7 @@ export function initLibraryWorkspace({studio,notify,onOpen}){
      const close=make('button','btn outline','Cerrar');
      close.onclick=()=>modal.remove();
      const first=make('button','btn outline','⏮'),prev=make('button','btn outline','◀'),next=make('button','btn outline','▶'),last=make('button','btn outline','⏭');
-     let ply=0;const pieces={wk:'♔',wq:'♕',wr:'♖',wb:'♗',wn:'♘',wp:'♙',bk:'♚',bq:'♛',br:'♜',bb:'♝',bn:'♞',bp:'♟'};
+     let ply=0;let orientation=localStorage.getItem('ib-board-orientation')==='black'?'black':'white';const glyphs={wk:'♔',wq:'♕',wr:'♖',wb:'♗',wn:'♘',wp:'♙',bk:'♚',bq:'♛',br:'♜',bb:'♝',bn:'♞',bp:'♟'};
      const renderBoard=()=>{
        const c=new Chess();
        for(let i=0;i<ply;i++)c.move(history[i]);
