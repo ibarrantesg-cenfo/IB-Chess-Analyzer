@@ -18,6 +18,9 @@ export async function cloudReviewCopy(source, originalOwnerId){
  const session=await getCloudSession();if(!session)throw Error('Primero iniciá sesión.');
  if(!source?.pgn)throw Error('No hay partida para corregir.');
  if(originalOwnerId===session.user.id)throw Error('El estudio ya es tuyo. Guardá los cambios normalmente.');
+ const {data:teacher,error:roleError}=await api.from('ib_teachers').select('teacher_id').eq('teacher_id',session.user.id).maybeSingle();
+ if(roleError)throw roleError;
+ if(!teacher)throw Error('Solo una cuenta de profesor habilitada puede enviar correcciones.');
  // The review is a new record owned by the coach, never a write into the student's original.
  const copy={...structuredClone(source),id:crypto.randomUUID(),name:'Corrección · '+String(source.name||'Estudio').slice(0,130),reviewOf:source.id,created:new Date().toISOString(),updated:new Date().toISOString()};
  await cloudSave(copy);
