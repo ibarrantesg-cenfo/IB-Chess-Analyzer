@@ -349,3 +349,7 @@
 .sidebar .brand b{font-size:19px;white-space:nowrap;letter-spacing:0}
 .sidebar .brand small{font-size:9px;letter-spacing:2.4px}
 @media(max-width:700px){.sidebar .brand-icon{width:48px;height:48px;flex-basis:48px}.sidebar .brand b{font-size:16px}}
+
+/* Brand fix: original reference image includes its own IB CHESS wordmark */
+.sidebar .brand.brand-approved{display:flex;align-items:center;justify-content:center;padding:0 8px 32px;min-height:148px;max-width:100%;background:transparent}
+.sidebar .brand-approved-image{display:block;width:108px;height:128px;object-fit:contain;image-rendering:auto;filter:none;transform:none;border-radius:0}
