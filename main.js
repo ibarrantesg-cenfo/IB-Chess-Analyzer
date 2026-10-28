@@ -101,3 +101,5 @@ navReports.onclick=()=>{window.IB_LIBRARY.close();window.IB_PERFORMANCE.show();n
 
 window.IB_PREFERENCES=initPreferences(notify);
 document.querySelector('#nav-preferences').onclick=()=>window.IB_PREFERENCES.open();
+
+window.IB_SET_BOARD_ORIENTATION=(color)=>{state.orientation=color==='black'?'black':'white';render();window.IB_ARROWS?.positionChanged();};
