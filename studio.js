@@ -189,25 +189,46 @@ el('studio-export').onclick=exportStudy;
  tree=initVariationBoard(selected,{render:callbacks.renderPreview,notify,isEditing:()=>paint,save:v=>{ensure();const i=active.variations.findIndex(x=>x.id===v.id);if(i>=0)active.variations[i]=v;else active.variations.push(v);change();renderNotes();}});
  refreshLibrary();renderNotes();
  return {
-async importLibraryPgn(text,studentLabel='Sin alumno'){
+async importLibraryPgn(text,studentLabel='Sin alumno',collectionName='Estudio importado'){
  if(typeof text!=='string'||text.length>15_000_000)throw Error('Archivo PGN demasiado grande (máximo 15 MB).');
  const clean=text.replace(/\r/g,'');
  const starts=[...clean.matchAll(/^\[Event\s+"/gm)].map(match=>match.index);
  const segments=starts.length>1?starts.map((at,i)=>clean.slice(at,starts[i+1]??clean.length)):[clean];
  if(segments.length>500)throw Error('Por seguridad, importá un máximo de 500 partidas por archivo.');
- let inserted=0,invalid=0;
+ let inserted=0,invalid=0;const collectionId=crypto.randomUUID();
  for(const segment of segments){
   try{
    const game=new Chess();game.loadPgn(segment,{strict:false});
    if(!game.history().length){invalid++;continue;}
    const header=game.header(),name=[header.White||'Blancas',header.Black||'Negras'].join(' – ');
    const now=new Date().toISOString();
-   await put({id:crypto.randomUUID(),name,student:String(studentLabel||'Sin alumno').slice(0,100),pgn:game.pgn(),comments:{},variations:[],diagrams:[],created:now,updated:now});
+   await put({id:crypto.randomUUID(),collectionId,collectionName:String(collectionName).slice(0,120),name,student:String(studentLabel||'Sin alumno').slice(0,100),pgn:game.pgn(),comments:{},variations:[],diagrams:[],created:now,updated:now});
    inserted++;
   }catch{invalid++;}
  }
  await refreshLibrary();
  return {inserted,invalid};
+},
+async organizeLibraryItems(ids,name){
+ const label=String(name||'').trim();
+ if(!label||label.length>120)throw Error('Ingresá un nombre para el estudio (máximo 120 caracteres).');
+ const group=crypto.randomUUID();let changed=0;
+ for(const id of ids){const entry=await transaction('readonly',store=>store.get(id));if(!entry)continue;
+ entry.collectionId=group;entry.collectionName=label;entry.updated=new Date().toISOString();await put(entry);changed++;}
+ await refreshLibrary();return changed;
+},
+async renameLibraryItem(source,id,newName){
+ const label=String(newName||'').trim();if(!label||label.length>130)throw Error('Nombre inválido.');
+ if(source!=='local')throw Error('Edición de estudios en nube pendiente: abrí tu copia en el editor.');
+ const entry=await transaction('readonly',store=>store.get(id));if(!entry)throw Error('Partida no encontrada.');
+ entry.name=label;entry.updated=new Date().toISOString();await put(entry);
+ if(active?.id===id){active.name=label;renderNotes();}
+ await refreshLibrary();
+},
+async renameLibraryCollection(ids,name){
+ const label=String(name||'').trim();if(!label||label.length>120)throw Error('Nombre inválido.');
+ for(const id of ids){const entry=await transaction('readonly',store=>store.get(id));if(!entry)continue;entry.collectionName=label;await put(entry);}
+ await refreshLibrary();
 },
 async deleteLibraryItem(source,id){
  if(source==='local'){
