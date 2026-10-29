@@ -190,3 +190,9 @@ export async function deliverAcademicAssignment(assignmentId,notes,pgn){
 export async function reviewAcademicSubmission(assignmentId,studentId,feedback){
  const {error}=await api.rpc('ib_review_submission',{p_assignment:assignmentId,p_student:studentId,p_feedback:feedback});if(error)throw error;
 }
+
+export async function academicSharedStudies(studentId){
+ const session=await getCloudSession();if(!session)throw Error('Iniciá sesión.');
+ const {data,error}=await api.from('ib_studies').select('id,owner_id,title,student_label,payload,updated_at').eq('owner_id',studentId).order('updated_at',{ascending:false}).limit(100);
+ if(error)throw error;return data||[];
+}
