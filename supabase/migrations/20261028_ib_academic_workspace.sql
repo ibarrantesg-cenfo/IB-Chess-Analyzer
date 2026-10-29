@@ -11,6 +11,7 @@ create table if not exists public.ib_student_games (
  white_name text not null default '',
  black_name text not null default '',
  result text not null default '*',
+ student_side text not null default 'w' check(student_side in ('w','b')),
  review jsonb not null default '{}'::jsonb,
  created_at timestamptz not null default now()
 );
