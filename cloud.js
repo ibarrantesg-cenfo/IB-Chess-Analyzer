@@ -156,3 +156,37 @@ export async function completeApprovedStudentOnboarding(){
  if(error){if(error.code==='PGRST202'||error.code==='42883')return 'setup_required';throw error;}
  return data;
 }
+
+/* Academic portfolio and assignments. All access is additionally enforced in Supabase RLS. */
+export async function academicGames(studentId){
+ const session=await getCloudSession();if(!session)throw Error('Iniciá sesión.');
+ const query=api.from('ib_student_games').select('id,student_id,title,event_name,played_at,white_name,black_name,result,pgn,review,created_at').order('created_at',{ascending:false}).limit(250);
+ const {data,error}=await query.eq('student_id',studentId||session.user.id);if(error)throw error;return data||[];
+}
+export async function submitAcademicGame(item){
+ const session=await getCloudSession();if(!session)throw Error('Iniciá sesión.');
+ const payload={student_id:session.user.id,title:String(item.title||'Partida').slice(0,180),event_name:String(item.event_name||'Sin torneo').slice(0,160),played_at:item.played_at||null,pgn:String(item.pgn||''),white_name:item.white_name||'',black_name:item.black_name||'',result:item.result||'*',review:item.review||{}};
+ const {error}=await api.from('ib_student_games').insert(payload);if(error)throw error;
+}
+export async function academicAssignments(studentId){
+ const session=await getCloudSession();if(!session)throw Error('Iniciá sesión.');
+ const {data,error}=await api.from('ib_assignments').select('id,teacher_id,student_id,title,instructions,kind,reference_pgn,due_at,created_at').eq('student_id',studentId||session.user.id).order('created_at',{ascending:false});if(error)throw error;return data||[];
+}
+export async function createAcademicAssignment(item){
+ const session=await getCloudSession(),account=await accountDetails();if(!account?.isTeacher||!session)throw Error('Solo profesores.');
+ const payload={teacher_id:session.user.id,student_id:item.student_id,title:item.title,instructions:item.instructions||'',kind:item.kind||'analysis',reference_pgn:item.reference_pgn||'',due_at:item.due_at||null};
+ const {error}=await api.from('ib_assignments').insert(payload);if(error)throw error;
+}
+export async function academicSubmissions(assignmentIds){
+ if(!assignmentIds?.length)return [];
+ const {data,error}=await api.from('ib_assignment_submissions').select('id,assignment_id,student_id,notes,submitted_pgn,feedback,reviewed_at,submitted_at').in('assignment_id',assignmentIds);
+ if(error)throw error;return data||[];
+}
+export async function deliverAcademicAssignment(assignmentId,notes,pgn){
+ const session=await getCloudSession();if(!session)throw Error('Iniciá sesión.');
+ const {error}=await api.from('ib_assignment_submissions').upsert({assignment_id:assignmentId,student_id:session.user.id,notes:String(notes||'').slice(0,10000),submitted_pgn:String(pgn||'').slice(0,500000),submitted_at:new Date().toISOString()},{onConflict:'assignment_id,student_id'});
+ if(error)throw error;
+}
+export async function reviewAcademicSubmission(assignmentId,studentId,feedback){
+ const {error}=await api.rpc('ib_review_submission',{p_assignment:assignmentId,p_student:studentId,p_feedback:feedback});if(error)throw error;
+}
