@@ -1,3 +1,4 @@
+import {appendTeacherAcademicTools} from './academic-hub.js';
 import {accountDetails,myEnrollments,setStudentEnrollment,cloudAvailable,getAccessRequests,reviewAccessRequest} from './cloud.js';
 export function initAcademy({notify,onBack}){
  const page=document.querySelector('main.main'),layout=page.querySelector('.layout'),toolbar=page.querySelector('.toolbar'),tools=page.querySelector('.workspace-tools'),screen=document.createElement('section');
@@ -77,7 +78,7 @@ export function initAcademy({notify,onBack}){
     for(const [label,input] of [['Acceso',status],['Plan',plan],['Vencimiento',expiry]]){const wrapper=document.createElement('label');wrapper.textContent=label;wrapper.append(input);fields.append(wrapper);}
     const save=document.createElement('button');save.className='btn primary';save.textContent='Guardar cambios';
     save.onclick=async()=>{save.disabled=true;try{await setStudentEnrollment(item.id,status.value,plan.value,expiry.value?new Date(expiry.value+'T23:59:59Z').toISOString():null);notify('Alumno actualizado.');await refresh();}catch(e){notify(e.message,'err');}finally{save.disabled=false;}};
-    card.append(heading,fields,save);$('academy-roster').append(card);
+    card.append(heading,fields,save);appendTeacherAcademicTools(card,item,notify);$('academy-roster').append(card);
    }
   }catch(e){$('academy-notice').textContent='No se pudo cargar la academia: '+e.message;}
  };
