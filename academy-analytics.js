@@ -127,7 +127,8 @@ export function initAcademyAnalytics({notify}){
   if(!visible)return;
   const rows=filtered(),events=groupEvents(rows),analyzed=rows.filter(g=>g.technical),rated=rows.filter(g=>g.score!==null&&g.opponentElo!==null);
   const precision=avg(analyzed.map(g=>g.technical.quality)),acpl=avg(analyzed.map(g=>g.technical.acpl));
-  const tpr=competitivePerformance(rows);
+  const tpr=filters.student!=='all'?competitivePerformance(rows):null;
+  const tournamentPerformances=events.filter(e=>e.tpr.value!==null).map(e=>e.tpr.value),meanPerformance=avg(tournamentPerformances);
   notice.textContent=(filters.days==='all'?'Todo el historial':'Período: últimos '+filters.days+' días')+' · '+rows.length+' partidas · '+events.length+' torneos de '+new Set(rows.map(g=>g.student_id)).size+' alumnos'+(truncated?' · Límite de 1000 registros alcanzado; acotá los filtros para un informe completo.':'')+'.';
   cards.replaceChildren(
    kpi('Alumnos con partidas',String(new Set(rows.map(g=>g.student_id)).size),students.length+' vinculados'),
@@ -135,7 +136,7 @@ export function initAcademyAnalytics({notify}){
    kpi('Partidas analizadas',analyzed.length+'/'+rows.length,'Solo análisis completos'),
    kpi('Precisión media',percent(precision),'Índice técnico propio'),
    kpi('ACPL medio',Number.isFinite(acpl)?fmt(acpl)+' cp':'—','Jugador, no ambos colores'),
-   kpi('Performance global',tpr.value!==null?String(tpr.value):'—',tpr.rated+' partidas Elo válidas')
+   kpi(filters.student==='all'?'Media performance torneos':'Performance del alumno',filters.student==='all'?(meanPerformance!==null?String(Math.round(meanPerformance)):'—'):(tpr.value!==null?String(tpr.value):'—'),filters.student==='all'?tournamentPerformances.length+' torneos con TPR válido':tpr.rated+' partidas Elo válidas')
   );
   chartArea.replaceChildren();
   const chHead=el('div','academy-analytics-section-title');chHead.append(el('h3','','Evolución por torneo'),el('small','','Filtrá un alumno para una tendencia individual más útil.'));chartArea.append(chHead);
