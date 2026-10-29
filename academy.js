@@ -3,7 +3,7 @@ import {accountDetails,myEnrollments,setStudentEnrollment,cloudAvailable,getAcce
 export function initAcademy({notify,onBack}){
  const page=document.querySelector('main.main'),layout=page.querySelector('.layout'),toolbar=page.querySelector('.toolbar'),tools=page.querySelector('.workspace-tools'),screen=document.createElement('section');
  screen.className='academy-screen';screen.hidden=true;
- screen.innerHTML='<header class="academy-head"><div><div class="eyebrow">IB CHESS ACADEMY · ADMINISTRACIÓN</div><h2>Academia · Profe Ian</h2><p>Alumnos, solicitudes, planes y vigencias en un espacio independiente.</p></div><button class="btn outline" id="academy-refresh">↻ Actualizar</button></header><div id="academy-notice" role="status"></div><div class="academy-stats" id="academy-stats"></div><h3>Solicitudes pendientes</h3><div class="academy-roster" id="academy-requests"></div><details class="academy-history" id="academy-history"><summary><span>Historial de solicitudes</span><span id="academy-history-count">0 registros</span></summary><div class="academy-history-body" id="academy-history-list"></div></details><h3>Alumnos vinculados</h3><div class="academy-roster" id="academy-roster"></div>';
+ screen.innerHTML='<header class="academy-head"><div><div class="eyebrow">IB CHESS ACADEMY · ADMINISTRACIÓN</div><h2>Academia · Profe Ian</h2><p>Alumnos, solicitudes, planes y vigencias en un espacio independiente.</p></div><button class="btn outline" id="academy-refresh">↻ Actualizar</button></header><div id="academy-notice" role="status"></div><div class="academy-stats" id="academy-stats"></div><section class="academy-tracking"><div class="academy-tracking-heading"><div><div class="eyebrow">CENTRO DE SEGUIMIENTO</div><h3>Rendimiento de alumnos</h3><p>Consultá la precisión, el performance por torneo y las tareas desde la ficha de cada estudiante.</p></div></div><div id="academy-tracking-students" class="academy-tracking-students"></div></section><h3>Solicitudes pendientes</h3><div class="academy-roster" id="academy-requests"></div><details class="academy-history" id="academy-history"><summary><span>Historial de solicitudes</span><span id="academy-history-count">0 registros</span></summary><div class="academy-history-body" id="academy-history-list"></div></details><h3>Alumnos vinculados</h3><div class="academy-roster" id="academy-roster"></div>';
  page.insertBefore(screen,page.querySelector('footer'));
  const $=id=>screen.querySelector('#'+id);
  let active=false;
@@ -65,6 +65,15 @@ export function initAcademy({notify,onBack}){
    $('academy-notice').textContent='Las solicitudes y las cuentas vinculadas se administran por separado. Nunca se muestran contraseñas.';
    $('academy-stats').replaceChildren();
    for(const [value,label] of [[total,'Alumnos'],[activeCount,'Activos'],[pending,'Pendientes']]){const b=document.createElement('div');b.className='academy-stat';const n=document.createElement('strong');n.textContent=value;const t=document.createElement('span');t.textContent=label;b.append(n,t);$('academy-stats').append(b);}
+   const tracking=$('academy-tracking-students');tracking.replaceChildren();
+   if(!items.length){const empty=document.createElement('p');empty.textContent='Los alumnos vinculados aparecerán aquí.';tracking.append(empty);}
+   for(const item of items){
+    const b=document.createElement('button');b.type='button';b.className='academy-tracking-student';
+    const name=document.createElement('strong');name.textContent=item.name||'Alumno sin nombre';
+    const status=document.createElement('small');status.textContent=item.state==='active'?'Cuenta activa · Abrir seguimiento':'Cuenta '+item.state+' · Ver historial';
+    b.append(name,status);b.onclick=()=>{const target=document.querySelector('[data-academic-student="'+CSS.escape(item.student_id)+'"]');if(target){target.scrollIntoView({behavior:'smooth',block:'center'});const details=target.querySelector('.academic-teacher-panel');if(details)details.open=true;}};
+    tracking.append(b);
+   }
    $('academy-roster').replaceChildren();
    if(!items.length){const p=document.createElement('p');p.textContent='Todavía no hay alumnos vinculados. Compartí el enlace de registro para recibir solicitudes.';$('academy-roster').append(p);}
    for(const item of items){
@@ -78,7 +87,7 @@ export function initAcademy({notify,onBack}){
     for(const [label,input] of [['Acceso',status],['Plan',plan],['Vencimiento',expiry]]){const wrapper=document.createElement('label');wrapper.textContent=label;wrapper.append(input);fields.append(wrapper);}
     const save=document.createElement('button');save.className='btn primary';save.textContent='Guardar cambios';
     save.onclick=async()=>{save.disabled=true;try{await setStudentEnrollment(item.id,status.value,plan.value,expiry.value?new Date(expiry.value+'T23:59:59Z').toISOString():null);notify('Alumno actualizado.');await refresh();}catch(e){notify(e.message,'err');}finally{save.disabled=false;}};
-    card.append(heading,fields,save);appendTeacherAcademicTools(card,item,notify);$('academy-roster').append(card);
+    card.dataset.academicStudent=item.student_id;card.append(heading,fields,save);appendTeacherAcademicTools(card,item,notify);$('academy-roster').append(card);
    }
   }catch(e){$('academy-notice').textContent='No se pudo cargar la academia: '+e.message;}
  };
