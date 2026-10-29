@@ -12,6 +12,7 @@ export function initLibraryWorkspace({studio,notify,onOpen}){
  const toolbar=page.querySelector('.toolbar'),tools=page.querySelector('.workspace-tools');
  const panel=document.createElement('section');panel.className='library-workspace';panel.hidden=true;
  panel.innerHTML=`<header class="library-header"><div><div class="eyebrow">IB CHESS ACADEMY · BIBLIOTECA</div><h2>Mis partidas y estudios</h2><p>Buscá, abrí y exportá tus estudios locales o sincronizados. Los compartidos respetan los permisos de Supabase.</p></div><label class="btn primary library-upload">＋ Importar PGN a biblioteca<input type="file" id="library-import-file" accept=".pgn,.txt" multiple hidden/></label></header>
+ <details class="library-paste-box" id="library-paste-box"><summary><span>⌁ Pegar PGN de estudio o partidas</span><small>Importar texto copiado de Lichess, Chess.com u otros PGN</small></summary><div class="library-paste-body"><label for="library-paste-name">Nombre del estudio</label><input id="library-paste-name" type="text" maxlength="120" placeholder="Ej. JUNCOS 2026, Repertorio Najdorf..."/><label for="library-paste-text">Contenido PGN</label><textarea id="library-paste-text" rows="8" spellcheck="false" placeholder='[Event "Mi torneo"]&#10;[White "Blancas"]&#10;[Black "Negras"]&#10;&#10;1. e4 e5 2. Nf3 Nc6 ...'></textarea><div class="library-paste-actions"><button type="button" class="btn primary" id="library-paste-import">Guardar en mi biblioteca</button><small id="library-paste-note" role="status">Varias partidas se organizarán en un único estudio. Se guarda primero en este navegador.</small></div></div></details>
  <div class="library-toolbar"><label class="library-search-label">Buscar estudios<input id="library-query" type="search" placeholder="Jugador, título o alumno…"/></label><label>Ubicación<select id="library-origin"><option value="all">Todos</option><option value="local">Guardados en este navegador</option><option value="cloud">Guardados en la nube</option><option value="shared">Compartidos conmigo</option></select></label><button class="btn outline" id="library-refresh">↻ Actualizar</button><button class="btn primary" id="library-sync">☁ Respaldar estudios en mi cuenta</button></div>
  <div class="library-organize"><input id="library-folder-name" placeholder="Nombre del estudio"/><button class="btn outline" id="library-select-all">Seleccionar partidas sin estudio</button><button class="btn primary" id="library-group">Crear estudio con seleccionadas</button><small id="library-selection-count">0 partidas seleccionadas</small></div><div id="library-counts" class="library-counts"></div><div id="library-back" hidden></div><div id="library-warning" class="library-warning" hidden></div><div id="library-items" class="library-items" aria-live="polite"></div>
  <p class="library-footnote">Local: guardado solamente en este navegador. Nube: accesible con tu cuenta. Solo el propietario puede eliminar un estudio de la nube. Los estudios compartidos por alumnos son de lectura y se corrigen mediante una copia propia.</p>`;
@@ -290,6 +291,21 @@ export function initLibraryWorkspace({studio,notify,onOpen}){
  };
  $('library-query').oninput=render;
  $('library-origin').onchange=render;
+ $('library-paste-import').onclick=async()=>{
+  const button=$('library-paste-import'),text=$('library-paste-text').value.trim(),name=$('library-paste-name').value.trim()||'Estudio PGN pegado',note=$('library-paste-note');
+  if(!text){note.textContent='Pegá primero el contenido PGN.';return;}
+  button.disabled=true;note.textContent='Comprobando PGN y guardando…';
+  try{
+   const result=await studio.importLibraryPgn(text,'Sin alumno',name);
+   if(!result.inserted){note.textContent='No se encontraron partidas válidas. Revisá el formato PGN.';notify('No se guardaron partidas.','err');return;}
+   await refresh();
+   note.textContent=result.inserted+' partida(s) guardadas en «'+name+'»'+(result.invalid?' · '+result.invalid+' omitida(s)':'')+'.';
+   notify('Estudio creado: '+result.inserted+' partida(s).');
+   $('library-paste-text').value='';
+   $('library-paste-box').open=false;
+  }catch(err){note.textContent='Error: '+err.message;notify(err.message,'err');}
+  finally{button.disabled=false;}
+ };
  $('library-import-file').onchange=async e=>{
    const files=[...e.target.files||[]];e.target.value='';
    if(!files.length)return;
