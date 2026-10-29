@@ -667,3 +667,33 @@
 
 .academic-alert{border:1px solid #90723a;background:#3c321e;color:#f0d5a0;border-radius:9px;padding:11px 13px;font-size:12px;margin:13px 0}
 :root[data-theme="light"] .academic-alert{background:#fff3d8;color:#75500f;border-color:#dfbd79}
+
+/* Coach dashboard navigation and performance KPIs */
+.academy-tracking{border:1px solid #365d5e;border-radius:13px;background:linear-gradient(115deg,#13312e,#152438);padding:17px 19px;margin:18px 0 25px}
+.academy-tracking-heading h3{font-size:18px;color:#d7fae9;margin:5px 0}
+.academy-tracking-heading p{font-size:12px;color:#a4bfca;margin:4px 0 14px}
+.academy-tracking-students{display:flex;flex-wrap:wrap;gap:9px}
+.academy-tracking-student{display:flex;flex-direction:column;align-items:flex-start;gap:6px;min-width:190px;cursor:pointer;border:1px solid #477365;background:#1c3a3d;color:#e2f6f1;border-radius:9px;padding:11px 13px}
+.academy-tracking-student:hover{border-color:#78dab7}
+.academy-tracking-student strong{font-size:13px}.academy-tracking-student small{font-size:10px;color:#b2cbd2}
+.academic-performance{margin:12px 0}
+.academic-performance-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:9px}
+.academic-performance-tile{display:flex;flex-direction:column;gap:8px;padding:12px;background:#0d2030;border:1px solid #345264;border-radius:9px;min-width:0}
+.academic-performance-tile small{font-size:10px;color:#a5bbc9}
+.academic-performance-tile strong{font-size:20px;color:#80e0b9;overflow-wrap:anywhere}
+.academic-performance-note{color:#9caebb;font-size:10px;line-height:1.5}
+.library-paste-box{border:1px solid #355a5a;background:#142c32;border-radius:11px;margin:15px 0;padding:0}
+.library-paste-box summary{display:flex;gap:10px;flex-wrap:wrap;align-items:center;justify-content:space-between;cursor:pointer;padding:14px 16px;color:#b6f0da;font-size:13px;font-weight:700}
+.library-paste-box summary small{font-size:10px;color:#a2bcc6;font-weight:400}
+.library-paste-body{padding:0 15px 15px;display:grid;gap:7px}
+.library-paste-body label{font-size:11px;color:#a9c4ca}
+.library-paste-body input,.library-paste-body textarea{width:100%;padding:10px 12px;border-radius:8px;background:#0b1b2b;border:1px solid #496878;color:#eaf6f2;font:12px/1.5 ui-monospace,Consolas,monospace}
+.library-paste-body textarea{resize:vertical;min-height:120px}
+.library-paste-actions{display:flex;gap:11px;flex-wrap:wrap;align-items:center}
+.library-paste-actions small{font-size:10px;color:#9fb9c1}
+:root[data-theme="light"] :is(.academy-tracking,.library-paste-box){background:#edf7f2;color:#153d3b;border-color:#b3d2c5}
+:root[data-theme="light"] .academy-tracking-student{background:#dff3eb;color:#143e34}
+:root[data-theme="light"] .academic-performance-tile{background:#f0f7f6;border-color:#b9d2d3}
+:root[data-theme="light"] .academic-performance-tile strong{color:#176c54}
+:root[data-theme="light"] .library-paste-body :is(input,textarea){background:#fff;color:#173a43;border-color:#a4c6c9}
+@media(max-width:760px){.academic-performance-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
