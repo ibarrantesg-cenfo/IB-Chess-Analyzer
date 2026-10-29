@@ -664,3 +664,6 @@
 :root[data-theme="light"] .academic-field :is(input,textarea,select),:root[data-theme="light"] .academic-subsection select{background:#f7fbfc;color:#1a3949;border-color:#a6c0cb}
 :root[data-theme="light"] :is(.academic-panel>summary,.academic-teacher-panel>summary,.academic-event summary,.academic-task summary,.academic-subsection h4){color:#16684f}
 @media(max-width:700px){.academic-summary{grid-template-columns:repeat(2,minmax(0,1fr))}}
+
+.academic-alert{border:1px solid #90723a;background:#3c321e;color:#f0d5a0;border-radius:9px;padding:11px 13px;font-size:12px;margin:13px 0}
+:root[data-theme="light"] .academic-alert{background:#fff3d8;color:#75500f;border-color:#dfbd79}
