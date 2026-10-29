@@ -577,3 +577,19 @@
 :root[data-theme="light"] .academy-history-info small,:root[data-theme="light"] .academy-muted{color:#526c7b}
 :root[data-theme="light"] .academy-history-status.approved{color:#17624e;background:#dff6ec}
 :root[data-theme="light"] .academy-request-actions select{background:#fff;color:#183447;border-color:#a3bdcb}
+
+/* Game Review: compact, per-side quality and classifications above/below the board.
+   Separate from #board so square dimensions, annotations, arrows and coordinates remain unchanged. */
+.board-panel .player-metrics{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;margin:0 0 10px;padding:9px 12px;border:1px solid #31475a;border-radius:9px;background:#17283a}
+.board-panel .board-row+.player{margin-top:12px}
+.board-panel .player+.player-metrics{margin-top:0}
+.board-panel .player-accuracy{display:flex;align-items:baseline;gap:8px;flex-wrap:wrap;color:#b6cbd8;font-size:11px}
+.board-panel .player-accuracy strong{color:#85e7bf;font-size:18px}
+.board-panel .player-accuracy small{color:#91a9b8;font-size:10px}
+.board-panel .player-counts{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+.board-panel .player-counts span{color:#b7c9d6;font-size:11px;white-space:nowrap}
+.board-panel .player-counts b{color:#79d8b4}
+:root[data-theme="light"] .board-panel .player-metrics{background:#eff7f4;border-color:#b8cfc8}
+:root[data-theme="light"] .board-panel .player-accuracy,:root[data-theme="light"] .board-panel .player-counts span{color:#345769}
+:root[data-theme="light"] .board-panel .player-accuracy strong,:root[data-theme="light"] .board-panel .player-counts b{color:#147457}
+@media(max-width:760px){.board-panel .player-metrics{padding:8px;gap:5px}.board-panel .player-counts{gap:8px}}
