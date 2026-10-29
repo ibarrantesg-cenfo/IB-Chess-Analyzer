@@ -1,5 +1,5 @@
 import {Chess} from 'chess.js';
-import {accountDetails,getCloudSession,myEnrollments,academicGames,submitAcademicGame,academicAssignments,createAcademicAssignment,academicSubmissions,deliverAcademicAssignment,reviewAcademicSubmission} from './cloud.js';
+import {accountDetails,getCloudSession,myEnrollments,academicGames,submitAcademicGame,academicAssignments,createAcademicAssignment,academicSubmissions,deliverAcademicAssignment,reviewAcademicSubmission,academicSharedStudies} from './cloud.js';
 import {gameMetrics} from './performance.js';
 
 const make=(tag,text='',className='')=>{const el=document.createElement(tag);if(text)el.textContent=text;if(className)el.className=className;return el;};
@@ -77,6 +77,15 @@ export function appendTeacherAcademicTools(card,student,notify){
    const tourney=make('div','','academic-subsection');tourney.append(make('h4','Torneos y partidas'));
    const events=new Map();for(const g of games){const k=g.event_name||'Sin torneo';if(!events.has(k))events.set(k,[]);events.get(k).push(g);}
    if(!games.length)tourney.append(make('p','El alumno aún no ha compartido partidas.'));else for(const [event,rounds] of events){const grp=make('details','','academic-event');grp.append(make('summary',event+' · '+rounds.length+' partidas'));let quality={w:[],b:[]};for(const g of rounds){let summary=technicalSummary(g);if(g.review?.reports?.length)try{const m=gameMetrics(validatePGN(g.pgn),g.review.reports);for(const side of ['w','b'])if(m[side].complete)quality[side].push(m[side].quality);}catch{}const row=make('div','','academic-game-row');row.append(make('strong',g.title),make('small',g.white_name+' – '+g.black_name+' · '+g.result),make('small',summary));row.append(button('Analizar en Game Review',()=>window.IB_LOAD_ACADEMIC_GAME?.(g.pgn,g.title)));grp.append(row);}const mean=a=>a.length?(a.reduce((x,y)=>x+y,0)/a.length).toFixed(1)+'%':'—';grp.prepend(make('p','Precisión estimada (solo análisis completos): Blancas '+mean(quality.w)+' · Negras '+mean(quality.b)));tourney.append(grp);}content.append(tourney);
+   const sharedPanel=make('section','','academic-subsection');sharedPanel.append(make('h4','Estudios de biblioteca compartidos con el profesor'));
+   try{const shared=await academicSharedStudies(student.student_id);
+    if(!shared.length)sharedPanel.append(make('p','Este alumno todavía no compartió estudios desde la biblioteca en la nube.'));
+    for(const item of shared){const row=make('div','','academic-game-row');row.append(make('strong',item.title||'Estudio'),make('small','Actualizado: '+localDate(item.updated_at)));
+     const pgn=item.payload?.pgn;if(pgn)row.append(button('Abrir estudio',()=>window.IB_LOAD_ACADEMIC_GAME?.(pgn,item.title)));
+     else row.append(make('small','Estudio sin PGN directo; consultalo en Biblioteca PGN.'));
+     sharedPanel.append(row);}
+   }catch(e){sharedPanel.append(make('p','No se pudieron consultar estudios compartidos: '+e.message));}
+   content.append(sharedPanel);
    const assignment=make('section','','academic-subsection');assignment.append(make('h4','Asignar tarea'));
    const title=field('Título'),instructions=field('Instrucciones','textarea'),kind=field('Tipo de tarea'),due=field('Fecha límite','date'),ref=field('PGN de referencia (opcional)','textarea');
    const kindSelect=make('select');for(const [v,n] of [['analysis','Análisis de partida'],['calculation','Cálculo'],['opening','Aperturas'],['endgame','Finales'],['other','Otra']]){const o=make('option',n);o.value=v;kindSelect.append(o);}kind.input.replaceWith(kindSelect);
