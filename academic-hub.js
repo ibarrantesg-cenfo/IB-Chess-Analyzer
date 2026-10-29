@@ -31,6 +31,8 @@ export function initAcademicHub({notify}){
    const [games,tasks]=await Promise.all([academicGames(),academicAssignments()]);
    const submissions=await academicSubmissions(tasks.map(t=>t.id));
    const stat=make('div','','academic-summary');for(const [n,label] of [[games.length,'Partidas enviadas'],[new Set(games.map(g=>g.event_name)).size,'Torneos'],[tasks.length,'Tareas asignadas'],[submissions.length,'Entregas']]){const box=make('div','','academy-stat');box.append(make('strong',String(n)),make('span',label));stat.append(box);}screen.append(stat);
+   const overdue=tasks.filter(t=>t.due_at&&new Date(t.due_at+'T23:59:59').getTime()<Date.now()&&!submissions.some(x=>x.assignment_id===t.id));
+   if(overdue.length)screen.append(make('p','Tenés '+overdue.length+' tarea(s) pendientes fuera de plazo. Revisá las instrucciones y entregalas desde aquí.','academic-alert'));
    const submit=make('details','','academic-panel');submit.open=!games.length;
    const sm=make('summary','Enviar una partida PGN');submit.append(sm);
    submit.append(make('p','Pegá un PGN válido. También podés copiar la partida abierta en Game Review; si ya fue analizada se adjuntará el informe técnico.'));
@@ -73,6 +75,8 @@ export function appendTeacherAcademicTools(card,student,notify){
   try{
    const [games,tasks]=await Promise.all([academicGames(student.student_id),academicAssignments(student.student_id)]);
    const submissions=await academicSubmissions(tasks.map(t=>t.id));content.replaceChildren();
+   const toReview=submissions.filter(x=>!x.reviewed_at);
+   if(toReview.length)content.append(make('p',toReview.length+' entrega(s) requieren tu revisión.','academic-alert'));
    const stats=make('div','','academic-summary');
    for(const [v,label] of [[games.length,'Partidas'],[new Set(games.map(g=>g.event_name)).size,'Torneos'],[tasks.length,'Tareas'],[submissions.length,'Entregas']]){const item=make('div','','academy-stat');item.append(make('strong',String(v)),make('span',label));stats.append(item);}content.append(stats);
    const tourney=make('div','','academic-subsection');tourney.append(make('h4','Torneos y partidas'));
