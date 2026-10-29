@@ -196,3 +196,16 @@ export async function academicSharedStudies(studentId){
  const {data,error}=await api.from('ib_studies').select('id,owner_id,title,student_label,payload,updated_at').eq('owner_id',studentId).order('updated_at',{ascending:false}).limit(100);
  if(error)throw error;return data||[];
 }
+
+/** Teacher-only cohort snapshots. PostgREST RLS is the authoritative boundary. */
+export async function academicCohortGames(studentIds,{limit=1000}={}){
+ const account=await accountDetails();
+ if(!account?.isTeacher)throw Error('Solo profesores autorizados pueden consultar estadísticas de alumnos.');
+ const ids=[...new Set((studentIds||[]).filter(x=>/^[a-f0-9-]{36}$/i.test(x)))];
+ if(!ids.length)return {items:[],truncated:false};
+ const take=Math.min(2000,Math.max(1,limit));
+ const {data,error}=await api.from('ib_student_games').select('id,student_id,title,event_name,played_at,white_name,black_name,result,student_side,pgn,review,created_at')
+  .in('student_id',ids).order('created_at',{ascending:false}).limit(take+1);
+ if(error)throw error;
+ return {items:(data||[]).slice(0,take),truncated:(data||[]).length>take};
+}
