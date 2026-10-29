@@ -160,12 +160,12 @@ export async function completeApprovedStudentOnboarding(){
 /* Academic portfolio and assignments. All access is additionally enforced in Supabase RLS. */
 export async function academicGames(studentId){
  const session=await getCloudSession();if(!session)throw Error('Iniciá sesión.');
- const query=api.from('ib_student_games').select('id,student_id,title,event_name,played_at,white_name,black_name,result,pgn,review,created_at').order('created_at',{ascending:false}).limit(250);
+ const query=api.from('ib_student_games').select('id,student_id,title,event_name,played_at,white_name,black_name,result,student_side,pgn,review,created_at').order('created_at',{ascending:false}).limit(250);
  const {data,error}=await query.eq('student_id',studentId||session.user.id);if(error)throw error;return data||[];
 }
 export async function submitAcademicGame(item){
  const session=await getCloudSession();if(!session)throw Error('Iniciá sesión.');
- const payload={student_id:session.user.id,title:String(item.title||'Partida').slice(0,180),event_name:String(item.event_name||'Sin torneo').slice(0,160),played_at:item.played_at||null,pgn:String(item.pgn||''),white_name:item.white_name||'',black_name:item.black_name||'',result:item.result||'*',review:item.review||{}};
+ const payload={student_id:session.user.id,title:String(item.title||'Partida').slice(0,180),event_name:String(item.event_name||'Sin torneo').slice(0,160),played_at:item.played_at||null,pgn:String(item.pgn||''),white_name:item.white_name||'',black_name:item.black_name||'',result:item.result||'*',student_side:item.student_side==='b'?'b':'w',review:item.review||{}};
  const {error}=await api.from('ib_student_games').insert(payload);if(error)throw error;
 }
 export async function academicAssignments(studentId){
