@@ -697,3 +697,32 @@
 :root[data-theme="light"] .academic-performance-tile strong{color:#176c54}
 :root[data-theme="light"] .library-paste-body :is(input,textarea){background:#fff;color:#173a43;border-color:#a4c6c9}
 @media(max-width:760px){.academic-performance-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
+
+/* Polished PGN paste editor in Biblioteca; scoped to this panel only. */
+.library-workspace .library-paste-box{display:block;width:100%;min-width:0;margin:18px 0 21px;padding:0;overflow:hidden;border:1px solid #365b68;border-radius:15px;background:linear-gradient(180deg,#172b3e,#112132);box-shadow:0 10px 32px #020b1626}
+.library-workspace .library-paste-box>summary.library-paste-summary{display:flex;align-items:center;justify-content:space-between;gap:16px;padding:17px 21px;cursor:pointer;list-style:none;color:#eafaf4}
+.library-workspace .library-paste-box>summary::-webkit-details-marker{display:none}
+.library-workspace .library-paste-heading{display:flex;flex-direction:column;gap:5px;min-width:0;line-height:1.4}
+.library-workspace .library-paste-heading strong{display:block;font-size:15px;font-weight:750;color:#edfaf7}
+.library-workspace .library-paste-heading small{display:block;font-size:11px;font-weight:400;color:#9bb9c9}
+.library-workspace .library-paste-chevron{font-size:24px;color:#82dbbd;line-height:1;transition:transform .18s}
+.library-workspace .library-paste-box[open] .library-paste-chevron{transform:rotate(180deg)}
+.library-workspace .library-paste-box[open]>summary{border-bottom:1px solid #304d5f}
+.library-workspace .library-paste-body{display:flex;flex-direction:column;gap:18px;padding:21px 22px 22px;width:100%;min-width:0}
+.library-workspace .library-paste-field{display:flex;flex-direction:column;align-items:stretch;gap:8px;width:100%;min-width:0}
+.library-workspace .library-paste-field label{display:block;font-size:12px;font-weight:700;color:#c9e8e7}
+.library-workspace .library-paste-field input,.library-workspace .library-paste-field textarea{display:block;box-sizing:border-box;width:100%;min-width:0;max-width:100%;padding:12px 14px;border:1px solid #426377;border-radius:10px;background:#0b1929;color:#e9f8fb;font-size:13px;line-height:1.55;outline-offset:2px}
+.library-workspace .library-paste-field textarea{min-height:230px;max-height:480px;resize:vertical;font-family:ui-monospace,SFMono-Regular,Consolas,monospace;white-space:pre;overflow:auto}
+.library-workspace .library-paste-field input:focus,.library-workspace .library-paste-field textarea:focus{border-color:#78dcb8;outline:2px solid #78dcb829}
+.library-workspace .library-paste-actions{display:flex;flex-wrap:wrap;gap:10px;align-items:center}
+.library-workspace .library-paste-actions .btn{flex:0 0 auto}
+.library-workspace .library-paste-helper{font-size:11px;color:#9bb6c4}
+.library-workspace .library-paste-note{display:block;width:100%;padding:12px 14px;border:1px solid #416a82;border-radius:9px;background:#19344b;color:#c3e1f3;font-size:12px;line-height:1.5}
+.library-workspace .library-paste-note[hidden]{display:none!important}
+.library-workspace .library-paste-note[data-type="error"]{background:#38232e;border-color:#865266;color:#ffd0d6}
+.library-workspace .library-paste-note[data-type="success"]{background:#143a31;border-color:#3b7d67;color:#aaf4d4}
+:root[data-theme="light"] .library-workspace .library-paste-box{background:#fff;border-color:#b7d1d6}
+:root[data-theme="light"] .library-workspace .library-paste-heading strong,:root[data-theme="light"] .library-workspace .library-paste-field label{color:#153847}
+:root[data-theme="light"] .library-workspace .library-paste-heading small,:root[data-theme="light"] .library-workspace .library-paste-helper{color:#526c7e}
+:root[data-theme="light"] .library-workspace .library-paste-field input,:root[data-theme="light"] .library-workspace .library-paste-field textarea{background:#f8fcff;color:#173746;border-color:#acc4d0}
+@media(max-width:650px){.library-workspace .library-paste-box>summary.library-paste-summary{padding:15px}.library-workspace .library-paste-body{padding:15px}.library-workspace .library-paste-actions .btn{width:100%}}
