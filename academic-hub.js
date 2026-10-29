@@ -1,6 +1,6 @@
 import {Chess} from 'chess.js';
 import {accountDetails,getCloudSession,myEnrollments,academicGames,submitAcademicGame,academicAssignments,createAcademicAssignment,academicSubmissions,deliverAcademicAssignment,reviewAcademicSubmission,academicSharedStudies} from './cloud.js';
-import {gameMetrics} from './performance.js';
+import {gameMetrics,fidePerformance} from './performance.js';
 
 const make=(tag,text='',className='')=>{const el=document.createElement(tag);if(text)el.textContent=text;if(className)el.className=className;return el;};
 const button=(label,handler,cls='btn outline')=>{const b=make('button',label,cls);b.type='button';b.onclick=handler;return b;};
@@ -35,9 +35,10 @@ export function initAcademicHub({notify}){
    const sm=make('summary','Enviar una partida PGN');submit.append(sm);
    submit.append(make('p','Pegá un PGN válido. También podés copiar la partida abierta en Game Review; si ya fue analizada se adjuntará el informe técnico.'));
    const title=field('Título de la partida'),event=field('Torneo / evento'),date=field('Fecha de la partida','date'),pgn=field('PGN completo','textarea');
-   submit.append(title.wrap,event.wrap,date.wrap,pgn.wrap);
+   const side=make('select');side.setAttribute('aria-label','Color que jugó el estudiante');for(const [v,t] of [['w','Jugué con blancas'],['b','Jugué con negras']]){const o=make('option',t);o.value=v;side.append(o);}const sideWrap=make('label','','academic-field');sideWrap.append(make('span','Mi color en esta partida'),side);
+   submit.append(title.wrap,event.wrap,date.wrap,sideWrap,pgn.wrap);
    submit.append(button('Usar partida de Game Review',()=>{const current=window.IB_ACADEMIC_CURRENT?.();if(!current){notify('No hay una partida abierta.','err');return;}pgn.input.value=current.pgn;title.input.value=current.title;event.input.value=current.event;notify('Partida copiada desde Game Review.');}));
-   submit.append(button('Enviar a mi profesor',async()=>{try{const parsed=validatePGN(pgn.input.value.trim());const current=window.IB_ACADEMIC_CURRENT?.();const review=current?.pgn===parsed.pgn?current.review:{};await submitAcademicGame({title:title.input.value.trim()||parsed.headers.Event||'Partida',event_name:event.input.value.trim()||parsed.headers.Event||'Sin torneo',played_at:date.input.value||null,pgn:parsed.pgn,white_name:parsed.headers.White||'',black_name:parsed.headers.Black||'',result:parsed.headers.Result||'*',review});notify('Partida enviada a tu carpeta académica.');await refresh();}catch(e){notify(e.message,'err');}},'btn primary'));
+   submit.append(button('Enviar a mi profesor',async()=>{try{const parsed=validatePGN(pgn.input.value.trim());const current=window.IB_ACADEMIC_CURRENT?.();const review=current?.pgn===parsed.pgn?current.review:{};await submitAcademicGame({title:title.input.value.trim()||parsed.headers.Event||'Partida',event_name:event.input.value.trim()||parsed.headers.Event||'Sin torneo',played_at:date.input.value||null,pgn:parsed.pgn,white_name:parsed.headers.White||'',black_name:parsed.headers.Black||'',result:parsed.headers.Result||'*',student_side:side.value,review});notify('Partida enviada a tu carpeta académica.');await refresh();}catch(e){notify(e.message,'err');}},'btn primary'));
    screen.append(submit);
    const history=make('section','','academic-panel');history.append(make('h3','Mis partidas y torneos'));
    if(!games.length)history.append(make('p','Aún no hay partidas enviadas.'));
@@ -61,7 +62,7 @@ export function initAcademicHub({notify}){
 }
 function technicalSummary(game){
  const reports=game.review?.reports;if(!Array.isArray(reports)||!reports.length)return 'Sin análisis técnico compartido';
- try{const parsed=validatePGN(game.pgn);const m=gameMetrics(parsed,reports);const fmt=s=>m[s].complete?m[s].quality.toFixed(1)+'%':m[s].count?m[s].quality.toFixed(1)+'% parcial':'—';return 'Precisión estimada B: '+fmt('w')+' · N: '+fmt('b');}catch{return 'Informe técnico pendiente';}
+ try{const parsed=validatePGN(game.pgn);const m=gameMetrics(parsed,reports);const fmt=s=>m[s].complete?m[s].quality.toFixed(1)+'%':m[s].count?m[s].quality.toFixed(1)+'% parcial':'—';return 'Precisión del alumno ('+(game.student_side==='b'?'negras':'blancas')+'): '+fmt(game.student_side==='b'?'b':'w');}catch{return 'Informe técnico pendiente';}
 }
 export function appendTeacherAcademicTools(card,student,notify){
  const details=make('details','','academic-teacher-panel');details.append(make('summary','Ficha deportiva · Partidas, torneos y tareas'));
@@ -76,7 +77,10 @@ export function appendTeacherAcademicTools(card,student,notify){
    for(const [v,label] of [[games.length,'Partidas'],[new Set(games.map(g=>g.event_name)).size,'Torneos'],[tasks.length,'Tareas'],[submissions.length,'Entregas']]){const item=make('div','','academy-stat');item.append(make('strong',String(v)),make('span',label));stats.append(item);}content.append(stats);
    const tourney=make('div','','academic-subsection');tourney.append(make('h4','Torneos y partidas'));
    const events=new Map();for(const g of games){const k=g.event_name||'Sin torneo';if(!events.has(k))events.set(k,[]);events.get(k).push(g);}
-   if(!games.length)tourney.append(make('p','El alumno aún no ha compartido partidas.'));else for(const [event,rounds] of events){const grp=make('details','','academic-event');grp.append(make('summary',event+' · '+rounds.length+' partidas'));let quality={w:[],b:[]};for(const g of rounds){let summary=technicalSummary(g);if(g.review?.reports?.length)try{const m=gameMetrics(validatePGN(g.pgn),g.review.reports);for(const side of ['w','b'])if(m[side].complete)quality[side].push(m[side].quality);}catch{}const row=make('div','','academic-game-row');row.append(make('strong',g.title),make('small',g.white_name+' – '+g.black_name+' · '+g.result),make('small',summary));row.append(button('Analizar en Game Review',()=>window.IB_LOAD_ACADEMIC_GAME?.(g.pgn,g.title)));grp.append(row);}const mean=a=>a.length?(a.reduce((x,y)=>x+y,0)/a.length).toFixed(1)+'%':'—';grp.prepend(make('p','Precisión estimada (solo análisis completos): Blancas '+mean(quality.w)+' · Negras '+mean(quality.b)));tourney.append(grp);}content.append(tourney);
+   if(!games.length)tourney.append(make('p','El alumno aún no ha compartido partidas.'));else for(const [event,rounds] of events){const grp=make('details','','academic-event');grp.append(make('summary',event+' · '+rounds.length+' partidas'));const qualities=[],rated=[];for(const g of rounds){let summary=technicalSummary(g);if(g.review?.reports?.length)try{const m=gameMetrics(validatePGN(g.pgn),g.review.reports);const side=g.student_side==='b'?'b':'w';if(m[side].complete)qualities.push(m[side].quality);}catch{}const row=make('div','','academic-game-row');row.append(make('strong',g.title),make('small',g.white_name+' – '+g.black_name+' · '+g.result),make('small',summary));row.append(button('Analizar en Game Review',()=>window.IB_LOAD_ACADEMIC_GAME?.(g.pgn,g.title)));grp.append(row);}const mean=qualities.length?(qualities.reduce((x,y)=>x+y,0)/qualities.length).toFixed(1)+'%':'—';
+    for(const g of rounds){try{const parsed=validatePGN(g.pgn),h=parsed.headers,side=g.student_side==='b'?'b':'w',opp=Number(side==='w'?h.BlackElo:h.WhiteElo),res=h.Result,points=res==='1/2-1/2'?0.5:res===(side==='w'?'1-0':'0-1')?1:res===(side==='w'?'0-1':'1-0')?0:null;if(Number.isFinite(opp)&&opp>0&&points!==null)rated.push({elo:opp,result:points});}catch{}}
+    const fide=rated.length?fidePerformance(rated):null;
+    grp.prepend(make('p','Precisión técnica del alumno: '+mean+' ('+qualities.length+'/'+rounds.length+' análisis completos). '+(fide?'Performance FIDE aproximada: '+fide.rating+' · '+rated.length+' partidas con Elo válido.':'Performance FIDE: sin datos suficientes de Elo y resultados.')));tourney.append(grp);}content.append(tourney);
    const sharedPanel=make('section','','academic-subsection');sharedPanel.append(make('h4','Estudios de biblioteca compartidos con el profesor'));
    try{const shared=await academicSharedStudies(student.student_id);
     if(!shared.length)sharedPanel.append(make('p','Este alumno todavía no compartió estudios desde la biblioteca en la nube.'));
