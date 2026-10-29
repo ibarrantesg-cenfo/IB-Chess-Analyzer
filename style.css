@@ -635,3 +635,32 @@
 :root[data-theme="light"] .game-side-kpis>div:first-child strong{color:#14785b}
 :root[data-theme="light"] .game-side-kpis small,:root[data-theme="light"] .game-side-counts small,:root[data-theme="light"] .game-summary-foot{color:#4f6d78}
 @media(max-width:580px){.game-summary-grid{grid-template-columns:1fr}.game-side-kpis{grid-template-columns:1fr 1fr}.paste-pgn-header{flex-wrap:wrap}}
+
+/* Academic hub · student workspace and instructor dossiers */
+#nav-academic[hidden],.academic-hub[hidden]{display:none!important}
+.academic-hub{min-height:64vh;margin:5px 0 32px}
+.academic-title h2{font-family:Outfit,sans-serif;font-size:29px;margin:5px 0}
+.academic-title p{font-size:12px;color:#a0b7c5;margin:3px 0 17px}
+.academic-summary{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:11px;margin:12px 0 22px}
+.academic-summary .academy-stat{padding:13px}.academic-summary .academy-stat strong{font-size:23px}
+.academic-panel,.academic-teacher-panel{border:1px solid #344b5f;background:#142536;border-radius:11px;padding:15px;margin:12px 0}
+.academic-panel h3{font-size:17px;margin:4px 0 12px}
+.academic-panel>summary,.academic-teacher-panel>summary{cursor:pointer;color:#b8efda;font-size:13px;font-weight:700;list-style:revert}
+.academic-panel p,.academic-subsection p{font-size:12px;line-height:1.6;color:#a7bbcd}
+.academic-field{display:flex;flex-direction:column;gap:6px;font-size:11px;color:#b1c9d4;margin:12px 0}
+.academic-field input,.academic-field textarea,.academic-field select,.academic-subsection select{width:100%;min-width:0;border:1px solid #436077;background:#0a192a;color:#eaf4f8;padding:10px;border-radius:7px;font:inherit;font-size:12px}
+.academic-field textarea{min-height:80px;resize:vertical;font-family:ui-monospace,Consolas,monospace}
+.academic-panel .btn,.academic-subsection .btn{margin:5px 7px 5px 0}
+.academic-event,.academic-task{border:1px solid #304a5d;border-radius:8px;padding:11px;margin:9px 0;background:#182b3d}
+.academic-event summary,.academic-task summary{cursor:pointer;font-size:12px;font-weight:700;color:#d9f6e9}
+.academic-game-row{display:flex;align-items:center;gap:9px;flex-wrap:wrap;border-top:1px solid #304558;padding:9px 1px;margin-top:9px}
+.academic-game-row strong{font-size:12px}.academic-game-row small{color:#9fb8c7;font-size:10px}
+.academic-game-row .btn{margin-left:auto}
+.academic-subsection{border-top:1px solid #355067;padding-top:14px;margin-top:18px}
+.academic-subsection h4{font-size:14px;color:#e6f8ee;margin:5px 0}
+.academic-feedback{border-left:3px solid #72d5ae;padding:9px 13px;background:#183d36}
+.academic-error{color:#ffbdab!important;font-size:12px}
+:root[data-theme="light"] :is(.academic-panel,.academic-teacher-panel,.academic-event,.academic-task){background:#fff;color:#1a3b49;border-color:#bfced7}
+:root[data-theme="light"] .academic-field :is(input,textarea,select),:root[data-theme="light"] .academic-subsection select{background:#f7fbfc;color:#1a3949;border-color:#a6c0cb}
+:root[data-theme="light"] :is(.academic-panel>summary,.academic-teacher-panel>summary,.academic-event summary,.academic-task summary,.academic-subsection h4){color:#16684f}
+@media(max-width:700px){.academic-summary{grid-template-columns:repeat(2,minmax(0,1fr))}}
