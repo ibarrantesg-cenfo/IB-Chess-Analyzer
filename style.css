@@ -726,3 +726,56 @@
 :root[data-theme="light"] .library-workspace .library-paste-heading small,:root[data-theme="light"] .library-workspace .library-paste-helper{color:#526c7e}
 :root[data-theme="light"] .library-workspace .library-paste-field input,:root[data-theme="light"] .library-workspace .library-paste-field textarea{background:#f8fcff;color:#173746;border-color:#acc4d0}
 @media(max-width:650px){.library-workspace .library-paste-box>summary.library-paste-summary{padding:15px}.library-workspace .library-paste-body{padding:15px}.library-workspace .library-paste-actions .btn{width:100%}}
+
+/* Academy Analytics: independent, scalable coach reporting workspace */
+.academy-analytics-screen[hidden],#nav-academy-analytics[hidden]{display:none!important}
+.academy-analytics-screen{min-height:65vh;margin:4px 0 34px}
+.academy-analytics-head{display:flex;align-items:center;justify-content:space-between;gap:15px;flex-wrap:wrap;margin:0 0 17px}
+.academy-analytics-head h2{font:700 27px Outfit,sans-serif;margin:6px 0}
+.academy-analytics-head p{font-size:12px;color:#9db7c7;margin:4px 0}
+.academy-analytics-filters{display:grid;grid-template-columns:minmax(200px,2fr) repeat(3,minmax(130px,1fr));gap:10px;background:#152538;border:1px solid #30485b;border-radius:12px;padding:13px;margin:15px 0}
+.academy-analytics-filters input,.academy-analytics-filters select{width:100%;min-width:0;border:1px solid #426075;border-radius:8px;padding:10px;background:#0a1929;color:#e8f6fa;font-size:12px}
+.academy-analytics-notice{color:#9db5c4;font-size:11px;line-height:1.55;margin:10px 0 16px}
+.academy-analytics-cards{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:11px;margin:16px 0 23px}
+.academy-analytics-kpi{min-width:0;background:#172a3c;border:1px solid #355163;border-radius:10px;padding:15px;display:flex;flex-direction:column;gap:6px}
+.academy-analytics-kpi small{font-size:11px;color:#a4bfca}
+.academy-analytics-kpi strong{font-size:26px;color:#78e0b7;font-weight:750;line-height:1.2}
+.academy-analytics-kpi span{font-size:10px;color:#89a7b9}
+.academy-analytics-chart,.academy-analytics-people,.academy-analytics-events{margin:22px 0}
+.academy-analytics-chart,.academy-analytics-people,.academy-analytics-events{border:1px solid #2b4357;border-radius:13px;padding:17px;background:#111e2f}
+.academy-analytics-chart h3,.academy-analytics-people h3,.academy-analytics-events h3{font-size:17px;margin:0 0 15px;color:#e5f8ef}
+.academy-analytics-section-title{display:flex;align-items:baseline;flex-wrap:wrap;gap:10px}
+.academy-analytics-section-title small{color:#93adba;font-size:10px}
+.academy-analytics-plot{min-height:170px;color:#d1e8ef}
+.academy-analytics-plot svg{width:100%;height:172px;display:block}
+.academy-analytics-plot>small{display:block;text-align:center;color:#9bb3c1;font-size:10px}
+.academy-analytics-students{display:grid;grid-template-columns:repeat(auto-fit,minmax(250px,1fr));gap:11px}
+.academy-analytics-student{background:#182c3d;border:1px solid #375163;border-radius:10px;padding:14px;min-width:0}
+.academy-analytics-student-head{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:13px}
+.academy-analytics-student-head strong{font-size:13px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.academy-analytics-student-head span{color:#81d9b5;font-size:10px}
+.academy-analytics-mini{display:grid;grid-template-columns:1fr 1fr;gap:9px;margin:10px 0}
+.academy-analytics-mini>div{display:flex;flex-direction:column;gap:5px;padding:9px;background:#0e2030;border-radius:6px}
+.academy-analytics-mini small{color:#9db7c5;font-size:10px}
+.academy-analytics-mini strong{font-size:17px;color:#dffbef}
+.academy-analytics-event{border:1px solid #355568;border-radius:9px;margin:10px 0;background:#192d3f;overflow:hidden}
+.academy-analytics-event>summary{display:flex;justify-content:space-between;gap:13px;flex-wrap:wrap;cursor:pointer;padding:14px;list-style:none}
+.academy-analytics-event>summary::-webkit-details-marker{display:none}
+.academy-analytics-event>summary strong{font-size:13px;color:#e7f7f4}
+.academy-analytics-event>summary span{color:#a1b9c8;font-size:11px}
+.academy-analytics-event-kpis{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:8px;padding:0 12px 12px}
+.academy-analytics-event-kpis .academy-analytics-kpi{padding:9px}
+.academy-analytics-event-kpis .academy-analytics-kpi strong{font-size:17px}
+.academy-analytics-game-list{padding:0 13px 13px}
+.academy-analytics-game{display:flex;align-items:center;gap:12px;flex-wrap:wrap;border-top:1px solid #365062;padding:9px 0}
+.academy-analytics-game>div{display:flex;flex:1;min-width:200px;flex-direction:column;gap:4px}
+.academy-analytics-game strong{font-size:11px}
+.academy-analytics-game small,.academy-analytics-game>span{font-size:10px;color:#a6bcc8}
+.academy-analytics-empty{padding:20px 8px;color:#9ab4c3;font-size:12px}
+.academy-analytics-actions{display:flex;justify-content:flex-end;gap:10px}
+:root[data-theme="light"] :is(.academy-analytics-filters,.academy-analytics-chart,.academy-analytics-people,.academy-analytics-events,.academy-analytics-student,.academy-analytics-event,.academy-analytics-kpi){background:#fff;color:#183846;border-color:#bad0d9}
+:root[data-theme="light"] .academy-analytics-filters :is(input,select),:root[data-theme="light"] .academy-analytics-mini>div{background:#f3f9fa;color:#1b3a4c;border-color:#a6c5cb}
+:root[data-theme="light"] :is(.academy-analytics-head h2,.academy-analytics-chart h3,.academy-analytics-people h3,.academy-analytics-events h3,.academy-analytics-student-head strong,.academy-analytics-event>summary strong){color:#173b45}
+:root[data-theme="light"] .academy-analytics-kpi strong{color:#137b5a}
+@media(max-width:970px){.academy-analytics-filters{grid-template-columns:repeat(2,minmax(0,1fr))}.academy-analytics-cards{grid-template-columns:repeat(2,minmax(0,1fr))}.academy-analytics-event-kpis{grid-template-columns:repeat(3,minmax(0,1fr))}}
+@media(max-width:550px){.academy-analytics-filters,.academy-analytics-cards{grid-template-columns:1fr}.academy-analytics-event-kpis{grid-template-columns:repeat(2,minmax(0,1fr))}}
