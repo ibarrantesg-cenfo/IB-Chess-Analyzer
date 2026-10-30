@@ -97,7 +97,7 @@ function parseLibraryPgnSegment(pgn){
  }
 }
 
-function inspectLibraryPgnSource(source){
+export function inspectLibraryPgnSource(source){
  if(typeof source!=='string'||source.length>15_000_000)throw Error('PGN demasiado grande (máximo 15 MB).');
  const parts=splitLibraryPgnSource(source);
  if(parts.length>500)throw Error('Por seguridad, importá un máximo de 500 partidas por archivo.');
