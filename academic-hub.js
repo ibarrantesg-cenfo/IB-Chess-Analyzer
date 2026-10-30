@@ -97,6 +97,76 @@ export function initAcademicHub({notify}){
    },'btn primary academic-import-save'));
    screen.append(tournament);
 
+   const studiesPanel=make('details','','academic-panel');
+   studiesPanel.append(make('summary','Mis estudios · Compartir resultados con el profesor'));
+   studiesPanel.append(make('p','Elegí un estudio ya guardado en Biblioteca PGN y compartí sus partidas y análisis con tu profesor. Los originales permanecen intactos.'));
+   const studySelect=make('select');studySelect.setAttribute('aria-label','Estudios guardados');
+   const studyLabel=make('label','','academic-field');studyLabel.append(make('span','Estudio de la biblioteca'),studySelect);
+   const studyPlayer=field('Mi nombre exacto en las partidas PGN','text',accountNameForImport());
+   const studyEvent=field('Torneo (opcional: se usará el del PGN)');
+   const studyFeedback=make('div','','academic-import-preview');
+   studiesPanel.append(studyLabel,studyPlayer.wrap,studyEvent.wrap,studyFeedback);
+   let available=new Map();
+   async function refreshAvailable(){
+     available=new Map();studySelect.replaceChildren();
+     const blank=make('option','Seleccioná un estudio…');blank.value='';studySelect.append(blank);
+     const lib=window.IB_STUDIO;
+     if(!lib?.listLibraryItems)throw Error('La Biblioteca PGN aún no está disponible.');
+     const data=await lib.listLibraryItems();
+     const add=(key,label,source,id)=>{
+       if(!available.has(key))available.set(key,{label,source,ids:[]});
+       available.get(key).ids.push(id);
+     };
+     for(const x of data.locals)add(x.collectionId?'local:'+x.collectionId:'local-item:'+x.id,x.collectionName||x.name||'Estudio local','local',x.id);
+     for(const x of data.remote)if(x.owner_id===session.user.id)add(x.payload?.collectionId?'cloud:'+x.payload.collectionId:'cloud-item:'+x.id,x.payload?.collectionName||x.title||'Estudio en nube','cloud',x.id);
+     for(const [key,x] of available){const option=make('option',(x.source==='local'?'Local':'Nube')+' · '+x.label+' ('+x.ids.length+' partidas)');option.value=key;studySelect.append(option);}
+     studyFeedback.textContent=available.size+' estudio(s) disponibles.'+(data.error?' Nube: '+data.error:'');
+   }
+   async function selectedGames(){
+     const item=available.get(studySelect.value);
+     if(!item)throw Error('Seleccioná un estudio.');
+     const sources=item.source==='local'?[await window.IB_STUDIO.loadCollectionPgn(item.ids)]:await Promise.all(item.ids.map(id=>window.IB_STUDIO.getLibraryPgn('cloud',id)));
+     const rows=[];
+     for(const text of sources)for(const segment of splitTournamentPGN(text))rows.push(validatePGN(segment));
+     if(!rows.length||rows.length>100)throw Error('Se admiten entre 1 y 100 partidas por estudio.');
+     return rows.map(game=>({game,side:playerSideFor(game.headers,studyPlayer.input.value)}));
+   }
+   studiesPanel.append(button('Actualizar mis estudios',()=>refreshAvailable().catch(e=>notify(e.message,'err'))));
+   studiesPanel.append(button('Revisar partidas',async()=>{
+     try{
+       const rows=await selectedGames();studyFeedback.replaceChildren();
+       studyFeedback.append(make('p',rows.filter(x=>x.side).length+'/'+rows.length+' partidas reconocidas.'));
+       for(const {game,side} of rows)studyFeedback.append(make('p',(game.headers.Round?'Ronda '+game.headers.Round+' · ':'')+(game.headers.White||'?')+' – '+(game.headers.Black||'?')+' · '+(side==='w'?'Blancas':side==='b'?'Negras':'No coincide el nombre'),'academic-import-row'));
+     }catch(e){notify(e.message,'err');studyFeedback.textContent=e.message;}
+   }));
+   const share=button('Compartir estudio y análisis con mi profesor',async()=>{
+     let saved=0;share.disabled=true;
+     try{
+       const rows=await selectedGames();
+       if(rows.some(x=>!x.side))throw Error('El nombre del jugador no coincide con todas las partidas. Revisá las rondas primero.');
+       const existing=new Set(games.map(g=>(g.event_name||'Sin torneo')+'|'+g.pgn.trim()));
+       const pending=[];
+       for(const {game,side} of rows){
+         const event=studyEvent.input.value.trim()||game.headers.Event||'Sin torneo';
+         const key=event+'|'+game.pgn.trim();
+         if(existing.has(key))continue;
+         existing.add(key);pending.push({game,side,event});
+       }
+       if(!pending.length){studyFeedback.textContent='El estudio ya está compartido. No se duplicaron partidas.';return;}
+       if(!window.confirm('Enviar '+pending.length+' partidas y sus análisis guardados a tu expediente académico?'))return;
+       for(const {game,side,event} of pending){
+         const h=game.headers;
+         await submitAcademicGame({title:(h.Round?'Ronda '+h.Round+' · ':'')+(h.White||'Blancas')+' – '+(h.Black||'Negras'),event_name:event,played_at:pgnDate(h.Date),pgn:game.pgn,white_name:h.White||'',black_name:h.Black||'',result:h.Result||'*',student_side:side,review:await cachedAcademicReview(game)});
+         saved++;
+       }
+       notify(saved+' partida(s) compartidas con tu profesor.');await refresh();
+     }catch(e){studyFeedback.textContent=(saved?saved+' guardadas antes del error. ':'')+e.message;notify(studyFeedback.textContent,'err');}
+     finally{share.disabled=false;}
+   },'btn primary');
+   studiesPanel.append(share);screen.append(studiesPanel);
+   studiesPanel.addEventListener('toggle',()=>{if(studiesPanel.open)refreshAvailable().catch(e=>notify(e.message,'err'));});
+
+
    const progress=make('section','','academic-panel');progress.append(make('h3','Mi rendimiento técnico'));addPerformanceGrid(progress,games);screen.append(progress);
    const history=make('section','','academic-panel');history.append(make('h3','Mis partidas y torneos'));
    if(!games.length)history.append(make('p','Aún no hay partidas enviadas.'));
