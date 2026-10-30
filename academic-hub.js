@@ -8,6 +8,24 @@ const field=(label,type='text',value='')=>{const wrap=make('label','', 'academic
 const localDate=x=>x?new Date(x).toLocaleDateString('es-CR'):'—';
 const validatePGN=(text)=>{const chess=new Chess();try{chess.loadPgn(text,{strict:false});if(!chess.history().length)throw Error('El PGN no contiene jugadas.');return {pgn:chess.pgn(),headers:chess.header(),moves:chess.history({verbose:true})};}catch(e){throw Error('PGN inválido: '+e.message);}};
 const textOf=(x)=>String(x??'');
+const normalizePlayer=name=>String(name||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().replace(/[^a-z ]+/g,' ').replace(/\s+/g,' ').trim();
+const splitTournamentPGN=source=>{
+ const text=String(source||'').replace(/\r/g,'');
+ const marks=[...text.matchAll(/^\s*\[(?:Event|Site|Date|Round|White|Black|Result)\s+"/gm)].map(m=>m.index);
+ const starts=[...text.matchAll(/^\s*\[Event\s+"/gm)].map(m=>m.index);
+ if(starts.length>1)return starts.map((at,i)=>text.slice(at,starts[i+1]??text.length).trim()).filter(Boolean);
+ // No event headers? A single PGN can be imported, but not a guess about game boundaries.
+ return [text.trim()].filter(Boolean);
+};
+const pgnDate=x=>/^\d{4}\.\d{2}\.\d{2}$/.test(x||'')&&!String(x).includes('??')?x.replace(/\./g,'-'):null;
+const playerSideFor=(headers,name)=>{
+ const needle=normalizePlayer(name),white=normalizePlayer(headers.White),black=normalizePlayer(headers.Black);
+ if(!needle)return null;
+ if(white===needle&&black!==needle)return 'w';
+ if(black===needle&&white!==needle)return 'b';
+ return null;
+};
+
 export function initAcademicHub({notify}){
  const page=document.querySelector('main.main'),layout=page.querySelector('.layout'),toolbar=page.querySelector('.toolbar'),tools=page.querySelector('.workspace-tools');
  const screen=make('section','','academic-hub');screen.hidden=true;
@@ -27,6 +45,7 @@ export function initAcademicHub({notify}){
   const head=make('div','','academic-title');head.append(make('h2','Mi entrenamiento'),make('p','Las partidas enviadas se guardan en la nube. Tus análisis locales solo se comparten cuando elegís enviarlos.'));
   screen.append(head);
   try{
+   const account=await accountDetails();const accountNameForImport=()=>account?.name||'';
    const session=await getCloudSession();
    const [games,tasks]=await Promise.all([academicGames(),academicAssignments()]);
    const submissions=await academicSubmissions(tasks.map(t=>t.id));
@@ -42,6 +61,34 @@ export function initAcademicHub({notify}){
    submit.append(button('Usar partida de Game Review',()=>{const current=window.IB_ACADEMIC_CURRENT?.();if(!current){notify('No hay una partida abierta.','err');return;}pgn.input.value=current.pgn;title.input.value=current.title;event.input.value=current.event;notify('Partida copiada desde Game Review.');}));
    submit.append(button('Enviar a mi profesor',async()=>{try{const parsed=validatePGN(pgn.input.value.trim());const current=window.IB_ACADEMIC_CURRENT?.();const review=current?.pgn===parsed.pgn?current.review:{};await submitAcademicGame({title:title.input.value.trim()||parsed.headers.Event||'Partida',event_name:event.input.value.trim()||parsed.headers.Event||'Sin torneo',played_at:date.input.value||null,pgn:parsed.pgn,white_name:parsed.headers.White||'',black_name:parsed.headers.Black||'',result:parsed.headers.Result||'*',student_side:side.value,review});notify('Partida enviada a tu carpeta académica.');await refresh();}catch(e){notify(e.message,'err');}},'btn primary'));
    screen.append(submit);
+   const tournament=make('details','','academic-panel');
+   const batchTitle=make('summary','Importar torneo completo · varias partidas PGN');tournament.append(batchTitle);
+   tournament.append(make('p','Pegá un archivo PGN con varias partidas y sus encabezados [Event], [White] y [Black]. Revisá el nombre del jugador antes de importar. Si el nombre no coincide, no se guardará esa partida.'));
+   const player=field('Nombre exacto del estudiante en los PGN','text',accountNameForImport()),eventTitle=field('Nombre del torneo (opcional; se usarán los eventos de cada PGN)'),batchText=field('PGN de todas las rondas','textarea');
+   batchText.input.rows=11;tournament.append(player.wrap,eventTitle.wrap,batchText.wrap);
+   const preview=make('div','','academic-import-preview');tournament.append(preview);
+   const parsedRows=()=>{const pieces=splitTournamentPGN(batchText.input.value);if(pieces.length>100)throw Error('Importá un máximo de 100 partidas por lote.');return pieces.map((segment,index)=>{try{const game=validatePGN(segment),side=playerSideFor(game.headers,player.input.value);return {index,game,side};}catch(error){return {index,error:error.message};}});};
+   const previewBtn=button('Revisar partidas y colores',()=>{
+    preview.replaceChildren();try{const rows=parsedRows();if(!rows.length)throw Error('Pegá el PGN del torneo.');
+     const valid=rows.filter(x=>x.game&&x.side),ambiguous=rows.length-valid.length;
+     preview.append(make('p',valid.length+' partida(s) identificadas correctamente. '+ambiguous+' requieren revisar el nombre, los encabezados o la notación.'));
+     for(const row of rows){const g=row.game?.headers||{};preview.append(make('p',(row.index+1)+'. '+(g.White||'?')+' – '+(g.Black||'?')+' · '+(row.side==='w'?'Blancas':row.side==='b'?'Negras':row.error||'Jugador no identificado'),'academic-import-row'));}
+    }catch(error){notify(error.message,'err');}
+   });
+   tournament.append(previewBtn);
+   tournament.append(button('Guardar torneo en mi cuenta',async()=>{
+    try{const rows=parsedRows(),valid=rows.filter(x=>x.game&&x.side);
+     if(!rows.length||valid.length!==rows.length)throw Error('Hay partidas sin jugador identificado o PGN inválidos. Corregí los datos antes de guardar.');
+     if(!window.confirm('Se guardarán '+valid.length+' partidas en la cuenta del alumno. ¿Continuar?'))return;
+     const submitButton=tournament.querySelector('.academic-import-save');submitButton.disabled=true;
+     let saved=0;
+     try{for(const row of valid){const g=row.game,h=g.headers;await submitAcademicGame({title:(h.Round?'Ronda '+h.Round+' · ':'')+(h.White||'Blancas')+' – '+(h.Black||'Negras'),event_name:eventTitle.input.value.trim()||h.Event||'Sin torneo',played_at:pgnDate(h.Date),pgn:g.pgn,white_name:h.White||'',black_name:h.Black||'',result:h.Result||'*',student_side:row.side,review:{}});saved++;}}
+     finally{submitButton.disabled=false;}
+     notify(saved+' partida(s) del torneo guardadas correctamente.');if(saved===valid.length)await refresh();
+    }catch(error){notify(error.message,'err');}
+   },'btn primary academic-import-save'));
+   screen.append(tournament);
+
    const progress=make('section','','academic-panel');progress.append(make('h3','Mi rendimiento técnico'));addPerformanceGrid(progress,games);screen.append(progress);
    const history=make('section','','academic-panel');history.append(make('h3','Mis partidas y torneos'));
    if(!games.length)history.append(make('p','Aún no hay partidas enviadas.'));
