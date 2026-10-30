@@ -10,6 +10,7 @@ import { initStudio, inspectLibraryPgnSource } from './studio.js';
 import { initLiveAnalysis } from './live-analysis.js';
 import { initWorkspace } from './workspace.js';
 import { initPerformance, gameMetrics } from './performance.js';
+import { apparentPerformance } from './engine-performance.js';
 import { initBoardAppearance } from './appearance.js';
 import { initBoardArrows } from './board-arrows.js';
 import { initLibraryWorkspace } from './library.js';
@@ -79,10 +80,13 @@ const counts={best:0,good:0,inaccuracy:0,mistake:0,blunder:0};state.reports.forE
    const m=bySide[side],name=state.game.headers?.[side==='w'?'White':'Black']||color;
    const value=m.count?m.quality.toFixed(1)+'%':'—';
    const acpl=m.count?m.avg.toFixed(1)+' cp':'—';
+    const estimate=apparentPerformance(m);
+    const eloLabel=estimate.value===null?'—':estimate.value+' ± '+estimate.spread;
+    const eloNote=estimate.value===null?estimate.reason:'Estimación no calibrada basada en la calidad de jugadas; no es Elo FIDE ni performance de torneo.';
    const level=!m.count?'Pendiente':m.avg<15?'Muy preciso':m.avg<35?'Sólido':m.avg<65?'Irregular':'Necesita revisión';
    const progress=m.count?Math.min(100,m.quality):0;
    const completeness=m.count?(m.complete?'Análisis completo':m.count+' de '+m.totalMoves+' jugadas analizadas'):'Sin análisis';
-   return `<article class="game-side-card"><div class="game-side-heading"><span>${color}</span><strong title="${esc(name)}">${esc(name)}</strong></div><div class="game-side-kpis"><div><small>Precisión estimada</small><strong>${value}</strong></div><div><small>Rendimiento técnico</small><strong class="game-side-level">${level}</strong></div><div><small>Pérdida media (ACPL)</small><strong>${acpl}</strong></div></div><div class="game-side-progress" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="${Math.round(progress)}" aria-label="Índice técnico de ${color}"><i style="width:${progress}%"></i></div><div class="game-side-counts">${countItems.map(([symbol,label,type])=>`<span title="${label}"><b>${symbol}</b><strong>${m.counts[type]||0}</strong><small>${label}</small></span>`).join('')}</div><p class="game-side-complete">${completeness}</p></article>`;
+   return `<article class="game-side-card"><div class="game-side-heading"><span>${color}</span><strong title="${esc(name)}">${esc(name)}</strong></div><div class="game-side-kpis"><div><small>Precisión estimada</small><strong>${value}</strong></div><div title="${esc(eloNote)}"><small>Elo aparente · jugadas</small><strong>${eloLabel}</strong></div><div><small>Rendimiento técnico</small><strong class="game-side-level">${level}</strong></div><div><small>Pérdida media (ACPL)</small><strong>${acpl}</strong></div></div><div class="game-side-progress" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="${Math.round(progress)}" aria-label="Índice técnico de ${color}"><i style="width:${progress}%"></i></div><div class="game-side-counts">${countItems.map(([symbol,label,type])=>`<span title="${label}"><b>${symbol}</b><strong>${m.counts[type]||0}</strong><small>${label}</small></span>`).join('')}</div><p class="game-side-complete">${completeness}</p></article>`;
  }).join('');
 }
 function drawChart(){const canvas=$('#chart'),rect=canvas.getBoundingClientRect(),dpr=devicePixelRatio||1;canvas.width=Math.max(200,rect.width)*dpr;canvas.height=105*dpr;const ctx=canvas.getContext('2d');ctx.scale(dpr,dpr);const w=canvas.width/dpr,h=canvas.height/dpr;ctx.clearRect(0,0,w,h);ctx.fillStyle='#111c2c';ctx.fillRect(0,0,w,h);ctx.strokeStyle='#344359';ctx.lineWidth=1;ctx.beginPath();ctx.moveTo(0,h/2);ctx.lineTo(w,h/2);ctx.stroke();const n=state.positions.length;const pts=state.evaluations.map((e,i)=>e?{x: i/Math.max(1,n-1)*w,y: h/2-Math.tanh(e.cp/430)*(h/2-9)}:null);let started=false;ctx.strokeStyle='#67d3b4';ctx.lineWidth=2;ctx.beginPath();pts.forEach(pt=>{if(!pt){started=false;return;}if(!started){ctx.moveTo(pt.x,pt.y);started=true}else ctx.lineTo(pt.x,pt.y)});ctx.stroke();let x=state.move/Math.max(1,n-1)*w;ctx.strokeStyle='#f0bd68';ctx.beginPath();ctx.moveTo(x,0);ctx.lineTo(x,h);ctx.stroke();}
