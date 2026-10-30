@@ -1,5 +1,5 @@
 import { initAudioPreferences } from './chess-audio.js';
-import {cloudAvailable,getCloudSession,passwordSignIn,passwordSignUp,resetAccountPassword,updateAccountPassword,accountDetails,saveAccountName,cloudLogout,myEnrollments,requestTeacher,setStudentEnrollment,submitAccessRequest} from './cloud.js';
+import {cloudAvailable,getCloudSession,onPasswordRecovery,passwordSignIn,passwordSignUp,resetAccountPassword,updateAccountPassword,accountDetails,saveAccountName,cloudLogout,myEnrollments,requestTeacher,setStudentEnrollment,submitAccessRequest} from './cloud.js';
 export function initPreferences(notify){
  const sheet=document.createElement('div');sheet.className='prefs-overlay';sheet.hidden=true;
  sheet.innerHTML=`<section class="prefs-dialog" role="dialog" aria-modal="true" aria-label="Preferencias de IB Chess"><header><h2>Preferencias y cuenta</h2><button type="button" id="prefs-close" class="btn outline">Cerrar ✕</button></header>
@@ -9,7 +9,7 @@ export function initPreferences(notify){
  <label>Usuario / nombre visible<input id="prefs-name" maxlength="80" placeholder="Nombre completo"></label>
  <label>Contraseña <span class="prefs-pass"><input id="prefs-password" type="password" autocomplete="current-password" placeholder="Mínimo 12 caracteres"><button id="prefs-show-password" type="button" class="btn outline">Mostrar</button></span></label>
  <div class="prefs-actions"><button type="button" class="btn primary" id="prefs-login">Iniciar sesión</button><button type="button" class="btn outline" id="prefs-register" hidden disabled title="El registro requiere una invitación aprobada">Crear cuenta</button><button type="button" class="btn outline" id="prefs-reset">Recuperar acceso</button></div>
- <div class="prefs-actions"><button type="button" class="btn outline" id="prefs-save-name">Guardar nombre visible</button><button type="button" class="btn outline" id="prefs-change-password">Cambiar contraseña</button><button type="button" class="btn outline" id="prefs-logout">Cerrar sesión</button></div>
+ <div id="prefs-recovery-panel" class="prefs-onboarding" hidden><h3>Actualizar contraseña</h3><p>Enlace de recuperación reconocido. Escribí una contraseña nueva de al menos 12 caracteres en el campo de arriba y presioná Actualizar contraseña.</p><button type="button" class="btn primary" id="prefs-update-recovery">Actualizar contraseña</button></div><div class="prefs-actions"><button type="button" class="btn outline" id="prefs-save-name">Guardar nombre visible</button><button type="button" class="btn outline" id="prefs-change-password">Cambiar contraseña</button><button type="button" class="btn outline" id="prefs-logout">Cerrar sesión</button></div>
  <small>Las contraseñas se envían exclusivamente a Supabase Auth por conexión segura; nunca quedan guardadas en el estudio ni son visibles para el profesor.</small>
  </div>
  <div class="prefs-block"><h3>Alumnos y suscripciones</h3><p id="prefs-teacher-status">Iniciá sesión para consultar tus accesos.</p><div id="prefs-enrollments"></div><div class="prefs-actions"><button type="button" class="btn outline" id="prefs-reload-enrollments">Actualizar alumnos</button><button type="button" class="btn outline" id="prefs-copy-invite">Copiar enlace para solicitar acceso</button></div><small>Los alumnos solicitan acceso desde su cuenta y el profesor aprueba su plan. Las contraseñas permanecen privadas en Supabase Auth.</small></div>
@@ -23,6 +23,8 @@ export function initPreferences(notify){
  el('prefs-theme').onchange=e=>applyTheme(e.target.value);
  el('prefs-board-orientation').value=localStorage.getItem('ib-board-orientation')==='black'?'black':'white';
  el('prefs-board-orientation').onchange=e=>{localStorage.setItem('ib-board-orientation',e.target.value);window.IB_SET_BOARD_ORIENTATION?.(e.target.value);};
+ let recoveryMode=new URLSearchParams(location.hash.slice(1)).get('type')==='recovery'||new URLSearchParams(location.search).get('type')==='recovery';
+ const setRecoveryMode=value=>{recoveryMode=value;el('prefs-recovery-panel').hidden=!value;};
  const close=()=>{sheet.hidden=true;el('prefs-password').value='';el('prefs-password').type='password';el('prefs-show-password').textContent='Mostrar';};
  el('prefs-close').onclick=close;sheet.onclick=e=>{if(e.target===sheet)close();};
  el('prefs-show-password').onclick=()=>{const input=el('prefs-password'),show=input.type==='password';input.type=show?'text':'password';el('prefs-show-password').textContent=show?'Ocultar':'Mostrar';};
@@ -59,6 +61,7 @@ export function initPreferences(notify){
  }
  async function refresh(){
   const session=await getCloudSession().catch(()=>null);
+  setRecoveryMode(recoveryMode);
   if(!session){el('prefs-request-block').hidden=false;el('prefs-save-name').hidden=true;el('prefs-change-password').hidden=true;el('prefs-logout').hidden=true;el('prefs-session').textContent='Sin sesión. Si sos nuevo, solicitá acceso antes de registrarte.';el('prefs-teacher-status').textContent='Cuenta de profesor no identificada.';el('prefs-login').hidden=false;el('prefs-reset').hidden=false;el('prefs-onboarding').hidden=true;el('prefs-name').value='';el('prefs-email').value='';el('prefs-email').readOnly=false;el('prefs-switch-hint').hidden=true;el('prefs-password').value='';return;}
   el('prefs-request-block').hidden=true;el('prefs-save-name').hidden=false;el('prefs-change-password').hidden=false;el('prefs-logout').hidden=false;
   el('prefs-email').value=session.user.email||'';
@@ -94,6 +97,17 @@ export function initPreferences(notify){
  el('prefs-reset').onclick=run(async()=>{const email=el('prefs-email').value.trim().toLowerCase();if(!email)throw Error('Ingresá tu correo antes de recuperar acceso.');await resetAccountPassword(email);notify('Si existe una cuenta con ese correo, se solicitó un enlace de recuperación. Revisá también spam.');});
  el('prefs-save-name').onclick=run(async()=>{const name=el('prefs-name').value.trim().replace(/\s+/g,' ');await saveAccountName(name);el('prefs-name').value=name;notify('Nombre visible actualizado.');});
  el('prefs-change-password').onclick=run(async()=>{if(el('prefs-password').value.length<12)throw Error('Mínimo 12 caracteres.');await updateAccountPassword(el('prefs-password').value);sessionStorage.removeItem('ib-invite-activation');notify('Contraseña configurada. Guardá también tu nombre visible si todavía no lo hiciste.');el('prefs-password').value='';});
+ el('prefs-update-recovery').onclick=run(async()=>{
+  if(!recoveryMode)throw Error('Abrí primero el enlace de recuperación enviado a tu correo.');
+  if(!await getCloudSession())throw Error('El enlace no abrió una sesión válida. Solicitá uno nuevo.');
+  const password=el('prefs-password').value;
+  if(password.length<12)throw Error('La nueva contraseña debe tener al menos 12 caracteres.');
+  await updateAccountPassword(password);
+  el('prefs-password').value='';
+  setRecoveryMode(false);
+  notify('Contraseña actualizada correctamente. Ya podés iniciar sesión con tu nueva clave.');
+ });
+ onPasswordRecovery(()=>{setRecoveryMode(true);sheet.hidden=false;refresh();});
  el('prefs-logout').onclick=run(async()=>{await cloudLogout();sessionStorage.removeItem('ib-invite-activation');notify('Sesión cerrada. Ya podés ingresar con otra cuenta.');});
  el('prefs-reload-enrollments').onclick=()=>renderEnrollments();
  el('prefs-copy-invite').onclick=()=>{navigator.clipboard.writeText(location.origin+location.pathname+'?solicitar=1').then(()=>notify('Enlace de solicitud copiado. Este enlace no inicia sesión ni activa una cuenta; la invitación segura se envía desde Supabase Auth.')).catch(()=>notify('No se pudo copiar el enlace.','err'));};
