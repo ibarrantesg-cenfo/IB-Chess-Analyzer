@@ -53,10 +53,20 @@ test('apparent Elo is based on the analyzed side and does not need reference pla
   const a=apparentPerformance({complete:true,count:32,quality:80});
   const b=apparentPerformance({complete:true,count:32,quality:93});
   assert.equal(a.value,1800);
-  assert.equal(b.value,2350);
+  assert.equal(b.value,2550);
   assert.ok(b.value>a.value);
 });
 test('apparent Elo is withheld for incomplete and very short analysis',()=>{
   assert.equal(apparentPerformance({complete:false,count:25,quality:91}).value,null);
   assert.equal(apparentPerformance({complete:true,count:5,quality:91}).value,null);
+});
+
+test('accuracy-only scale uses quality and not player ratings or match result',()=>{
+ const low=apparentPerformance({complete:true,count:32,quality:80});
+ const middle=apparentPerformance({complete:true,count:40,quality:85});
+ const high=apparentPerformance({complete:true,count:40,quality:90});
+ assert.equal(low.value,1800);
+ assert.equal(middle.value,2000);
+ assert.equal(high.value,2325);
+ assert.equal(apparentPerformance({complete:true,count:40,quality:85,rating:1200,opponentRating:2600,result:'0-1'}).value,middle.value);
 });
