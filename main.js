@@ -82,20 +82,38 @@ function classifyMove(loss,ply){
  }catch{}
  return classify(loss,{isBest,interesting,brilliant});
 }
-function comment(rep){if(!rep)return 'Analizá la partida para generar una revisión de cada jugada.';if(rep.type==='blunder')return 'La jugada permite un cambio importante en la evaluación. Revisá primero las capturas, los jaques y las amenazas más forzadas.';if(rep.type==='mistake')return 'La posición empeora: reconstruí las respuestas críticas del rival y comparalas con la primera alternativa del motor.';if(rep.type==='inaccuracy')return 'Había una continuación más precisa. Comprobá qué pieza o casilla gana actividad después de la variante propuesta.';return 'La decisión mantiene razonablemente la evaluación. Verificá la idea principal y el plan de las siguientes jugadas.';}
 function reviewInsight(ply,rep){
  if(!rep||ply<1)return '';
- const played=state.game?.moves[ply-1], before=state.positions[ply-1];
- if(!played||!before)return '';
- const best=bestSan(before,state.evaluations[ply-1]?.best);
- const pv=lineSan(before,state.evaluations[ply-1]?.pv||[]);
- const stage=ply<=20?'En la apertura':ply<=60?'En el medio juego':'En esta fase avanzada';
- const context=played.san.includes('#')?'La jugada termina la partida por mate. ':played.san.includes('+')?'Se trata de una jugada con jaque: revisá las respuestas forzadas. ':played.captured?'Se produce una captura: comprobá el balance material después del intercambio. ':'';
- const alternative=best==='—'?'Stockfish aún no dispone de una alternativa completa.':'El motor propone '+best+(pv==='—'?'':', con la continuación '+pv)+'. ';
- const result=rep.type==='blunder'||rep.type==='mistake'?stage+', la jugada permite una pérdida de evaluación de aproximadamente '+rep.loss+' centipeones. ':rep.type==='inaccuracy'?stage+', existe una continuación más precisa. ':stage+', la jugada conserva aproximadamente la evaluación según el análisis actual. ';
- return result+context+(rep.type==='best'?'':alternative)+'Compará las posiciones finales de cada línea, no solo la primera jugada.';
+ const played=state.game?.moves[ply-1],before=state.positions[ply-1],after=state.positions[ply];
+ if(!played||!before||!after)return '';
+ const pre=state.evaluations[ply-1],post=state.evaluations[ply],best=bestSan(before,pre?.best);
+ const c=new Chess(before),postBoard=new Chess(after);
+ const phase=ply<=20?'apertura':ply<=60?'medio juego':'final';
+ const pieceNames={p:'peón',n:'caballo',b:'alfil',r:'torre',q:'dama',k:'rey'};
+ const piece=pieceNames[played.piece]||'pieza';
+ const subject=played.san+' ('+piece+' hacia '+played.to+')';
+ const player=ply%2?'blancas':'negras';
+ const opponent=ply%2?'negras':'blancas';
+ const evalBefore=pre?.cp,evalAfter=post?.cp,sign=ply%2?1:-1;
+ const beforeForPlayer=Number.isFinite(evalBefore)?evalBefore*sign:null;
+ const afterForPlayer=Number.isFinite(evalAfter)?evalAfter*sign:null;
+ let observations=[];
+ if(played.san.includes('#'))observations.push('concreta un jaque mate');
+ else if(played.san.includes('+'))observations.push('obliga al rey rival a responder al jaque');
+ if(played.captured)observations.push('captura un '+(pieceNames[played.captured]||'pieza')+' en '+played.to);
+ if(played.promotion)observations.push('promociona el peón a '+(pieceNames[played.promotion]||'pieza'));
+ if(played.flags?.includes('k')||played.flags?.includes('q'))observations.push('enroca y reorganiza la seguridad del rey');
+ if(played.piece==='p'&&!played.captured&&!played.promotion)observations.push('modifica la estructura de peones en la columna '+played.to[0]);
+ if(['n','b'].includes(played.piece)&&ply<=20)observations.push('desarrolla una pieza menor');
+ if(postBoard.inCheck()&&!played.san.includes('+')&&!played.san.includes('#'))observations.push('deja al rey en jaque');
+ const change=beforeForPlayer!==null&&afterForPlayer!==null?afterForPlayer-beforeForPlayer:null;
+ const swing=change===null?'':' La evaluación desde '+player+' pasa de '+(beforeForPlayer/100).toFixed(2)+' a '+(afterForPlayer/100).toFixed(2)+' peones.';
+ const alternative=best!=='—'&&best!==played.san?' Stockfish prefiere '+best+'; compará esa continuación con la jugada elegida.':'';
+ const explanation=observations.length?subject+' '+observations.join(' y ')+'.':subject+' es una decisión de '+phase+' que debe evaluarse por su efecto sobre la actividad y las amenazas.';
+ const assessment=rep.loss>95?' La pérdida estimada de '+rep.loss+' cp indica que el rival obtiene una oportunidad concreta.':rep.loss>45?' Se conservan recursos, pero la alternativa del motor preservaba mejor la posición.':rep.loss<=15?' La jugada conserva prácticamente toda la evaluación según la profundidad utilizada.':' La jugada es razonable, aunque permite una pequeña concesión.';
+ return explanation+swing+assessment+alternative+' Revisá la respuesta más fuerte de '+opponent+' antes de decidir el siguiente plan.';
 }
-function renderReport(){const ply=state.move;let rep=state.reports[ply-1];let cp=state.evaluations[ply]?.cp;$('#evaluation').textContent=state.previewFen?'Variante / FEN':fmtEv(cp);$('#review-detail').innerHTML=state.previewFen?'<div class="hint"><strong>Variante en estudio</strong><p>Stockfish analiza esta posición en el panel de variantes en directo. Las evaluaciones del Game Review corresponden a la partida principal.</p></div>':ply===0?'<div class="hint">Seleccioná una jugada para consultar su evaluación y su explicación.</div>':rep?`<div class="review-badge ${rep.type}">${rep.symbol} ${rep.label}</div><div class="review-move">${Math.ceil(ply/2)}${ply%2?' .':' ...'} ${esc(state.game.moves[ply-1].san)}</div><p>${comment(rep)}</p><p class="coach-insight">${esc(reviewInsight(ply,rep))}</p><div class="metric-row"><span>Pérdida estimada</span><strong>${rep.loss} cp</strong></div><div class="metric-row"><span>Evaluación anterior</span><strong>${fmtEv(state.evaluations[ply-1]?.cp)}</strong></div><div class="metric-row"><span>Evaluación actual</span><strong>${fmtEv(state.evaluations[ply]?.cp)}</strong></div><div class="metric-row"><span>Mejor jugada</span><strong>${esc(bestSan(state.positions[ply-1],state.evaluations[ply-1]?.best))}</strong></div><div class="mini-label">Variante recomendada (SAN)</div><div class="pv">${esc(lineSan(state.positions[ply-1],state.evaluations[ply-1]?.pv||[]))}</div>`:'<div class="hint">Esta jugada aún no está analizada. Pulsa «Analizar partida».</div>';
+function renderReport(){const ply=state.move;let rep=state.reports[ply-1];let cp=state.evaluations[ply]?.cp;$('#evaluation').textContent=state.previewFen?'Variante / FEN':fmtEv(cp);$('#review-detail').innerHTML=state.previewFen?'<div class="hint"><strong>Variante en estudio</strong><p>Stockfish analiza esta posición en el panel de variantes en directo. Las evaluaciones del Game Review corresponden a la partida principal.</p></div>':ply===0?'<div class="hint">Seleccioná una jugada para consultar su evaluación y su explicación.</div>':rep?`<div class="review-badge ${rep.type}">${rep.symbol} ${rep.label}</div><div class="review-move">${Math.ceil(ply/2)}${ply%2?' .':' ...'} ${esc(state.game.moves[ply-1].san)}</div><p class="coach-insight">${esc(reviewInsight(ply,rep))}</p><div class="metric-row"><span>Pérdida estimada</span><strong>${rep.loss} cp</strong></div><div class="metric-row"><span>Evaluación anterior</span><strong>${fmtEv(state.evaluations[ply-1]?.cp)}</strong></div><div class="metric-row"><span>Evaluación actual</span><strong>${fmtEv(state.evaluations[ply]?.cp)}</strong></div><div class="metric-row"><span>Mejor jugada</span><strong>${esc(bestSan(state.positions[ply-1],state.evaluations[ply-1]?.best))}</strong></div><div class="mini-label">Variante recomendada (SAN)</div><div class="pv">${esc(lineSan(state.positions[ply-1],state.evaluations[ply-1]?.pv||[]))}</div>`:'<div class="hint">Esta jugada aún no está analizada. Pulsa «Analizar partida».</div>';
 const counts={};state.reports.forEach(x=>{if(x)counts[x.label]=(counts[x.label]||0)+1;});$('#stats').innerHTML=Object.entries(counts).map(([label,n])=>`<div><strong>${n}</strong><span>${esc(label)}</span></div>`).join('');
  const bySide=gameMetrics(state.game,state.reports);
  const summaries=[['w','Blancas'],['b','Negras']];
