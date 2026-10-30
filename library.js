@@ -269,8 +269,29 @@ export function initLibraryWorkspace({studio,notify,onOpen}){
       const open=make('button','btn primary','Abrir estudio');open.onclick=()=>{openGroup=key;render();};wrap.append(open);
       if(entries[0].source==='local'||(entries[0].source==='cloud'&&entries.every(x=>!x.shared))){
         const remove=make('button','btn outline library-delete','Eliminar estudio');
-        remove.onclick=()=>{openGroup=key;render();root.scrollIntoView({behavior:'smooth',block:'start'});};
-        remove.title='Abrir el estudio para confirmar su eliminación completa';
+        remove.onclick=async()=>{
+          const collection=items.filter(x=>x.source===entries[0].source&&x.collectionId===entries[0].collectionId);
+          const all=collection.length?collection:entries;
+          const label=all[0].collectionName||'Estudio';
+          if(!window.confirm('¿Eliminar el estudio «'+label+'» y sus '+all.length+' partidas? Esta acción no se puede deshacer.'))return;
+          const typed=window.prompt('Escribí ELIMINAR para confirmar:');
+          if(typed!=='ELIMINAR')return;
+          remove.disabled=true;
+          try{
+            if(all[0].source==='local')await studio.deleteLibraryCollection(all.map(x=>x.id));
+            else {
+              const {cloudDeleteOwned}=await import('./cloud.js');
+              for(const entry of all)await cloudDeleteOwned(entry.id);
+            }
+            openGroup=null;
+            await refresh();
+            notify('Estudio eliminado: '+all.length+' partidas.');
+          }catch(error){
+            notify('No se pudo eliminar el estudio: '+error.message,'err');
+            await refresh();
+          }finally{remove.disabled=false;}
+        };
+        remove.title='Eliminar este estudio completo de forma permanente';
         wrap.append(remove);
       }
       root.append(wrap);
