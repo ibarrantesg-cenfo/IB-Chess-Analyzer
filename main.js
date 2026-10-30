@@ -6,7 +6,7 @@ import { playChessSound,soundSettings } from './chess-audio.js';
 import { initPreferences } from './preferences.js';
 import { findReview,saveReview } from './review-cache.js';
 import { Chess } from 'chess.js';
-import { initStudio } from './studio.js';
+import { initStudio, inspectLibraryPgnSource } from './studio.js';
 import { initLiveAnalysis } from './live-analysis.js';
 import { initWorkspace } from './workspace.js';
 import { initPerformance, gameMetrics } from './performance.js';
@@ -21,9 +21,24 @@ const glyphs = {wk:'♔',wq:'♕',wr:'♖',wb:'♗',wn:'♘',wp:'♙',bk:'♚',b
 const files='abcdefgh';
 const demo=`[Event "Demostración · Gambito de dama"]\n[Site "IB Chess Academy"]\n[Date "2026.10.27"]\n[White "Blancas"]\n[Black "Negras"]\n[Result "*"]\n\n1. d4 d5 2. c4 e6 3. Nc3 Nf6 4. Bg5 Be7 5. e3 O-O 6. Nf3 Nbd7 7. Rc1 c6 8. Bd3 dxc4 9. Bxc4 Nd5 10. Bxe7 Qxe7 *`;
 function esc(s){return String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
-function chunks(src){const norm=src.replace(/\r/g,''); const events=[...norm.matchAll(/^\[Event\s+"/gm)].map(m=>m.index);if(events.length>1) return events.map((v,i)=>norm.slice(v,events[i+1]??norm.length));return [norm];}
-function parsePGN(text){const out=[];for(const c of chunks(text)){const chess=new Chess();try{chess.loadPgn(c,{strict:false});if(!chess.history().length) continue;out.push({pgn:chess.pgn(),headers:chess.header(),moves:chess.history({verbose:true})});}catch(e){console.warn('PGN omitido',e.message);}}return out;}
-function loadText(text, source='Archivo PGN'){const parsed=parsePGN(text);if(!parsed.length){notify('No se encontraron partidas PGN válidas.','err');return;}stopAnalysis();state.analysisCache.clear();state.games=parsed;chooseGame(0);window.IB_PERFORMANCE?.gameChanged();notify(`${parsed.length} partida(s) importadas de ${source}.`);}
+function parsePGN(text){
+ const rows=inspectLibraryPgnSource(text);
+ if(!rows.length)throw Error('No se encontraron partidas PGN.');
+ const invalid=rows.filter(row=>!row.valid);
+ if(invalid.length)throw Error('PGN inválido: '+invalid.length+' partida(s) con errores. '+invalid.slice(0,3).map(row=>'Partida '+row.index+': '+row.error).join(' | '));
+ return rows.map(row=>{
+  const chess=new Chess();
+  chess.loadPgn(row.pgn,{strict:false});
+  return {pgn:chess.pgn(),headers:chess.header(),moves:chess.history({verbose:true})};
+ });
+}
+function loadText(text, source='Archivo PGN'){
+ let parsed;
+ try{parsed=parsePGN(text);}catch(error){notify('No se importó '+source+': '+error.message,'err');return 0;}
+ stopAnalysis();state.analysisCache.clear();state.games=parsed;chooseGame(0);window.IB_PERFORMANCE?.gameChanged();
+ notify(parsed.length+' partida(s) importadas de '+source+'.');
+ return parsed.length;
+}
 function chooseGame(i){state.game=state.games[i];const chess=new Chess();state.positions=[chess.fen()];for(const m of state.game.moves){chess.move(m.san);state.positions.push(chess.fen());}state.move=0;const cached=state.analysisCache.get(i);state.evaluations=cached?.evaluations||[];state.reports=cached?.reports||[];state.lines=[];if(!cached){const current=state.game;findReview(current).then(saved=>{if(!saved)return;const idx=state.games.indexOf(current);state.analysisCache.set(idx,saved);if(state.game===current){state.evaluations=saved.evaluations;state.reports=saved.reports;render();}window.IB_PERFORMANCE?.analysisFinished();}).catch(console.warn);}if(window.IB_STUDIO)window.IB_STUDIO.gameChanged();render();window.IB_LIVE?.positionChanged(true);window.IB_PERFORMANCE?.gameChanged();}
 function currentBoard(){return new Chess(state.previewFen||state.positions[state.move]||new Chess().fen());}
 function fmtEv(cp){if(cp==null)return '—'; if(Math.abs(cp)>5000)return (cp>0?'+':'−')+'M';return (cp>=0?'+':'')+(cp/100).toFixed(2);}
@@ -90,10 +105,9 @@ $('#paste-pgn-close').onclick=()=>togglePaste(false);
 $('#paste-pgn-import').onclick=()=>{
  const input=pasteInput.value.trim();
  if(!input){$('#paste-pgn-status').textContent='Pegá primero el texto PGN.';return;}
- const parsed=parsePGN(input);
- if(!parsed.length){$('#paste-pgn-status').textContent='No se encontraron partidas válidas. Revisá la notación PGN.';notify('No se pudo interpretar el PGN.','err');return;}
- loadText(input,'texto pegado');
- $('#paste-pgn-status').textContent=parsed.length+' partida(s) cargadas correctamente.';
+ const count=loadText(input,'texto pegado');
+ if(!count){$('#paste-pgn-status').textContent='El PGN contiene partidas inválidas o incompletas. Revisá el mensaje de error; no se reemplazaron tus partidas actuales.';return;}
+ $('#paste-pgn-status').textContent=count+' partida(s) cargadas correctamente.';
  togglePaste(false);
 };
 
@@ -121,8 +135,8 @@ window.IB_LIVE=initLiveAnalysis({getFen:()=>state.previewFen||state.positions[st
 
 window.IB_PERFORMANCE=initPerformance({state,notify,analyzeGame:analyze,jumpGame:i=>{if(state.busy)return;chooseGame(i);},getAnalyses:()=>state.analysisCache});
 
-window.IB_OPEN_REPORT=async(pgn,source)=>{loadText(pgn,source);document.querySelector('#nav-reports').click();for(let i=0;i<state.games.length;i++){try{const saved=await findReview(state.games[i]);if(saved)state.analysisCache.set(i,saved);}catch(e){console.warn(e);}}window.IB_PERFORMANCE?.analysisFinished();};
-window.IB_LOAD_STUDY=(pgn,source)=>{loadText(pgn,source);document.querySelector('#nav-reports').click();window.IB_PERFORMANCE?.analyzeCurrentStudy?.();};
+window.IB_OPEN_REPORT=async(pgn,source)=>{if(!loadText(pgn,source))return;document.querySelector('#nav-reports').click();for(let i=0;i<state.games.length;i++){try{const saved=await findReview(state.games[i]);if(saved)state.analysisCache.set(i,saved);}catch(e){console.warn(e);}}window.IB_PERFORMANCE?.analysisFinished();};
+window.IB_LOAD_STUDY=(pgn,source)=>{if(!loadText(pgn,source))return;document.querySelector('#nav-reports').click();window.IB_PERFORMANCE?.analyzeCurrentStudy?.();};
 window.IB_LIBRARY=initLibraryWorkspace({studio:window.IB_STUDIO,notify,onOpen:()=>{window.IB_WORKSPACE?.refresh();}});
 const navReview=document.querySelector('#nav-review'),navLibrary=document.querySelector('#nav-library'),navReports=document.querySelector('#nav-reports');
 navReview.onclick=()=>{window.IB_ACADEMY_ANALYTICS?.close();window.IB_ACADEMIC?.close();window.IB_ACADEMY?.close();window.IB_PERFORMANCE.hide();window.IB_LIBRARY.close();};
