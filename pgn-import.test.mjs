@@ -1,6 +1,15 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {inspectLibraryPgnSource} from './studio.js';
+import fs from 'node:fs';
+import { Chess } from 'chess.js';
+import vm from 'node:vm';
+// Isolate the parser from browser-only Supabase, DOM and localStorage initialization.
+const source=fs.readFileSync(new URL('./studio.js',import.meta.url),'utf8');
+const start=source.indexOf('function splitLibraryPgnSource(');
+const end=source.indexOf('export function initStudio(',start);
+if(start<0||end<0)throw Error('PGN parser functions were not found');
+const parser=source.slice(start,end).replace('export function inspectLibraryPgnSource','function inspectLibraryPgnSource');
+const inspectLibraryPgnSource=vm.runInNewContext('(()=>{'+parser+';return inspectLibraryPgnSource;})()', {Chess});
 
 test('import a single PGN with event and normal comments',()=>{
  const pgn='[Event "Partida de prueba"]\n[White "Alumno"]\n[Black "Rival"]\n[Result "1-0"]\n\n1. e4 e5 {Comentario de prueba} 2. Nf3 Nc6 3. Bc4 Bc5 1-0';
