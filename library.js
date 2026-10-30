@@ -312,11 +312,11 @@ export function initLibraryWorkspace({studio,notify,onOpen}){
    for(const row of result.rows){
     const item=document.createElement('div');item.className='library-paste-preview-row '+(row.valid?'ok':'bad');
     const main=document.createElement('span');main.textContent=row.valid?row.index+'. '+row.name+' · '+row.moves+' medias jugadas':row.index+'. Error: '+row.error;item.append(main);
-    if(row.valid){const meta=document.createElement('small');meta.textContent=[row.headers.Event,row.headers.Round?'Ronda '+row.headers.Round:'',row.headers.Result].filter(Boolean).join(' · ');item.append(meta);}
+    if(row.valid){const meta=document.createElement('small');meta.textContent=[row.headers.Event,row.headers.Round?'Ronda '+row.headers.Round:'',row.headers.Result,row.annotationsRemoved?'Importación recuperada: solo línea principal (comentarios/variantes incompatibles omitidos)':''].filter(Boolean).join(' · ');item.append(meta);}
     list.append(item);
    }
    previewBox.append(list);previewBox.hidden=false;
-   if(result.valid&&!result.invalid){verified={text,name};savePaste.disabled=false;showPasteStatus('Revisión correcta. Ya podés guardar el estudio.','success');}
+   if(result.valid&&!result.invalid){verified={text,name};savePaste.disabled=false;showPasteStatus(result.rows.some(r=>r.annotationsRemoved)?'Se recuperaron partidas, pero los comentarios o variantes incompatibles se omitirán. El PGN pegado no se modificará; guardá la copia solo si te sirve la línea principal.':'Revisión correcta. Ya podés guardar el estudio.',result.rows.some(r=>r.annotationsRemoved)?'info':'success');}
    else showPasteStatus(result.invalid?'Corregí las partidas señaladas; no se guardará un estudio incompleto.':'No se encontraron partidas válidas.','error');
   }catch(e){showPasteStatus('No se pudo revisar el PGN: '+e.message,'error');}
   finally{button.disabled=false;}
