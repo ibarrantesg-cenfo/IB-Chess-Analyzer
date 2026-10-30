@@ -2,7 +2,7 @@ import { Chess } from 'chess.js';
 
 // UCI analysis runs in its own Web Worker. Batch Game Review is a separate engine.
 // No network calls or paid API are required.
-export function initLiveAnalysis({getFen,getEngineUrl,notify,onSaveVariation,onPreview,onLeavePreview}) {
+export function initLiveAnalysis({getFen,getEngineUrl,notify,onSaveVariation,onPreview,onLeavePreview,isGameReviewBusy=()=>false}) {
   const host=document.querySelector('.analysis-column');
   const panel=document.createElement('div');
   panel.className='panel live-analysis-panel';
@@ -211,7 +211,7 @@ export function initLiveAnalysis({getFen,getEngineUrl,notify,onSaveVariation,onP
   $('live-enabled').onchange=e=>{enabled=e.target.checked;if(!enabled){clearTimeout(debounce);stopWorker();draw();}else update(true);};
   $('live-count').onchange=()=>{const fen=getFen();stopWorker();queuedFen=fen;start();};
   $('live-depth').onchange=()=>update(true);
-  $('live-restart').onclick=()=>{queuedFen=getFen();start();};
+  $('live-restart').onclick=()=>{if(isGameReviewBusy()){notify('Game Review está analizando la partida. El análisis en directo volverá automáticamente al terminar.','err');return;}paused=false;queuedFen=getFen();start();};
   update(true);
   return {
     positionChanged:update,
