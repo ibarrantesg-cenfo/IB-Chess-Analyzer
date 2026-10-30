@@ -114,6 +114,14 @@ export async function setStudentEnrollment(id,state,plan,expiresAt){
  if(error)throw error;
 }
 
+export function onPasswordRecovery(callback){
+ if(!api)return ()=>{};
+ const {data}=api.auth.onAuthStateChange((event)=>{
+  if(event==='PASSWORD_RECOVERY')queueMicrotask(callback);
+ });
+ return ()=>data.subscription.unsubscribe();
+}
+
 export function onAccountChange(callback){if(!api)return ()=>{};const {data}=api.auth.onAuthStateChange(()=>{queueMicrotask(()=>callback());});return ()=>data.subscription.unsubscribe();}
 
 export async function submitAccessRequest(email,fullName,requestedRole='student'){
