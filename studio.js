@@ -47,6 +47,34 @@ el('studio-library-summary').textContent=rows.length+' estudios locales · '+stu
 el('studio-results').innerHTML=filtered.slice(0,40).map(x=>'<button type="button" class="studio-result" data-open-study="'+safe(x.id)+'"><strong>'+safe(x.name)+'</strong><small>'+safe(x.student)+' · '+safe(new Date(x.updated).toLocaleDateString('es-CR'))+'</small></button>').join('')||'<small>No hay estudios coincidentes.</small>';
 }catch(e){notify('Almacenamiento local no disponible: '+e.message,'err');}}
 function exportStudy(){if(!active)return notify('Primero guardá un estudio.','err');const blob=new Blob([JSON.stringify(active,null,2)],{type:'application/json'}),url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download='IB_Estudio_'+active.student.replace(/[^a-z0-9_-]/gi,'_')+'.json';a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);}
+function splitLibraryPgnSource(source){
+ const clean=String(source||'').replace(/\r\n?/g,'\n').replace(/^\uFEFF/,'').trim();
+ if(!clean)return [];
+ const lines=clean.split('\n'),parts=[];let segment=[],seenMoves=false;
+ const hasMoveLine=line=>/^\s*(?:\d+\s*\.(?:\.\.)?\s*|\{?\s*\d+\s*\.)/.test(line);
+ for(const line of lines){
+  if(/^\s*\[[A-Za-z][A-Za-z0-9_]*\s+"/.test(line)&&seenMoves){
+   const last=segment.join('\n').trim();if(last)parts.push(last);
+   segment=[];seenMoves=false;
+  }
+  segment.push(line);
+  if(hasMoveLine(line))seenMoves=true;
+ }
+ if(segment.join('\n').trim())parts.push(segment.join('\n').trim());
+ return parts;
+}
+function inspectLibraryPgnSource(source){
+ if(typeof source!=='string'||source.length>15_000_000)throw Error('PGN demasiado grande (máximo 15 MB).');
+ const parts=splitLibraryPgnSource(source);
+ if(parts.length>500)throw Error('Por seguridad, importá un máximo de 500 partidas por archivo.');
+ return parts.map((pgn,index)=>{
+  try{const game=new Chess();game.loadPgn(pgn,{strict:false});const moves=game.history();
+   if(!moves.length)throw Error('No se detectaron jugadas legales.');
+   const headers=game.header();
+   return {index:index+1,valid:true,headers,moves:moves.length,pgn:game.pgn(),name:[headers.White||'Blancas',headers.Black||'Negras'].join(' – ')};
+  }catch(error){return {index:index+1,valid:false,error:String(error.message||'PGN no válido').slice(0,220)};}
+ });
+}
 export function initStudio(state,callbacks){selected=state;onChange=callbacks.render;notify=callbacks.notify;
  const parent=document.querySelector('.analysis-column');
  const panel=document.createElement('div');panel.className='panel studio-panel';panel.innerHTML=`
@@ -189,25 +217,22 @@ el('studio-export').onclick=exportStudy;
  tree=initVariationBoard(selected,{render:callbacks.renderPreview,notify,isEditing:()=>paint,save:v=>{ensure();const i=active.variations.findIndex(x=>x.id===v.id);if(i>=0)active.variations[i]=v;else active.variations.push(v);change();renderNotes();}});
  refreshLibrary();renderNotes();
  return {
+async previewLibraryPgn(text){
+ const rows=inspectLibraryPgnSource(text);
+ return {rows,valid:rows.filter(x=>x.valid).length,invalid:rows.filter(x=>!x.valid).length};
+},
 async importLibraryPgn(text,studentLabel='Sin alumno',collectionName='Estudio importado'){
- if(typeof text!=='string'||text.length>15_000_000)throw Error('Archivo PGN demasiado grande (máximo 15 MB).');
- const clean=text.replace(/\r/g,'');
- const starts=[...clean.matchAll(/^\[Event\s+"/gm)].map(match=>match.index);
- const segments=starts.length>1?starts.map((at,i)=>clean.slice(at,starts[i+1]??clean.length)):[clean];
- if(segments.length>500)throw Error('Por seguridad, importá un máximo de 500 partidas por archivo.');
- let inserted=0,invalid=0;const collectionId=crypto.randomUUID();
- for(const segment of segments){
-  try{
-   const game=new Chess();game.loadPgn(segment,{strict:false});
-   if(!game.history().length){invalid++;continue;}
-   const header=game.header(),name=[header.White||'Blancas',header.Black||'Negras'].join(' – ');
-   const now=new Date().toISOString();
-   await put({id:crypto.randomUUID(),collectionId,collectionName:String(collectionName).slice(0,120),name,student:String(studentLabel||'Sin alumno').slice(0,100),pgn:game.pgn(),comments:{},variations:[],diagrams:[],created:now,updated:now});
-   inserted++;
-  }catch{invalid++;}
+ const rows=inspectLibraryPgnSource(text);
+ if(!rows.length) return {inserted:0,invalid:0};
+ if(rows.some(row=>!row.valid))return {inserted:0,invalid:rows.filter(row=>!row.valid).length,blocked:true};
+ let inserted=0;const collectionId=crypto.randomUUID();
+ for(const row of rows){
+  const now=new Date().toISOString();
+  await put({id:crypto.randomUUID(),collectionId,collectionName:String(collectionName).slice(0,120),name:row.name,student:String(studentLabel||'Sin alumno').slice(0,100),pgn:row.pgn,comments:{},variations:[],diagrams:[],created:now,updated:now});
+  inserted++;
  }
  await refreshLibrary();
- return {inserted,invalid};
+ return {inserted,invalid:0};
 },
 async organizeLibraryItems(ids,name){
  const label=String(name||'').trim();
