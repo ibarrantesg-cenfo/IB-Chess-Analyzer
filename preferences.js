@@ -9,7 +9,7 @@ export function initPreferences(notify){
  <label>Usuario / nombre visible<input id="prefs-name" maxlength="80" placeholder="Nombre completo"></label>
  <label>Contraseña <span class="prefs-pass"><input id="prefs-password" type="password" autocomplete="current-password" placeholder="Mínimo 12 caracteres"><button id="prefs-show-password" type="button" class="btn outline">Mostrar</button></span></label>
  <div class="prefs-actions"><button type="button" class="btn primary" id="prefs-login">Iniciar sesión</button><button type="button" class="btn outline" id="prefs-register" hidden disabled title="El registro requiere una invitación aprobada">Crear cuenta</button><button type="button" class="btn outline" id="prefs-reset">Recuperar acceso</button></div>
- <div id="prefs-recovery-panel" class="prefs-onboarding" hidden><h3>Actualizar contraseña</h3><p>Enlace de recuperación reconocido. Escribí una contraseña nueva de al menos 12 caracteres en el campo de arriba y presioná Actualizar contraseña.</p><button type="button" class="btn primary" id="prefs-update-recovery">Actualizar contraseña</button></div><div class="prefs-actions"><button type="button" class="btn outline" id="prefs-save-name">Guardar nombre visible</button><button type="button" class="btn outline" id="prefs-change-password">Cambiar contraseña</button><button type="button" class="btn outline" id="prefs-logout">Cerrar sesión</button></div>
+ <div id="prefs-recovery-panel" class="prefs-onboarding" hidden><h3>Actualizar contraseña</h3><p>Enlace de recuperación reconocido. Escribí una contraseña nueva de al menos 12 caracteres en el campo de arriba y presioná Actualizar contraseña.</p><label>Confirmar contraseña nueva<input id="prefs-confirm-recovery" type="password" autocomplete="new-password" placeholder="Repetí tu nueva contraseña"></label><button type="button" class="btn primary" id="prefs-update-recovery">Actualizar contraseña</button></div><div class="prefs-actions"><button type="button" class="btn outline" id="prefs-save-name">Guardar nombre visible</button><button type="button" class="btn outline" id="prefs-change-password">Cambiar contraseña</button><button type="button" class="btn outline" id="prefs-logout">Cerrar sesión</button></div>
  <small>Las contraseñas se envían exclusivamente a Supabase Auth por conexión segura; nunca quedan guardadas en el estudio ni son visibles para el profesor.</small>
  </div>
  <div class="prefs-block"><h3>Alumnos y suscripciones</h3><p id="prefs-teacher-status">Iniciá sesión para consultar tus accesos.</p><div id="prefs-enrollments"></div><div class="prefs-actions"><button type="button" class="btn outline" id="prefs-reload-enrollments">Actualizar alumnos</button><button type="button" class="btn outline" id="prefs-copy-invite">Copiar enlace para solicitar acceso</button></div><small>Los alumnos solicitan acceso desde su cuenta y el profesor aprueba su plan. Las contraseñas permanecen privadas en Supabase Auth.</small></div>
@@ -25,7 +25,7 @@ export function initPreferences(notify){
  el('prefs-board-orientation').onchange=e=>{localStorage.setItem('ib-board-orientation',e.target.value);window.IB_SET_BOARD_ORIENTATION?.(e.target.value);};
  let recoveryMode=new URLSearchParams(location.hash.slice(1)).get('type')==='recovery'||new URLSearchParams(location.search).get('type')==='recovery';
  const setRecoveryMode=value=>{recoveryMode=value;el('prefs-recovery-panel').hidden=!value;};
- const close=()=>{sheet.hidden=true;el('prefs-password').value='';el('prefs-password').type='password';el('prefs-show-password').textContent='Mostrar';};
+ const close=()=>{sheet.hidden=true;el('prefs-password').value='';el('prefs-confirm-recovery').value='';el('prefs-password').type='password';el('prefs-show-password').textContent='Mostrar';};
  el('prefs-close').onclick=close;sheet.onclick=e=>{if(e.target===sheet)close();};
  el('prefs-show-password').onclick=()=>{const input=el('prefs-password'),show=input.type==='password';input.type=show?'text':'password';el('prefs-show-password').textContent=show?'Ocultar':'Mostrar';};
  async function renderEnrollments(){
@@ -102,7 +102,9 @@ export function initPreferences(notify){
   if(!await getCloudSession())throw Error('El enlace no abrió una sesión válida. Solicitá uno nuevo.');
   const password=el('prefs-password').value;
   if(password.length<12)throw Error('La nueva contraseña debe tener al menos 12 caracteres.');
+  if(password!==el('prefs-confirm-recovery').value)throw Error('Las contraseñas no coinciden. Revisalas antes de guardar.');
   await updateAccountPassword(password);
+  el('prefs-confirm-recovery').value='';
   el('prefs-password').value='';
   setRecoveryMode(false);
   notify('Contraseña actualizada correctamente. Ya podés iniciar sesión con tu nueva clave.');
