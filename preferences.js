@@ -12,7 +12,7 @@ export function initPreferences(notify){
  <div class="prefs-actions"><button type="button" class="btn outline" id="prefs-save-name">Guardar nombre visible</button><button type="button" class="btn outline" id="prefs-change-password">Cambiar contraseña</button><button type="button" class="btn outline" id="prefs-logout">Cerrar sesión</button></div>
  <small>Las contraseñas se envían exclusivamente a Supabase Auth por conexión segura; nunca quedan guardadas en el estudio ni son visibles para el profesor.</small>
  </div>
- <div class="prefs-block"><h3>Alumnos y suscripciones</h3><p id="prefs-teacher-status">Iniciá sesión para consultar tus accesos.</p><div id="prefs-enrollments"></div><div class="prefs-actions"><button type="button" class="btn outline" id="prefs-reload-enrollments">Actualizar alumnos</button><button type="button" class="btn outline" id="prefs-copy-invite">Copiar enlace de registro</button></div><small>Los alumnos solicitan acceso desde su cuenta y el profesor aprueba su plan. Las contraseñas permanecen privadas en Supabase Auth.</small></div>
+ <div class="prefs-block"><h3>Alumnos y suscripciones</h3><p id="prefs-teacher-status">Iniciá sesión para consultar tus accesos.</p><div id="prefs-enrollments"></div><div class="prefs-actions"><button type="button" class="btn outline" id="prefs-reload-enrollments">Actualizar alumnos</button><button type="button" class="btn outline" id="prefs-copy-invite">Copiar enlace para solicitar acceso</button></div><small>Los alumnos solicitan acceso desde su cuenta y el profesor aprueba su plan. Las contraseñas permanecen privadas en Supabase Auth.</small></div>
  </div></section>`;
  document.body.append(sheet);initAudioPreferences();
  const el=id=>document.getElementById(id),settingsKey='ib-chess-theme-v1';
@@ -75,13 +75,27 @@ export function initPreferences(notify){
  }
  const run=fn=>async()=>{try{await fn();await refresh();}catch(e){notify(e.message||String(e),'err');}};
  el('request-send').onclick=run(async()=>{await submitAccessRequest(el('request-email').value,el('request-name').value,el('request-role').value);notify('Solicitud recibida. El profesor debe revisarla.');});
- el('prefs-login').onclick=run(async()=>{if(await getCloudSession())throw Error('Cerrá sesión antes de ingresar con otro correo.');await passwordSignIn(el('prefs-email').value.trim(),el('prefs-password').value);notify('Sesión iniciada.');});
+ el('prefs-login').onclick=run(async()=>{
+   if(await getCloudSession())throw Error('Cerrá sesión antes de ingresar con otro correo.');
+   const email=el('prefs-email').value.trim().toLowerCase();
+   const password=el('prefs-password').value;
+   if(!email||!password)throw Error('Ingresá tu correo y contraseña.');
+   el('prefs-email').value=email;
+   try{await passwordSignIn(email,password);}
+   catch(error){
+     if(password!==password.trim() && /invalid login credentials/i.test(error.message||'')){
+       throw Error('Las credenciales no coinciden. Detectamos espacios al inicio o al final de la contraseña. Revisalos y volvé a intentar; por seguridad no modificamos contraseñas automáticamente.');
+     }
+     throw error;
+   }
+   notify('Sesión iniciada.');
+ });
 
- el('prefs-reset').onclick=run(async()=>{await resetAccountPassword(el('prefs-email').value.trim());notify('Si existe una cuenta con ese correo, se envió el enlace de recuperación.');});
- el('prefs-save-name').onclick=run(async()=>{await saveAccountName(el('prefs-name').value);notify('Nombre visible actualizado.');});
+ el('prefs-reset').onclick=run(async()=>{const email=el('prefs-email').value.trim().toLowerCase();if(!email)throw Error('Ingresá tu correo antes de recuperar acceso.');await resetAccountPassword(email);notify('Si existe una cuenta con ese correo, se solicitó un enlace de recuperación. Revisá también spam.');});
+ el('prefs-save-name').onclick=run(async()=>{const name=el('prefs-name').value.trim().replace(/\s+/g,' ');await saveAccountName(name);el('prefs-name').value=name;notify('Nombre visible actualizado.');});
  el('prefs-change-password').onclick=run(async()=>{if(el('prefs-password').value.length<12)throw Error('Mínimo 12 caracteres.');await updateAccountPassword(el('prefs-password').value);sessionStorage.removeItem('ib-invite-activation');notify('Contraseña configurada. Guardá también tu nombre visible si todavía no lo hiciste.');el('prefs-password').value='';});
  el('prefs-logout').onclick=run(async()=>{await cloudLogout();sessionStorage.removeItem('ib-invite-activation');notify('Sesión cerrada. Ya podés ingresar con otra cuenta.');});
  el('prefs-reload-enrollments').onclick=()=>renderEnrollments();
- el('prefs-copy-invite').onclick=()=>{navigator.clipboard.writeText(location.origin+location.pathname+'?solicitar=1').then(()=>notify('Enlace para solicitar una cuenta copiado.'));};
+ el('prefs-copy-invite').onclick=()=>{navigator.clipboard.writeText(location.origin+location.pathname+'?solicitar=1').then(()=>notify('Enlace de solicitud copiado. Este enlace no inicia sesión ni activa una cuenta; la invitación segura se envía desde Supabase Auth.')).catch(()=>notify('No se pudo copiar el enlace.','err'));};
  return {open:()=>{sheet.hidden=false;refresh();},close};
 }
