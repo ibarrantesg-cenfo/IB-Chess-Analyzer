@@ -209,7 +209,29 @@ export function initLibraryWorkspace({studio,notify,onOpen}){
     const previous=make('button','btn outline','← Volver');previous.onclick=()=>{openGroup=null;render();};
     const rename=make('button','btn outline','Renombrar estudio');
     rename.onclick=async()=>{const name=window.prompt('Nombre del estudio',all[0].collectionName);if(name===null)return;try{await studio.renameLibraryCollection(all.map(x=>x.id),name);await refresh();}catch(e){notify(e.message,'err');}};
-    heading.append(previous,make('h3','',all[0].collectionName||'Estudio'),make('span','',all.length+' partidas'),rename);
+    heading.append(previous,make('h3','',all[0].collectionName||'Estudio'),make('span','',all.length+' partidas'));
+    if(all[0].source==='local')heading.append(rename);
+    const deleteCollection=make('button','btn outline library-delete','Eliminar estudio completo');
+    if((all[0].source==='local')||(all[0].source==='cloud'&&all.every(x=>!x.shared))){
+      deleteCollection.onclick=async()=>{
+        const label=all[0].collectionName||'Estudio',total=all.length;
+        if(!window.confirm('¿Eliminar TODO el estudio «'+label+'» y sus '+total+' partidas? Esta acción no puede deshacerse.'))return;
+        const typed=window.prompt('Para confirmar, escribí ELIMINAR:');
+        if(typed!=='ELIMINAR')return;
+        deleteCollection.disabled=true;
+        try{
+          if(all[0].source==='local')await studio.deleteLibraryCollection(all.map(x=>x.id));
+          else {
+            const {cloudDeleteOwned}=await import('./cloud.js');
+            for(const entry of all)await cloudDeleteOwned(entry.id);
+          }
+          openGroup=null;await refresh();notify('Estudio eliminado: '+total+' partidas.');
+        }catch(e){notify('No se pudo eliminar todo el estudio: '+e.message,'err');await refresh();}
+        finally{deleteCollection.disabled=false;}
+      };
+      heading.append(deleteCollection);
+    }
+
     const analyzeStudy=make('button','btn primary','Analizar estudio completo');
     analyzeStudy.onclick=async()=>{
       try{
@@ -244,7 +266,14 @@ export function initLibraryWorkspace({studio,notify,onOpen}){
          catch(e){notify('No se pudo abrir el informe: '+e.message,'err');}};
         wrap.append(report);
       }).catch(()=>{status.textContent='No se pudo recuperar el resumen del análisis';});
-      const open=make('button','btn primary','Abrir estudio');open.onclick=()=>{openGroup=key;render();};wrap.append(open);root.append(wrap);
+      const open=make('button','btn primary','Abrir estudio');open.onclick=()=>{openGroup=key;render();};wrap.append(open);
+      if(entries[0].source==='local'||(entries[0].source==='cloud'&&entries.every(x=>!x.shared))){
+        const remove=make('button','btn outline library-delete','Eliminar estudio');
+        remove.onclick=()=>{openGroup=key;render();root.scrollIntoView({behavior:'smooth',block:'start'});};
+        remove.title='Abrir el estudio para confirmar su eliminación completa';
+        wrap.append(remove);
+      }
+      root.append(wrap);
     }else root.append(card(entries[0]));
   }
  }
