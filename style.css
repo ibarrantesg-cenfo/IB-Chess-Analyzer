@@ -779,3 +779,16 @@
 :root[data-theme="light"] .academy-analytics-kpi strong{color:#137b5a}
 @media(max-width:970px){.academy-analytics-filters{grid-template-columns:repeat(2,minmax(0,1fr))}.academy-analytics-cards{grid-template-columns:repeat(2,minmax(0,1fr))}.academy-analytics-event-kpis{grid-template-columns:repeat(3,minmax(0,1fr))}}
 @media(max-width:550px){.academy-analytics-filters,.academy-analytics-cards{grid-template-columns:1fr}.academy-analytics-event-kpis{grid-template-columns:repeat(2,minmax(0,1fr))}}
+
+/* Import preview is intentionally outside the chessboard and does not affect piece/arrow rendering */
+.library-workspace .library-paste-preview{display:flex;flex-direction:column;gap:10px;border:1px solid #3b6570;border-radius:10px;background:#0e2231;padding:14px;color:#d4f7e8}
+.library-workspace .library-paste-preview[hidden]{display:none!important}
+.library-workspace .library-paste-preview>strong{font-size:13px}
+.library-workspace .library-paste-preview-list{display:grid;gap:7px;max-height:260px;overflow-y:auto}
+.library-workspace .library-paste-preview-row{display:flex;gap:8px;align-items:baseline;justify-content:space-between;flex-wrap:wrap;background:#173245;padding:10px 12px;border-radius:8px;border-left:3px solid #72d9b4}
+.library-workspace .library-paste-preview-row.bad{border-left-color:#ef9b99}
+.library-workspace .library-paste-preview-row span{font-size:12px;overflow-wrap:anywhere}
+.library-workspace .library-paste-preview-row small{font-size:10px;color:#9ebac8}
+.library-workspace #library-paste-import:disabled{opacity:.48;cursor:not-allowed}
+:root[data-theme="light"] .library-workspace .library-paste-preview{background:#f3faf7;color:#174c3b;border-color:#b4d7cf}
+:root[data-theme="light"] .library-workspace .library-paste-preview-row{background:#e5f4ef;color:#234658}
