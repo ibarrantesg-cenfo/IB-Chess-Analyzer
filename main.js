@@ -130,11 +130,13 @@ navLibrary.onclick=()=>{window.IB_ACADEMY_ANALYTICS?.close();window.IB_ACADEMIC?
 navReports.onclick=()=>{window.IB_ACADEMY_ANALYTICS?.close();window.IB_ACADEMIC?.close();window.IB_ACADEMY?.close();window.IB_LIBRARY.close();window.IB_PERFORMANCE.show();navReview.classList.remove('active');navLibrary.classList.remove('active');};
 
 
-const inviteLanding=new URLSearchParams(location.hash.slice(1)).get('type')==='invite';
+const landingType=new URLSearchParams(location.hash.slice(1)).get('type');
+const inviteLanding=landingType==='invite';
+const recoveryLanding=landingType==='recovery'||new URLSearchParams(location.search).get('type')==='recovery';
 if(inviteLanding)sessionStorage.setItem('ib-invite-activation','1');
 window.IB_PREFERENCES=initPreferences(notify);
 document.querySelector('#nav-preferences').onclick=()=>window.IB_PREFERENCES.open();
-if(new URLSearchParams(location.search).get('solicitar')==='1'||inviteLanding)window.IB_PREFERENCES.open();
+if(new URLSearchParams(location.search).get('solicitar')==='1'||inviteLanding||recoveryLanding)window.IB_PREFERENCES.open();
 
 window.IB_SET_BOARD_ORIENTATION=(color)=>{state.orientation=color==='black'?'black':'white';render();window.IB_ARROWS?.positionChanged();};
 
