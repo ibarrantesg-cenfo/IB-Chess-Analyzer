@@ -12,7 +12,7 @@ export function initLibraryWorkspace({studio,notify,onOpen}){
  const toolbar=page.querySelector('.toolbar'),tools=page.querySelector('.workspace-tools');
  const panel=document.createElement('section');panel.className='library-workspace';panel.hidden=true;
  panel.innerHTML=`<header class="library-header"><div><div class="eyebrow">IB CHESS ACADEMY · BIBLIOTECA</div><h2>Mis partidas y estudios</h2><p>Buscá, abrí y exportá tus estudios locales o sincronizados. Los compartidos respetan los permisos de Supabase.</p></div><label class="btn primary library-upload">＋ Importar PGN a biblioteca<input type="file" id="library-import-file" accept=".pgn,.txt" multiple hidden/></label></header>
- <details class="library-paste-box" id="library-paste-box"><summary class="library-paste-summary"><span class="library-paste-heading"><strong>⌁ Pegar PGN de estudio o partidas</strong><small>Importá partidas copiadas de Lichess, Chess.com u otro editor PGN.</small></span><span class="library-paste-chevron" aria-hidden="true">⌄</span></summary><div class="library-paste-body"><div class="library-paste-field"><label for="library-paste-name">Nombre del estudio</label><input id="library-paste-name" type="text" maxlength="120" placeholder="Ej. JUNCOS 2026 · Repertorio Najdorf"/></div><div class="library-paste-field"><label for="library-paste-text">Contenido PGN</label><textarea id="library-paste-text" rows="11" spellcheck="false" placeholder='[Event "Entrenamiento"]&#10;[White "Jugador 1"]&#10;[Black "Jugador 2"]&#10;[Result "*"]&#10;&#10;1. e4 e5 2. Nf3 Nc6 *'></textarea></div><div class="library-paste-actions"><button type="button" class="btn primary" id="library-paste-import">Guardar estudio en biblioteca</button><button type="button" class="btn outline" id="library-paste-clear">Limpiar</button><span class="library-paste-helper">Admite varias partidas · Guardado local en este navegador</span></div><div id="library-paste-note" class="library-paste-note" role="status" aria-live="polite" hidden></div></div></details>
+ <details class="library-paste-box" id="library-paste-box"><summary class="library-paste-summary"><span class="library-paste-heading"><strong>⌁ Pegar PGN de estudio o partidas</strong><small>Importá partidas copiadas de Lichess, Chess.com u otro editor PGN.</small></span><span class="library-paste-chevron" aria-hidden="true">⌄</span></summary><div class="library-paste-body"><div class="library-paste-field"><label for="library-paste-name">Nombre del estudio</label><input id="library-paste-name" type="text" maxlength="120" placeholder="Ej. JUNCOS 2026 · Repertorio Najdorf"/></div><div class="library-paste-field"><label for="library-paste-text">Contenido PGN</label><textarea id="library-paste-text" rows="11" spellcheck="false" placeholder='[Event "Entrenamiento"]&#10;[White "Jugador 1"]&#10;[Black "Jugador 2"]&#10;[Result "*"]&#10;&#10;1. e4 e5 2. Nf3 Nc6 *'></textarea></div><div class="library-paste-actions"><button type="button" class="btn outline" id="library-paste-preview">Revisar PGN</button><button type="button" class="btn primary" id="library-paste-import" disabled>Guardar estudio en biblioteca</button><button type="button" class="btn outline" id="library-paste-clear">Limpiar</button><span class="library-paste-helper">Admite varias partidas · Guardado local en este navegador</span></div><div id="library-paste-preview-result" class="library-paste-preview" aria-live="polite" hidden></div><div id="library-paste-note" class="library-paste-note" role="status" aria-live="polite" hidden></div></div></details>
  <div class="library-toolbar"><label class="library-search-label">Buscar estudios<input id="library-query" type="search" placeholder="Jugador, título o alumno…"/></label><label>Ubicación<select id="library-origin"><option value="all">Todos</option><option value="local">Guardados en este navegador</option><option value="cloud">Guardados en la nube</option><option value="shared">Compartidos conmigo</option></select></label><button class="btn outline" id="library-refresh">↻ Actualizar</button><button class="btn primary" id="library-sync">☁ Respaldar estudios en mi cuenta</button></div>
  <div class="library-organize"><input id="library-folder-name" placeholder="Nombre del estudio"/><button class="btn outline" id="library-select-all">Seleccionar partidas sin estudio</button><button class="btn primary" id="library-group">Crear estudio con seleccionadas</button><small id="library-selection-count">0 partidas seleccionadas</small></div><div id="library-counts" class="library-counts"></div><div id="library-back" hidden></div><div id="library-warning" class="library-warning" hidden></div><div id="library-items" class="library-items" aria-live="polite"></div>
  <p class="library-footnote">Local: guardado solamente en este navegador. Nube: accesible con tu cuenta. Solo el propietario puede eliminar un estudio de la nube. Los estudios compartidos por alumnos son de lectura y se corrigen mediante una copia propia.</p>`;
@@ -291,23 +291,45 @@ export function initLibraryWorkspace({studio,notify,onOpen}){
  };
  $('library-query').oninput=render;
  $('library-origin').onchange=render;
- const pasteNote=$('library-paste-note');
+
+ const pasteNote=$('library-paste-note'),previewBox=$('library-paste-preview-result'),savePaste=$('library-paste-import');
+ let verified=null;
  const showPasteStatus=(message,type='info')=>{pasteNote.hidden=false;pasteNote.dataset.type=type;pasteNote.textContent=message;};
  const clearPasteStatus=()=>{pasteNote.hidden=true;pasteNote.textContent='';delete pasteNote.dataset.type;};
- $('library-paste-clear').onclick=()=>{$('library-paste-name').value='';$('library-paste-text').value='';clearPasteStatus();$('library-paste-text').focus();};
- $('library-paste-import').onclick=async()=>{
-  const button=$('library-paste-import'),text=$('library-paste-text').value.trim(),name=$('library-paste-name').value.trim()||'Estudio PGN pegado';
-  if(!text){showPasteStatus('Pegá primero el PGN del estudio o de una partida.','error');return;}
-  button.disabled=true;button.textContent='Importando…';showPasteStatus('Validando las jugadas y guardando el estudio…');
+ const invalidatePaste=()=>{verified=null;savePaste.disabled=true;previewBox.hidden=true;previewBox.replaceChildren();clearPasteStatus();};
+ const getInput=()=>({text:$('library-paste-text').value.trim(),name:$('library-paste-name').value.trim()||'Estudio PGN pegado'});
+ $('library-paste-clear').onclick=()=>{$('library-paste-name').value='';$('library-paste-text').value='';invalidatePaste();$('library-paste-text').focus();};
+ $('library-paste-text').addEventListener('input',invalidatePaste);
+ $('library-paste-name').addEventListener('input',invalidatePaste);
+ $('library-paste-preview').onclick=async()=>{
+  const {text,name}=getInput();invalidatePaste();
+  if(!text){showPasteStatus('Pegá primero una o varias partidas PGN.','error');return;}
+  const button=$('library-paste-preview');button.disabled=true;
   try{
-   const result=await studio.importLibraryPgn(text,'Sin alumno',name);
-   if(!result.inserted){showPasteStatus('No se encontraron partidas válidas. El texto debe contener jugadas PGN legales; revisá los movimientos o la exportación original.','error');return;}
-   await refresh();
-   showPasteStatus(result.inserted+' partida(s) guardada(s) en «'+name+'»'+(result.invalid?' · '+result.invalid+' omitida(s)':'')+'.','success');
-   notify('Estudio creado: '+result.inserted+' partida(s).');
-   $('library-paste-text').value='';
-   $('library-paste-box').open=false;
-  }catch(err){showPasteStatus('No se pudo importar: '+err.message,'error');}
+   const result=await studio.previewLibraryPgn(text);
+   const title=document.createElement('strong');title.textContent=result.valid+' partida(s) válida(s) · '+result.invalid+' con problemas';previewBox.append(title);
+   const list=document.createElement('div');list.className='library-paste-preview-list';
+   for(const row of result.rows){
+    const item=document.createElement('div');item.className='library-paste-preview-row '+(row.valid?'ok':'bad');
+    const main=document.createElement('span');main.textContent=row.valid?row.index+'. '+row.name+' · '+row.moves+' medias jugadas':row.index+'. Error: '+row.error;item.append(main);
+    if(row.valid){const meta=document.createElement('small');meta.textContent=[row.headers.Event,row.headers.Round?'Ronda '+row.headers.Round:'',row.headers.Result].filter(Boolean).join(' · ');item.append(meta);}
+    list.append(item);
+   }
+   previewBox.append(list);previewBox.hidden=false;
+   if(result.valid&&!result.invalid){verified={text,name};savePaste.disabled=false;showPasteStatus('Revisión correcta. Ya podés guardar el estudio.','success');}
+   else showPasteStatus(result.invalid?'Corregí las partidas señaladas; no se guardará un estudio incompleto.':'No se encontraron partidas válidas.','error');
+  }catch(e){showPasteStatus('No se pudo revisar el PGN: '+e.message,'error');}
+  finally{button.disabled=false;}
+ };
+ $('library-paste-import').onclick=async()=>{
+  const {text,name}=getInput();
+  if(!verified||verified.text!==text||verified.name!==name){invalidatePaste();showPasteStatus('Revisá el PGN antes de guardarlo.','error');return;}
+  const button=savePaste;button.disabled=true;button.textContent='Guardando…';
+  try{const result=await studio.importLibraryPgn(text,'Sin alumno',name);
+   if(!result.inserted){showPasteStatus('No se guardaron partidas; revisá el PGN.','error');return;}
+   await refresh();notify('Estudio guardado: '+result.inserted+' partida(s).');
+   $('library-paste-text').value='';invalidatePaste();$('library-paste-box').open=false;
+  }catch(e){showPasteStatus('No se pudo importar: '+e.message,'error');}
   finally{button.disabled=false;button.textContent='Guardar estudio en biblioteca';}
  };
  $('library-import-file').onchange=async e=>{
