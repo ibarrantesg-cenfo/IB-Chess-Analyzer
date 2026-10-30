@@ -3,6 +3,15 @@ import { calibrationSamples,enginePerformance,apparentPerformance } from './engi
 // IB Chess Analyzer — descriptive per-game metrics and opponent-adjusted tournament performance.
 // No fabricated "estimated Elo from accuracy": only opponent ratings plus results can support TPR.
 const pct=n=>Number.isFinite(n)?n.toFixed(1)+'%':'—';
+// Tournament accuracy-only estimate: weigh fully analyzed games by evaluated decisions.
+function moveQualityPerformance(metrics){
+ const eligible=metrics.filter(m=>m?.complete&&m.count>=8&&Number.isFinite(m.quality));
+ const decisions=eligible.reduce((sum,m)=>sum+m.count,0);
+ if(!decisions)return {value:null,games:0,decisions:0};
+ const quality=eligible.reduce((sum,m)=>sum*m.quality*m.count,0)/decisions;
+ const estimate=apparentPerformance({complete:true,count:decisions,quality});
+ return {value:estimate.value,games:eligible.length,decisions,quality};
+}
 const num=x=>{const n=Number(x);return Number.isFinite(n)&&n>0?n:null;};
 const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;','\'':'&#39;'}[c]));
 export function gameMetrics(game,reports){
@@ -188,14 +197,14 @@ export function initPerformance({state,notify,analyzeGame,jumpGame,getAnalyses})
     return {game:x.g,side,metric:x.metrics[side],opp:num(x.g.headers?.[side==='w'?'BlackElo':'WhiteElo']),result:scoreFor(x.g.headers?.Result,side)};
   }).filter(Boolean);
   const selectedComplete=selectedRows.filter(x=>x.metric.complete);
-  const apparent=selectedComplete.map(x=>apparentPerformance(x.metric)).filter(x=>Number.isFinite(x.value));
-  const apparentAvg=apparent.length?Math.round(apparent.reduce((sum,x)=>sum+x.value,0)/apparent.length):null;
+  const apparent=moveQualityPerformance(selectedComplete.map(x=>x.metric));
+   const apparentAvg=apparent.value;
   const rated=selectedRows.filter(x=>x.opp!==null&&x.result!==null).map(x=>({elo:x.opp,result:x.result}));
   const fide= rated.length===selectedRows.length&&rated.length&&rated.some(x=>x.result>0)&&rated.some(x=>x.result<1)?fidePerformance(rated):null;
   const eloLoss=fide&&selectedRows.every(x=>num(x.game.headers?.[x.side==='w'?'WhiteElo':'BlackElo'])!==null)?Math.round(fide.rating-selectedRows.reduce((sum,x)=>sum+num(x.game.headers[x.side==='w'?'WhiteElo':'BlackElo']),0)/selectedRows.length):null;
   const kpi='<div class="perf-report-grid">'+[
     ['Índice técnico medio',quality===null?'—':quality.toFixed(1)+'/100','No es precisión Chess.com'],
-    ['Elo aparente · '+esc(selectedPlayer||'jugador'),apparentAvg??'—','Heurística no oficial · '+apparent.length+' partidas'],
+    ['Elo aparente · '+esc(selectedPlayer||'jugador'),apparentAvg??'—','Solo precisión · '+apparent.games+' partidas · '+apparent.decisions+' jugadas'],
     ['Performance FIDE*',fide?fide.rating:'—','Requiere resultados y Elo rival en todos los PGN'],
     ['Diferencia vs Elo PGN',eloLoss===null?'—':(eloLoss>0?'+':'')+eloLoss,'Comparación orientativa; no predice variación FIDE'],
     ['Promedio pérdida',avg===null?'—':avg.toFixed(1)+' cp','Ambos bandos, partidas completas'],
@@ -211,10 +220,10 @@ export function initPerformance({state,notify,analyzeGame,jumpGame,getAnalyses})
   const reference=calibrationSamples(state.games,getAnalyses());
   const estimated=t.rows.map(r=>({row:r,...enginePerformance(r.technical.complete?r.technical.quality:null,reference,{excludeIndex:r.index,excludePlayer:selectedPlayer.toLowerCase()})})).filter(r=>r.value!==null);
   const meanEstimate=estimated.length?Math.round(estimated.reduce((a,r)=>a+r.value,0)/estimated.length/5)*5:null;
-  const apparent=t.rows.map(r=>apparentPerformance(r.technical)).filter(r=>r.value!==null);
-  const apparentAvg=apparent.length?Math.round(apparent.reduce((a,r)=>a+r.value,0)/apparent.length/25)*25:null;
+  const apparent=moveQualityPerformance(t.rows.map(r=>r.technical));
+   const apparentAvg=apparent.value;
   const tpr=t.fide?String(t.fide.rating):'Sin Elo rival';
-  $('perf-summary').innerHTML='<div class="perf-engine"><h3>Elo aparente del torneo · Stockfish</h3><div class="perf-engine-pair"><div><b>'+(apparentAvg??'—')+'</b><small>Media heurística de partidas</small></div><div><b>'+apparent.length+'/'+t.rows.length+'</b><small>Partidas analizadas</small></div></div><p>'+(apparentAvg===null?'Analizá las partidas para calcular el performance de juego.':'Promedio de Elo aparente de las partidas completas; no mide rating oficial.')+'</p></div><div class="perf-tournament-grid"><div><b>'+t.points+'/'+t.scored+'</b><small>Puntos / partidas puntuadas</small></div><div><b>'+tpr+'</b><small>Performance FIDE* (Ra + dp)</small></div><div><b>'+t.rated+'</b><small>Rivales con Elo válido</small></div><div><b>'+(t.quality===null?'—':t.quality.toFixed(1))+'</b><small>Índice técnico ('+t.analyzed+'/'+t.rows.length+')</small></div></div><p class="perf-info">'+(t.fide?'Ra '+t.fide.average+' · '+t.fide.percent+'% de puntuación · dp '+(t.fide.delta>=0?'+':'')+t.fide.delta+'. ':'')+'*Método de tabla FIDE; el Elo indicado por el PGN no se verifica con la lista FIDE, y partidas por incomparecencia pueden necesitar exclusión.</p>';
+  $('perf-summary').innerHTML='<div class="perf-engine"><h3>Elo aparente del torneo · Stockfish</h3><div class="perf-engine-pair"><div><b>'+(apparentAvg??'—')+'</b><small>Media ponderada por jugadas</small></div><div><b>'+apparent.games+'/'+t.rows.length+'</b><small>Partidas analizadas</small></div></div><p>'+(apparentAvg===null?'Analizá las partidas para calcular el performance de juego.':'Estimación basada solo en la precisión técnica y ponderada por jugadas evaluadas; no utiliza el rating del PGN.')+'</p></div><div class="perf-tournament-grid"><div><b>'+t.points+'/'+t.scored+'</b><small>Puntos / partidas puntuadas</small></div><div><b>'+tpr+'</b><small>Performance FIDE* (Ra + dp)</small></div><div><b>'+t.rated+'</b><small>Rivales con Elo válido</small></div><div><b>'+(t.quality===null?'—':t.quality.toFixed(1))+'</b><small>Índice técnico ('+t.analyzed+'/'+t.rows.length+')</small></div></div><p class="perf-info">'+(t.fide?'Ra '+t.fide.average+' · '+t.fide.percent+'% de puntuación · dp '+(t.fide.delta>=0?'+':'')+t.fide.delta+'. ':'')+'*Método de tabla FIDE; el Elo indicado por el PGN no se verifica con la lista FIDE, y partidas por incomparecencia pueden necesitar exclusión.</p>';
   const analyzed=t.rows.filter(r=>r.technical.complete);
   const avgLoss=analyzed.length?analyzed.reduce((sum,r)=>sum+r.technical.avg,0)/analyzed.length:null;
   const errorTotals=analyzed.reduce((sum,r)=>{for(const k of ['inaccuracy','mistake','blunder'])sum[k]+=(r.technical.counts[k]||0);return sum;},{inaccuracy:0,mistake:0,blunder:0});
