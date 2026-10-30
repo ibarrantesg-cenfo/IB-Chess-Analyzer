@@ -1,7 +1,8 @@
 import { findReview } from './review-cache.js';
 import {Chess} from 'chess.js';
 import {accountDetails,getCloudSession,myEnrollments,academicGames,submitAcademicGame,academicAssignments,createAcademicAssignment,academicSubmissions,deliverAcademicAssignment,reviewAcademicSubmission,academicSharedStudies,submitAcademicGameForStudent} from './cloud.js';
-import {gameMetrics,fidePerformance} from './performance.js';
+import {gameMetrics} from './performance.js';
+import {apparentPerformance} from './engine-performance.js';
 
 const make=(tag,text='',className='')=>{const el=document.createElement(tag);if(text)el.textContent=text;if(className)el.className=className;return el;};
 const button=(label,handler,cls='btn outline')=>{const b=make('button',label,cls);b.type='button';b.onclick=handler;return b;};
@@ -189,37 +190,35 @@ export function initAcademicHub({notify}){
  return {open,close,refresh};
 }
 function portfolioMetrics(games){
- const quality=[],loss=[],ratings=[],colors={w:0,b:0},severe=0;
+ const analyzed=[],loss=[],colors={w:0,b:0};
  for(const game of games){
   const side=game.student_side==='b'?'b':'w';colors[side]++;
   try{
-   const parsed=validatePGN(game.pgn),h=parsed.headers||{};
+   const parsed=validatePGN(game.pgn);
    if(Array.isArray(game.review?.reports)&&game.review.reports.length){
     const m=gameMetrics(parsed,game.review.reports)[side];
-    if(m.complete&&Number.isFinite(m.quality)){quality.push(m.quality);loss.push(m.avg);}
+    if(m.complete&&Number.isFinite(m.quality)){analyzed.push(m);loss.push(m.avg);}
    }
-   const elo=Number(side==='w'?h.BlackElo:h.WhiteElo);
-   const result=game.result||h.Result||'*';
-   const points=result==='1/2-1/2'?.5:result===(side==='w'?'1-0':'0-1')?1:result===(side==='w'?'0-1':'1-0')?0:null;
-   if(elo>0&&Number.isFinite(elo)&&points!==null)ratings.push({elo,result:points});
   }catch(error){console.warn('Partida sin métricas válidas:',error.message);}
  }
  const avg=a=>a.length?a.reduce((x,y)=>x+y,0)/a.length:null;
- const fide=ratings.length?fidePerformance(ratings):null;
- return {count:games.length,analyzed:quality.length,accuracy:avg(quality),acpl:avg(loss),rated:ratings.length,fide,colors};
+ const decisions=analyzed.reduce((sum,m)=>sum+m.count,0);
+ const quality=decisions?analyzed.reduce((sum,m)=>sum+m.quality*m.count,0)/decisions:null;
+ const performance=quality!==null&&decisions>=8?apparentPerformance({complete:true,quality,count:decisions}).value:null;
+ return {count:games.length,analyzed:analyzed.length,accuracy:quality,acpl:avg(loss),performance,decisions,colors};
 }
 function addPerformanceGrid(parent,games,{compact=false}={}){
  const m=portfolioMetrics(games),box=make('div','','academic-performance');
  const stats=[
   ['Precisión técnica',m.accuracy===null?'—':m.accuracy.toFixed(1)+'%'],
   ['ACPL promedio',m.acpl===null?'—':m.acpl.toFixed(1)+' cp'],
-  ['Performance de torneo',m.fide?String(m.fide.rating):'—'],
+  ['Performance técnico estimado',m.performance===null?'—':String(m.performance)],
   ['Análisis completos',m.analyzed+'/'+m.count]
  ];
  const grid=make('div','','academic-performance-grid');
  for(const [label,value] of stats){const tile=make('div','','academic-performance-tile');tile.append(make('small',label),make('strong',value));grid.append(tile);}
  box.append(grid);
- if(!compact)box.append(make('p','Performance: estimación basada en '+m.rated+' partidas con Elo de rival y resultado. No es Elo oficial ni rendimiento derivado de la precisión. Precisión y ACPL usan solamente partidas completamente analizadas.','academic-performance-note'));
+ if(!compact)box.append(make('p','Performance orientativo calculado solo con la precisión técnica, ponderada por '+m.decisions+' jugadas evaluadas. No utiliza Elo real, resultados ni ratings de rivales; no es una estimación calibrada del nivel del jugador.','academic-performance-note'));
  parent.append(box);
  return m;
 }
