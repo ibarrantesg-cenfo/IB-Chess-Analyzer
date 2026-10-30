@@ -1,5 +1,5 @@
 import {Chess} from 'chess.js';
-import {accountDetails,getCloudSession,myEnrollments,academicGames,submitAcademicGame,academicAssignments,createAcademicAssignment,academicSubmissions,deliverAcademicAssignment,reviewAcademicSubmission,academicSharedStudies} from './cloud.js';
+import {accountDetails,getCloudSession,myEnrollments,academicGames,submitAcademicGame,academicAssignments,createAcademicAssignment,academicSubmissions,deliverAcademicAssignment,reviewAcademicSubmission,academicSharedStudies,submitAcademicGameForStudent} from './cloud.js';
 import {gameMetrics,fidePerformance} from './performance.js';
 
 const make=(tag,text='',className='')=>{const el=document.createElement(tag);if(text)el.textContent=text;if(className)el.className=className;return el;};
@@ -166,6 +166,29 @@ export function appendTeacherAcademicTools(card,student,notify){
    const tourney=make('div','','academic-subsection');tourney.append(make('h4','Torneos y partidas'));
    const events=new Map();for(const g of games){const k=g.event_name||'Sin torneo';if(!events.has(k))events.set(k,[]);events.get(k).push(g);}
    if(!games.length)tourney.append(make('p','El alumno aún no ha compartido partidas.'));else for(const [event,rounds] of events){const grp=make('details','','academic-event');grp.append(make('summary',event+' · '+rounds.length+' partidas'));for(const g of rounds){let summary=technicalSummary(g);const row=make('div','','academic-game-row');row.append(make('strong',g.title),make('small',g.white_name+' – '+g.black_name+' · '+g.result),make('small',summary));row.append(button('Analizar en Game Review',()=>window.IB_LOAD_ACADEMIC_GAME?.(g.pgn,g.title)));grp.append(row);}addPerformanceGrid(grp,rounds);tourney.append(grp);}content.append(tourney);
+   const importPanel=make('details','','academic-subsection academic-teacher-import');
+   importPanel.append(make('summary','Importar torneo PGN para este alumno'));
+   importPanel.append(make('p','Seleccioná el nombre con el que aparece el alumno en las cabeceras PGN. Se comprobará el color de cada ronda antes de guardarla en su cuenta.'));
+   const playerName=field('Nombre exacto del jugador en PGN','text',student.name&&student.name!=='Alumno sin nombre'?student.name:''),tournamentName=field('Nombre del torneo (opcional)'),batch=field('PGN completo (varias partidas)','textarea');
+   batch.input.rows=11;
+   importPanel.append(playerName.wrap,tournamentName.wrap,batch.wrap);
+   const output=make('div','','academic-import-preview');importPanel.append(output);
+   const readRows=()=>{const pieces=splitTournamentPGN(batch.input.value);if(pieces.length>100)throw Error('Máximo 100 partidas por lote.');return pieces.map((piece,index)=>{try{const game=validatePGN(piece);return {index,game,side:playerSideFor(game.headers,playerName.input.value)};}catch(error){return {index,error:error.message};}});};
+   importPanel.append(button('Previsualizar rondas',()=>{output.replaceChildren();try{const rows=readRows();if(!rows.length)throw Error('Pegá el PGN del torneo.');for(const row of rows){const h=row.game?.headers||{},text=(row.index+1)+'. '+(h.White||'?')+' – '+(h.Black||'?')+' · '+(row.side==='w'?'Blancas':row.side==='b'?'Negras':row.error||'Nombre no identificado');output.append(make('p',text,'academic-import-row'));}}catch(error){notify(error.message,'err');}}));
+   importPanel.append(button('Guardar torneo del alumno',async()=>{
+    const saveButton=importPanel.querySelector('.academic-teacher-import-save');let inserted=0;
+    try{const rows=readRows();if(!rows.length||rows.some(row=>!row.game||!row.side))throw Error('Revisá el PGN y confirmá el nombre exacto del jugador en todas las rondas.');
+     const existing=new Set(games.map(g=>g.event_name+'\\0'+g.pgn));const candidate=rows.map(row=>{const h=row.game.headers;return {row,event:tournamentName.input.value.trim()||h.Event||'Sin torneo'};});
+     const fresh=candidate.filter(x=>!existing.has(x.event+'\\0'+x.row.game.pgn));
+     if(!fresh.length)throw Error('Todas estas partidas ya existen en la ficha de este alumno.');
+     if(!window.confirm('Se importarán '+fresh.length+' partidas nuevas para '+(student.name||'este alumno')+'. ¿Continuar?'))return;
+     saveButton.disabled=true;
+     try{for(const {row,event} of fresh){const h=row.game.headers;await submitAcademicGameForStudent(student.student_id,{title:(h.Round?'Ronda '+h.Round+' · ':'')+(h.White||'Blancas')+' – '+(h.Black||'Negras'),event_name:event,played_at:pgnDate(h.Date),pgn:row.game.pgn,white_name:h.White||'',black_name:h.Black||'',result:h.Result||'*',student_side:row.side,review:{}});inserted++;}}
+     finally{saveButton.disabled=false;}
+     notify(inserted+' partida(s) importadas para el alumno.');await load();
+    }catch(error){notify((inserted?inserted+' guardadas antes del error. ':'')+error.message,'err');}
+   },'btn primary academic-teacher-import-save'));
+   content.append(importPanel);
    const sharedPanel=make('section','','academic-subsection');sharedPanel.append(make('h4','Estudios de biblioteca compartidos con el profesor'));
    try{const shared=await academicSharedStudies(student.student_id);
     if(!shared.length)sharedPanel.append(make('p','Este alumno todavía no compartió estudios desde la biblioteca en la nube.'));
