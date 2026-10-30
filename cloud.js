@@ -209,3 +209,13 @@ export async function academicCohortGames(studentIds,{limit=1000}={}){
  if(error)throw error;
  return {items:(data||[]).slice(0,take),truncated:(data||[]).length>take};
 }
+
+/** Upload a linked active student's PGN as their authorized instructor (checked by RLS). */
+export async function submitAcademicGameForStudent(studentId,item){
+ const session=await getCloudSession(),account=await accountDetails();
+ if(!session||!account?.isTeacher)throw Error('Ingresá como profesor autorizado.');
+ if(!/^[0-9a-f-]{36}$/i.test(String(studentId)))throw Error('Identificador de alumno inválido.');
+ const payload={student_id:studentId,title:String(item.title||'Partida').slice(0,180),event_name:String(item.event_name||'Sin torneo').slice(0,160),played_at:item.played_at||null,pgn:String(item.pgn||''),white_name:item.white_name||'',black_name:item.black_name||'',result:item.result||'*',student_side:item.student_side==='b'?'b':'w',review:item.review||{}};
+ const {error}=await api.from('ib_student_games').insert(payload);
+ if(error)throw error;
+}
