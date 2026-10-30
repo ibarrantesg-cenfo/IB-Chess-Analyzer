@@ -267,6 +267,17 @@ async importLibraryPgn(text,studentLabel='Sin alumno',collectionName='Estudio im
  await refreshLibrary();
  return {inserted,invalid:0};
 },
+async deleteLibraryCollection(ids){
+ const unique=[...new Set(ids)].filter(x=>typeof x==='string');
+ if(!unique.length)throw Error('El estudio no contiene partidas.');
+ const existing=[];
+ for(const id of unique){const entry=await transaction('readonly',store=>store.get(id));if(!entry)throw Error('No se encontró una partida del estudio. Actualizá la biblioteca.');existing.push(entry);}
+ const collection=existing[0].collectionId;
+ if(!collection||existing.some(x=>x.collectionId!==collection))throw Error('Solo se puede eliminar un estudio completo; revisá la selección.');
+ for(const entry of existing){await del(entry.id);}
+ if(active&&unique.includes(active.id)){active=null;cloudSource=null;}
+ await refreshLibrary();return existing.length;
+},
 async organizeLibraryItems(ids,name){
  const label=String(name||'').trim();
  if(!label||label.length>120)throw Error('Ingresá un nombre para el estudio (máximo 120 caracteres).');
