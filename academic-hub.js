@@ -249,6 +249,23 @@ export function appendTeacherAcademicTools(card,student,notify){
    const playerName=field('Nombre exacto del jugador en PGN','text',student.name&&student.name!=='Alumno sin nombre'?student.name:''),tournamentName=field('Nombre del torneo (opcional)'),batch=field('PGN completo (varias partidas)','textarea');
    batch.input.rows=11;
    importPanel.append(playerName.wrap,tournamentName.wrap,batch.wrap);
+   const fileField=make('label','','academic-field');
+   fileField.append(make('span','Importar archivo PGN o TXT (alternativa a pegar el texto)'));
+   const fileInput=make('input');fileInput.type='file';fileInput.accept='.pgn,.txt,application/x-chess-pgn,text/plain';fileField.append(fileInput);
+   const fileInfo=make('small','También podés pegar el PGN manualmente en el campo anterior.','academic-import-file-info');
+   importPanel.append(fileField,fileInfo);
+   fileInput.addEventListener('change',async()=>{
+     const file=fileInput.files?.[0];if(!file)return;
+     try{
+       if(file.size>15_000_000)throw Error('El archivo supera el límite de 15 MB.');
+       const content=await file.text();
+       if(!content.trim())throw Error('El archivo está vacío.');
+       batch.input.value=content.replace(/^\uFEFF/,'');
+       fileInfo.textContent=file.name+' · '+Math.round(file.size/1024)+' KB cargados. Pulsá Previsualizar rondas antes de guardar.';
+       notify('Archivo PGN cargado. Revisá las rondas antes de guardarlas.');
+     }catch(error){fileInfo.textContent='No se pudo importar: '+error.message;notify(error.message,'err');}
+     finally{fileInput.value='';}
+   });
    const output=make('div','','academic-import-preview');importPanel.append(output);
    const readRows=()=>{const pieces=splitTournamentPGN(batch.input.value);if(pieces.length>100)throw Error('Máximo 100 partidas por lote.');return pieces.map((piece,index)=>{try{const game=validatePGN(piece);return {index,game,side:playerSideFor(game.headers,playerName.input.value)};}catch(error){return {index,error:error.message};}});};
    importPanel.append(button('Previsualizar rondas',()=>{output.replaceChildren();try{const rows=readRows();if(!rows.length)throw Error('Pegá el PGN del torneo.');for(const row of rows){const h=row.game?.headers||{},text=(row.index+1)+'. '+(h.White||'?')+' – '+(h.Black||'?')+' · '+(row.side==='w'?'Blancas':row.side==='b'?'Negras':row.error||'Nombre no identificado');output.append(make('p',text,'academic-import-row'));}}catch(error){notify(error.message,'err');}}));
