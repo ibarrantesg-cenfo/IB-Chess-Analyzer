@@ -58,8 +58,8 @@ export function apparentPerformance(metric){
     return {value:null,reason:'Completá Game Review para obtener el Elo aparente de esta partida.'};
   if(metric.count<8)
     return {value:null,reason:'Se necesitan al menos 8 decisiones analizadas de este bando.'};
-  const anchors=[[0,400],[35,700],[45,900],[60,1250],[70,1500],[80,1800],[87,2100],[93,2350],[97,2600],[100,2800]];
-  const q=Math.max(0,Math.min(100,metric.quality));
+  const anchors=[[0,400],[35,700],[45,850],[60,1000],[65,1200],[70,1400],[75,1600],[80,1800],[82,1900],[84,1975],[85,2000],[86,2050],[87,2100],[88,2175],[89,2250],[90,2325],[91,2400],[92,2475],[93,2550],[94,2625],[95,2700],[100,2800]];
+ const q=Math.max(0,Math.min(100,metric.quality));
   let value=2800;
   for(let i=1;i<anchors.length;i++){
     if(q<=anchors[i][0]){
