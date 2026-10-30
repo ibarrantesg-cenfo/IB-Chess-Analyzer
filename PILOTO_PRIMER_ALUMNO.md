@@ -87,7 +87,7 @@ Verificar que existan las 6 tablas, que las 3 nuevas tengan RLS habilitado y que
 - **No verificar la seguridad solamente ocultando botones**; RLS debe denegar acciones en la base.
 
 ## 8. Limitaciones explícitas del piloto
-- La importación por lote guarda el PGN y sus datos, pero **no ejecuta Stockfish automáticamente**; por eso la precisión puede aparecer vacía. La transferencia completa de análisis ya realizados desde Game Review a la nube necesita una integración adicional.
+- La importación por lote guarda el PGN y sus datos, y **adjunta un informe de Stockfish ya analizado y guardado en el mismo navegador** si encuentra una coincidencia exacta. **No ejecuta Stockfish automáticamente**; por eso una partida nueva todavía puede aparecer sin precisión ni ACPL. Los análisis locales no se sincronizan hasta que se importen explícitamente las partidas.
 - Actualmente los torneos se agrupan por nombre del evento. Si el mismo nombre se usa en varios años, conviene distinguirlos en el campo de torneo (ej.: `Nacional 2026`).
 - La consulta estadística limita el historial a 1000 partidas; para una academia grande habrá que implementar paginación del lado servidor.
 - El registro de solicitudes e invitaciones de nuevos estudiantes continúa parcialmente manual.
