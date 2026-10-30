@@ -1,3 +1,4 @@
+import { findReview } from './review-cache.js';
 import {Chess} from 'chess.js';
 import {accountDetails,getCloudSession,myEnrollments,academicGames,submitAcademicGame,academicAssignments,createAcademicAssignment,academicSubmissions,deliverAcademicAssignment,reviewAcademicSubmission,academicSharedStudies,submitAcademicGameForStudent} from './cloud.js';
 import {gameMetrics,fidePerformance} from './performance.js';
@@ -16,6 +17,13 @@ const splitTournamentPGN=source=>{
  if(starts.length>1)return starts.map((at,i)=>text.slice(at,starts[i+1]??text.length).trim()).filter(Boolean);
  // No event headers? A single PGN can be imported, but not a guess about game boundaries.
  return [text.trim()].filter(Boolean);
+};
+const cachedAcademicReview=async game=>{
+ try{
+  const saved=await findReview(game);
+  if(saved?.reports?.length===game.moves.length)return {reports:saved.reports,evaluations:saved.evaluations||[],depth:saved.depth||null,engine:saved.engine||'stockfish19'};
+ }catch(e){console.warn('No se pudo recuperar el análisis local:',e.message);}
+ return {};
 };
 const pgnDate=x=>/^\d{4}\.\d{2}\.\d{2}$/.test(x||'')&&!String(x).includes('??')?x.replace(/\./g,'-'):null;
 const playerSideFor=(headers,name)=>{
@@ -82,7 +90,7 @@ export function initAcademicHub({notify}){
      if(!window.confirm('Se guardarán '+valid.length+' partidas en la cuenta del alumno. ¿Continuar?'))return;
      const submitButton=tournament.querySelector('.academic-import-save');submitButton.disabled=true;
      let saved=0;
-     try{for(const row of valid){const g=row.game,h=g.headers;await submitAcademicGame({title:(h.Round?'Ronda '+h.Round+' · ':'')+(h.White||'Blancas')+' – '+(h.Black||'Negras'),event_name:eventTitle.input.value.trim()||h.Event||'Sin torneo',played_at:pgnDate(h.Date),pgn:g.pgn,white_name:h.White||'',black_name:h.Black||'',result:h.Result||'*',student_side:row.side,review:{}});saved++;}}
+     try{for(const row of valid){const g=row.game,h=g.headers;await submitAcademicGame({title:(h.Round?'Ronda '+h.Round+' · ':'')+(h.White||'Blancas')+' – '+(h.Black||'Negras'),event_name:eventTitle.input.value.trim()||h.Event||'Sin torneo',played_at:pgnDate(h.Date),pgn:g.pgn,white_name:h.White||'',black_name:h.Black||'',result:h.Result||'*',student_side:row.side,review:await cachedAcademicReview(g)});saved++;}}
      finally{submitButton.disabled=false;}
      notify(saved+' partida(s) del torneo guardadas correctamente.');if(saved===valid.length)await refresh();
     }catch(error){notify(error.message,'err');}
@@ -183,7 +191,7 @@ export function appendTeacherAcademicTools(card,student,notify){
      if(!fresh.length)throw Error('Todas estas partidas ya existen en la ficha de este alumno.');
      if(!window.confirm('Se importarán '+fresh.length+' partidas nuevas para '+(student.name||'este alumno')+'. ¿Continuar?'))return;
      saveButton.disabled=true;
-     try{for(const {row,event} of fresh){const h=row.game.headers;await submitAcademicGameForStudent(student.student_id,{title:(h.Round?'Ronda '+h.Round+' · ':'')+(h.White||'Blancas')+' – '+(h.Black||'Negras'),event_name:event,played_at:pgnDate(h.Date),pgn:row.game.pgn,white_name:h.White||'',black_name:h.Black||'',result:h.Result||'*',student_side:row.side,review:{}});inserted++;}}
+     try{for(const {row,event} of fresh){const h=row.game.headers;await submitAcademicGameForStudent(student.student_id,{title:(h.Round?'Ronda '+h.Round+' · ':'')+(h.White||'Blancas')+' – '+(h.Black||'Negras'),event_name:event,played_at:pgnDate(h.Date),pgn:row.game.pgn,white_name:h.White||'',black_name:h.Black||'',result:h.Result||'*',student_side:row.side,review:await cachedAcademicReview(row.game)});inserted++;}}
      finally{saveButton.disabled=false;}
      notify(inserted+' partida(s) importadas para el alumno.');await load();
     }catch(error){notify((inserted?inserted+' guardadas antes del error. ':'')+error.message,'err');}
