@@ -792,3 +792,13 @@
 .library-workspace #library-paste-import:disabled{opacity:.48;cursor:not-allowed}
 :root[data-theme="light"] .library-workspace .library-paste-preview{background:#f3faf7;color:#174c3b;border-color:#b4d7cf}
 :root[data-theme="light"] .library-workspace .library-paste-preview-row{background:#e5f4ef;color:#234658}
+
+/* Game Review: visible performance directly under evaluation graph */
+.chart-performance-heading{display:flex;flex-wrap:wrap;justify-content:space-between;align-items:center;gap:8px;margin:18px 0 10px;padding-top:14px;border-top:1px solid #345164}
+.chart-performance-heading strong{font-size:14px;color:#ddf6ec}
+.chart-performance-heading small{font-size:11px;color:#93b4be}
+#chart-performance{width:100%;margin-bottom:10px}
+#chart-performance .game-side-card{min-width:0}
+#chart-performance .game-side-kpis{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+#chart-performance .game-side-kpis strong{font-size:21px;overflow-wrap:anywhere}
+@media(max-width:560px){#chart-performance{grid-template-columns:1fr}}
