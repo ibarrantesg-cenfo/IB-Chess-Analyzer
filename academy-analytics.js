@@ -1,6 +1,7 @@
 import { Chess } from 'chess.js';
 import { accountDetails, myEnrollments, academicCohortGames } from './cloud.js';
 import { gameMetrics } from './performance.js';
+import { apparentPerformance } from './engine-performance.js';
 
 const el=(tag,cls='',text='')=>{const x=document.createElement(tag);if(cls)x.className=cls;if(text)x.textContent=text;return x;};
 const fmt=(x,d=1)=>Number.isFinite(x)?x.toFixed(d):'—';
@@ -22,13 +23,20 @@ function parseGame(record){
   const reports=record.review?.reports;
   if(Array.isArray(reports)&&reports.length){
    const metrics=gameMetrics({moves},reports)[side];
-   if(metrics.complete)technical={quality:metrics.quality,acpl:metrics.avg,counts:metrics.counts};
+   if(metrics.complete)technical={quality:metrics.quality,acpl:metrics.avg,counts:metrics.counts,moves:metrics.count};
   }
  }catch(err){console.warn('PGN no disponible para estadísticas',record.id,err.message);}
  const opponentElo=Number(side==='w'?headings.BlackElo:headings.WhiteElo);
  const result=record.result||headings.Result||'*';
  const score=result==='1/2-1/2'?.5:result===(side==='w'?'1-0':'0-1')?1:result===(side==='w'?'0-1':'1-0')?0:null;
  return {...record,side,technical,score,opponentElo:Number.isFinite(opponentElo)&&opponentElo>0?opponentElo:null,opening:openings,dateMs:dateValue(record)};
+}
+function qualityPerformance(games){
+ const valid=games.filter(g=>g.technical&&Number.isFinite(g.technical.quality)&&g.technical.moves>=8);
+ const moves=valid.reduce((sum,g)=>sum+g.technical.moves,0);
+ if(!moves)return {value:null,games:0,moves:0};
+ const quality=valid.reduce((sum,g)=>sum+g.technical.quality*g.technical.moves,0)/moves;
+ return {value:apparentPerformance({complete:true,quality,count:moves}).value,games:valid.length,moves};
 }
 function competitivePerformance(games){
  const rated=games.filter(x=>x.opponentElo!==null&&x.score!==null);
@@ -52,7 +60,7 @@ function groupEvents(games){
  return [...map.values()].map(row=>{
   const technical=row.games.filter(g=>g.technical),count=row.games.length,scored=row.games.filter(g=>g.score!==null);
   const wins=scored.filter(g=>g.score===1).length,draws=scored.filter(g=>g.score===.5).length,losses=scored.filter(g=>g.score===0).length;
-  const tpr=competitivePerformance(row.games);
+  const tpr=qualityPerformance(row.games);
   return {...row,count,technicalCount:technical.length,accuracy:avg(technical.map(g=>g.technical.quality)),acpl:avg(technical.map(g=>g.technical.acpl)),
    wins,draws,losses,points:scored.reduce((s,g)=>s+g.score,0),scored:scored.length,tpr,latest:Math.max(...row.games.map(g=>g.dateMs))};
  }).sort((a,b)=>b.latest-a.latest);
@@ -90,7 +98,7 @@ export function initAcademyAnalytics({notify}){
  const input=el('input');input.type='search';input.placeholder='Buscar alumno, torneo, rival…';input.setAttribute('aria-label','Buscar en estadísticas');
  const period=el('select');for(const [value,name] of [['7','Últimos 7 días'],['30','Últimos 30 días'],['90','Últimos 90 días'],['180','Últimos 6 meses'],['365','Último año'],['all','Todo el historial']]){const o=el('option','',name);o.value=value;period.append(o);}period.value=filters.days;
  const select=el('select');select.setAttribute('aria-label','Filtrar alumno');
- const metric=el('select');for(const [value,label] of [['accuracy','Precisión técnica'],['acpl','ACPL'],['tprValue','Performance competitivo']]){const o=el('option','',label);o.value=value;metric.append(o);}
+ const metric=el('select');for(const [value,label] of [['accuracy','Precisión técnica'],['acpl','ACPL'],['tprValue','Performance técnico estimado']]){const o=el('option','',label);o.value=value;metric.append(o);}
  filterbar.append(input,period,select,metric);
  const notice=el('p','academy-analytics-notice');
  const cards=el('div','academy-analytics-cards'),chartArea=el('section','academy-analytics-chart'),studentsArea=el('section','academy-analytics-people'),eventsArea=el('section','academy-analytics-events');
@@ -127,7 +135,7 @@ export function initAcademyAnalytics({notify}){
   if(!visible)return;
   const rows=filtered(),events=groupEvents(rows),analyzed=rows.filter(g=>g.technical),rated=rows.filter(g=>g.score!==null&&g.opponentElo!==null);
   const precision=avg(analyzed.map(g=>g.technical.quality)),acpl=avg(analyzed.map(g=>g.technical.acpl));
-  const tpr=filters.student!=='all'?competitivePerformance(rows):null;
+  const tpr=filters.student!=='all'?qualityPerformance(rows):null;
   const tournamentPerformances=events.filter(e=>e.tpr.value!==null).map(e=>e.tpr.value),meanPerformance=avg(tournamentPerformances);
   notice.textContent=(filters.days==='all'?'Todo el historial':'Período: últimos '+filters.days+' días')+' · '+rows.length+' partidas · '+events.length+' torneos de '+new Set(rows.map(g=>g.student_id)).size+' alumnos'+(truncated?' · Límite de 1000 registros alcanzado; acotá los filtros para un informe completo.':'')+'.';
   cards.replaceChildren(
@@ -136,7 +144,7 @@ export function initAcademyAnalytics({notify}){
    kpi('Partidas analizadas',analyzed.length+'/'+rows.length,'Solo análisis completos'),
    kpi('Precisión media',percent(precision),'Índice técnico propio'),
    kpi('ACPL medio',Number.isFinite(acpl)?fmt(acpl)+' cp':'—','Jugador, no ambos colores'),
-   kpi(filters.student==='all'?'Media performance torneos':'Performance del alumno',filters.student==='all'?(meanPerformance!==null?String(Math.round(meanPerformance)):'—'):(tpr.value!==null?String(tpr.value):'—'),filters.student==='all'?tournamentPerformances.length+' torneos con TPR válido':tpr.rated+' partidas Elo válidas')
+   kpi(filters.student==='all'?'Media performance técnico':'Performance del alumno',filters.student==='all'?(meanPerformance!==null?String(Math.round(meanPerformance)):'—'):(tpr.value!==null?String(tpr.value):'—'),filters.student==='all'?tournamentPerformances.length+' torneos con TPR válido':tpr.games+' partidas analizadas')
   );
   chartArea.replaceChildren();
   const chHead=el('div','academy-analytics-section-title');chHead.append(el('h3','','Evolución por torneo'),el('small','','Filtrá un alumno para una tendencia individual más útil.'));chartArea.append(chHead);
@@ -151,7 +159,7 @@ export function initAcademyAnalytics({notify}){
    const games=rows.filter(g=>g.student_id===student.student_id),stats=groupEvents(games),technical=games.filter(g=>g.technical),p=competitivePerformance(games);
    const card=el('article','academy-analytics-student');
    const heading=el('div','academy-analytics-student-head');heading.append(el('strong','',student.name||'Alumno sin nombre'),el('span','',student.state==='active'?'Activo':student.state));card.append(heading);
-   const grid=el('div','academy-analytics-mini');for(const [label,value] of [['Torneos',String(stats.length)],['Partidas',String(games.length)],['Precisión',percent(avg(technical.map(g=>g.technical.quality)))],['Performance',p.value!==null?String(p.value):'—']]){const tile=el('div');tile.append(el('small','',label),el('strong','',value));grid.append(tile);}card.append(grid);
+   const grid=el('div','academy-analytics-mini');for(const [label,value] of [['Torneos',String(stats.length)],['Partidas',String(games.length)],['Precisión',percent(avg(technical.map(g=>g.technical.quality)))],['Performance estimado',p.value!==null?String(p.value):'—']]){const tile=el('div');tile.append(el('small','',label),el('strong','',value));grid.append(tile);}card.append(grid);
    const open=el('button','btn outline','Ver sus torneos');open.onclick=()=>{select.value=student.student_id;filters.student=student.student_id;render();eventsArea.scrollIntoView({behavior:'smooth',block:'start'});};card.append(open);personGrid.append(card);
   }
   studentsArea.append(personGrid);
@@ -172,7 +180,7 @@ export function initAcademyAnalytics({notify}){
    });
    details.append(list);eventsArea.append(details);
   }
-  exportButton.onclick=()=>downloadCsv([['Alumno','Torneo','Fecha','Partidas','Analizadas','Precisión %','ACPL cp','Performance','Partidas Elo','Victorias','Tablas','Derrotas'],...events.map(e=>[studentName(e.student_id),e.event,dayDate(e.latest),e.count,e.technicalCount,fmt(e.accuracy),fmt(e.acpl),e.tpr.value??'',e.tpr.rated,e.wins,e.draws,e.losses])],safeFile('IB_Academia_'+filters.days+'_dias')+'.csv');
+  exportButton.onclick=()=>downloadCsv([['Alumno','Torneo','Fecha','Partidas','Analizadas','Precisión %','ACPL cp','Performance','Partidas analizadas','Victorias','Tablas','Derrotas'],...events.map(e=>[studentName(e.student_id),e.event,dayDate(e.latest),e.count,e.technicalCount,fmt(e.accuracy),fmt(e.acpl),e.tpr.value??'',e.tpr.games,e.wins,e.draws,e.losses])],safeFile('IB_Academia_'+filters.days+'_dias')+'.csv');
  }
  refresh.onclick=load;
  input.oninput=()=>{filters.search=input.value.trim();render();};
