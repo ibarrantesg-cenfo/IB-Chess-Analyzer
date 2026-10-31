@@ -1,13 +1,14 @@
 import { Chess } from 'chess.js';
 import { OPENING_RESEARCH_DRAFTS } from './opening-research-data.js';
 import { OPENING_RESEARCH_EXPANSION } from './opening-research-more.js';
+import { queryMastersPosition } from './opening-masters.js';
 
 // Local-only opening research. Engine evidence NEVER promotes a chapter to verified content.
 const KEY='ib-opening-research-v1';
 const el=id=>document.getElementById(id);
 function safeLoad(){
- try{const raw=JSON.parse(localStorage.getItem(KEY)||'{}');return {custom:Array.isArray(raw.custom)?raw.custom:[],notes:raw.notes&&typeof raw.notes==='object'?raw.notes:{},sources:raw.sources&&typeof raw.sources==='object'?raw.sources:{},evidence:raw.evidence&&typeof raw.evidence==='object'?raw.evidence:{}};}
- catch{return {custom:[],notes:{},sources:{},evidence:{}};}
+ try{const raw=JSON.parse(localStorage.getItem(KEY)||'{}');return {custom:Array.isArray(raw.custom)?raw.custom:[],notes:raw.notes&&typeof raw.notes==='object'?raw.notes:{},masters:raw.masters&&typeof raw.masters==='object'?raw.masters:{},sources:raw.sources&&typeof raw.sources==='object'?raw.sources:{},evidence:raw.evidence&&typeof raw.evidence==='object'?raw.evidence:{}};}
+ catch{return {custom:[],notes:{},sources:{},masters:{},evidence:{}};}
 }
 const mk=(tag,text='',className='')=>{const x=document.createElement(tag);x.textContent=text;if(className)x.className=className;return x;};
 function sanTokens(text){
@@ -38,6 +39,7 @@ export function initOpeningResearch({state,loadPGN,jump,notify,getLiveSnapshot,s
   <label class="opening-lab-field">Comentario editorial de la posición<textarea id="opening-lab-note" rows="4" placeholder="Qué cambia en la evaluación, qué amenaza el rival, planes con justificación..."></textarea></label>
   <div class="opening-lab-actions"><button class="btn outline" id="opening-lab-save-note">Guardar comentario local</button><button class="btn outline" id="opening-lab-capture">Guardar evaluación Stockfish</button></div>
   <div id="opening-lab-evidence" class="opening-lab-evidence">Sin evaluación guardada.</div>
+  <section class="opening-lab-masters"><div class="opening-lab-actions"><strong>Partidas de maestros · evidencia histórica</strong><button class="btn outline" id="opening-lab-masters-query">Consultar Lichess Masters</button></div><p class="opening-lab-muted">Solo se consulta al pulsar el botón. Frecuencia de jugadas no significa que sean correctas ni óptimas.</p><div id="opening-lab-masters-results" class="opening-lab-masters-results">Sin consulta para esta posición.</div></section>
   <label class="opening-lab-field">Fuentes y partidas modelo de esta variante<textarea id="opening-lab-sources" rows="3" placeholder="URL de partida, autor, año o referencia bibliográfica. La fuente será revisada antes de aprobar el estudio."></textarea></label>
   <div class="opening-lab-actions"><button class="btn outline" id="opening-lab-save-sources">Guardar referencias</button></div>
   <p class="opening-lab-muted">Registro editorial privado. El laboratorio no valida automáticamente afirmaciones ni reutiliza comentarios de terceros.</p>
@@ -115,6 +117,27 @@ export function initOpeningResearch({state,loadPGN,jump,notify,getLiveSnapshot,s
   el('opening-lab-position').textContent=(activeIsCorrect()?'Posición '+ply+'/'+sans.length:'Variante aún no abierta')+' · FEN: '+fens[ply];
   el('opening-lab-note').value=data.notes[key]??draft.notes?.[ply]??'';
   el('opening-lab-sources').value=data.sources[selected]||'';
+  const masterHost=el('opening-lab-masters-results');masterHost.replaceChildren();
+  const historic=data.masters[fens[ply]];
+  if(!historic)masterHost.append(mk('p','Esta FEN todavía no tiene evidencia de partidas magistrales registrada.','opening-lab-muted'));
+  else{
+    const {result,capturedAt}=historic;
+    const total=result.white+result.draws+result.black;
+    masterHost.append(mk('p',total+' partidas en esta posición · consulta: '+new Date(capturedAt).toLocaleString('es-CR'),'opening-lab-muted'));
+    if(!total)masterHost.append(mk('p','No se encontraron partidas en el conjunto de maestros para esta FEN.','opening-lab-muted'));
+    for(const row of result.moves){
+      const n=row.white+row.draws+row.black;
+      masterHost.append(mk('p',row.san+' · '+n+' partida(s)'+(n?' · blancas '+((row.white+row.draws/2)*100/n).toFixed(1)+'% de puntos':'')+' · media Elo '+(row.averageRating||'—'),'opening-lab-master-move'));
+    }
+    if(result.games.length){
+      const examples=mk('div','','opening-lab-games');
+      for(const g of result.games){if(!g.id)continue;
+        const link=document.createElement('a');link.href='https://lichess.org/'+g.id;link.rel='noopener noreferrer';link.target='_blank';
+        link.textContent=g.white+' – '+g.black+(g.year?' · '+g.year:'');examples.append(link);
+      }
+      masterHost.append(examples);
+    }
+  }
   const stored=data.evidence[key],evidence=el('opening-lab-evidence');evidence.replaceChildren();
   if(stored?.fen===fens[ply]){
    evidence.append(mk('strong','Stockfish 19 Lite · profundidad '+stored.depth+' · '+new Date(stored.capturedAt).toLocaleString('es-CR')));
@@ -142,6 +165,18 @@ export function initOpeningResearch({state,loadPGN,jump,notify,getLiveSnapshot,s
   if(text.length>4000)return notify('El comentario supera 4000 caracteres.','err');
   if(text)data.notes[key]=text;else delete data.notes[key];
   persist();render();notify('Comentario guardado localmente como borrador editorial.');
+ };
+ el('opening-lab-masters-query').onclick=async()=>{
+  const draft=pick(),ply=activeIsCorrect()?state.move:0;
+  const selectedFen=validateOpeningLine(draft.moves).fens[ply],button=el('opening-lab-masters-query');
+  button.disabled=true;
+  const resultHost=el('opening-lab-masters-results');resultHost.textContent='Consultando partidas magistrales…';
+  try{
+    const result=await queryMastersPosition(selectedFen);
+    data.masters[selectedFen]={result,capturedAt:new Date().toISOString(),provider:'Lichess Masters'};
+    persist();render();notify('Datos de Masters registrados para esta posición. Recordá contrastarlos con Stockfish.');
+  }catch(e){resultHost.textContent=e.message;notify(e.message,'err');}
+  finally{button.disabled=false;}
  };
  el('opening-lab-save-sources').onclick=()=>{
   const refs=el('opening-lab-sources').value.trim();
