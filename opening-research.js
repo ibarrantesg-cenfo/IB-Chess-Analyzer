@@ -1,5 +1,6 @@
 import { Chess } from 'chess.js';
 import { OPENING_RESEARCH_DRAFTS } from './opening-research-data.js';
+import { OPENING_RESEARCH_EXPANSION } from './opening-research-more.js';
 
 // Local-only opening research. Engine evidence NEVER promotes a chapter to verified content.
 const KEY='ib-opening-research-v1';
@@ -44,7 +45,7 @@ export function initOpeningResearch({state,loadPGN,jump,notify,getLiveSnapshot,s
  host.append(panel);
  const data=safeLoad();
  const persist=()=>{try{localStorage.setItem(KEY,JSON.stringify(data));}catch{notify('No se pudo guardar el laboratorio en este navegador. Exportá el PGN para conservarlo.','err');}};
- const entries=()=>[...OPENING_RESEARCH_DRAFTS,...data.custom];
+ const entries=()=>[...OPENING_RESEARCH_DRAFTS,...OPENING_RESEARCH_EXPANSION,...data.custom].sort((a,b)=>a.family.localeCompare(b.family,'es')||a.name.localeCompare(b.name,'es'));
  let selected=OPENING_RESEARCH_DRAFTS[0]?.id;
  const pick=()=>entries().find(x=>x.id===selected);
  function currentPly(){
