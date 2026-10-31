@@ -35,14 +35,16 @@ export function researchChecklist(catalog,metadata,scope='all'){
  for(const item of catalog){
   if(scope!=='all'&&item.family!==scope)continue;
   const {fens}=verifiedLine(item.moves);
-  for(const raw of Object.keys(item.notes||{})){
+  const authored=Object.keys(metadata?.notes||{}).filter(key=>key.startsWith(item.id+'|')).map(key=>key.slice(item.id.length+1));
+  const criticalPlys=new Set([...Object.keys(item.notes||{}),...authored]);
+  for(const raw of criticalPlys){
    const ply=Number(raw),fen=fens[ply];
-   if(!fen)continue;
+   if(!Number.isInteger(ply)||ply<0||!fen)continue;
    const direct=evidence[item.id+'|'+ply],cached=direct?.fen===fen?direct:evidenceList.find(x=>x?.fen===fen);
    const hasEngine=Boolean(cached?.complete&&Array.isArray(cached.lines)&&cached.lines.length>=2&&cached.lines.every(x=>x.depth>=16));
    const hasMasters=Boolean(masters[fen]?.result&&Array.isArray(masters[fen].result.moves));
    const hasSources=Boolean(String(sources[item.id]||'').trim());
-   out.push({id:item.id,family:item.family,name:item.name,ply,fen,comment:item.notes[ply],hasEngine,hasMasters,hasSources,
+   out.push({id:item.id,family:item.family,name:item.name,ply,fen,comment:metadata?.notes?.[item.id+'|'+ply]??item.notes?.[ply]??'',hasEngine,hasMasters,hasSources,
     missing:(hasEngine?0:1)+(hasMasters?0:1)+(hasSources?0:1)});
   }
  }
