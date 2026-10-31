@@ -33,6 +33,7 @@ export function initOpeningResearch({state,loadPGN,jump,notify,getLiveSnapshot,s
   <p id="opening-lab-aim" class="opening-lab-muted"></p>
   <div class="opening-lab-actions"><button class="btn primary" id="opening-lab-open">Abrir variante en Game Review</button><button class="btn outline" id="opening-lab-export">Exportar PGN anotado</button></div>
   <div id="opening-lab-line" class="opening-lab-moves"></div>
+  <section class="opening-lab-branches"><strong>Ramas de la misma posición</strong><p class="opening-lab-muted">Compara alternativas que parten de una posición idéntica. Las evaluaciones solo aparecen si hay una captura de Stockfish guardada para cada rama.</p><div id="opening-lab-branches" class="opening-lab-branch-list"></div></section>
   <p id="opening-lab-position" class="opening-lab-muted">Elegí una línea para comenzar.</p>
   <label class="opening-lab-field">Comentario editorial de la posición<textarea id="opening-lab-note" rows="4" placeholder="Qué cambia en la evaluación, qué amenaza el rival, planes con justificación..."></textarea></label>
   <div class="opening-lab-actions"><button class="btn outline" id="opening-lab-save-note">Guardar comentario local</button><button class="btn outline" id="opening-lab-capture">Guardar evaluación Stockfish</button></div>
@@ -87,6 +88,27 @@ export function initOpeningResearch({state,loadPGN,jump,notify,getLiveSnapshot,s
    chip.onclick=()=>openAt(i+1);lineEl.append(chip);
   });
   const ply=Math.min(currentPly(),sans.length),key=selected+'|'+ply;
+  const branchHost=el('opening-lab-branches');branchHost.replaceChildren();
+  const related=entries().filter(other=>other.family===draft.family&&other.id!==draft.id).map(other=>{
+    const otherSans=validateOpeningLine(other.moves).sans;
+    let common=0;while(common<Math.min(sans.length,otherSans.length)&&sans[common]===otherSans[common])common++;
+    return {other,otherSans,common};
+  }).filter(x=>x.common>=5&&x.common<Math.min(sans.length,x.otherSans.length)).sort((a,b)=>b.common-a.common).slice(0,12);
+  if(!related.length)branchHost.append(mk('p','Aún no se han identificado alternativas con prefijo compartido.','opening-lab-muted'));
+  for(const {other,otherSans,common} of related){
+    const row=mk('div','','opening-lab-branch');
+    const details=mk('div','','opening-lab-branch-copy');
+    const prefix=(common%2===0?(Math.floor(common/2)+1)+'. ':(Math.floor(common/2)+1)+'... ');
+    details.append(mk('strong',prefix+otherSans[common]+' · '+other.name));
+    details.append(mk('small','Bifurcación tras '+common+' medias jugadas · misma FEN'));
+    const evidence=data.evidence[other.id+'|'+(common+1)];
+    const fensOther=validateOpeningLine(other.moves).fens;
+    const validEvidence=evidence?.fen===fensOther[common+1]&&evidence?.complete===true;
+    details.append(mk('small',validEvidence?'Captura: '+(evidence.lines[0]?.score||'—')+' · d'+evidence.depth+' · orientación blancas':'Sin evaluación guardada de esta continuación'));
+    const open=mk('button','Abrir rama','btn outline');open.type='button';
+    open.onclick=()=>{selected=other.id;openAt(common+1);};
+    row.append(details,open);branchHost.append(row);
+  }
   el('opening-lab-position').textContent=(activeIsCorrect()?'Posición '+ply+'/'+sans.length:'Variante aún no abierta')+' · FEN: '+fens[ply];
   el('opening-lab-note').value=data.notes[key]??draft.notes?.[ply]??'';
   const stored=data.evidence[key],evidence=el('opening-lab-evidence');evidence.replaceChildren();
@@ -121,7 +143,7 @@ export function initOpeningResearch({state,loadPGN,jump,notify,getLiveSnapshot,s
   if(!activeIsCorrect()||state.busy)return notify('Seleccioná una posición de la variante y terminá primero Game Review.','err');
   const snap=getLiveSnapshot();
   if(!snap||snap.fen!==state.positions[state.move])return notify('El motor aún no corresponde a esta posición. Esperá el análisis en directo.','err');
-  if(!snap.complete||snap.depth<16||snap.lines.length<2)return notify('Esperá a que Stockfish termine con al menos dos variantes y profundidad 16.','err');
+  if(!snap.complete||snap.lines.length<2||Math.min(...snap.lines.map(line=>line.depth))<16)return notify('Esperá a que Stockfish termine con al menos dos variantes y profundidad mínima 16 en cada una.','err');
   data.evidence[selected+'|'+currentPly()]={...snap,capturedAt:new Date().toISOString()};
   persist();render();notify('Captura de Stockfish guardada. Pendiente de contraste con partidas modelo.');
  };
