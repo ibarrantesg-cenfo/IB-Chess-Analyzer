@@ -218,6 +218,15 @@ export function initLiveAnalysis({getFen,getEngineUrl,notify,onSaveVariation,onP
     exitPlayback,
     pause(){if(playback)exitPlayback();paused=true;clearTimeout(debounce);stopWorker();draw();},
     resume(){paused=false;update(true);},
+    snapshot(){
+      return {
+        engine:'Stockfish 19 Lite',fen:activeFen,depth:bestDepth,
+        complete:enabled&&!paused&&!loading&&!busy&&!!activeFen&&lines.size>0,
+        lines:[...lines.entries()].sort((a,b)=>a[0]-b[0]).map(([rank,item])=>({
+          rank,score:item.score,depth:item.depth,san:item.san
+        }))
+      };
+    },
     dispose(){exitPlayback();clearTimeout(debounce);stopWorker();}
   };
 }
