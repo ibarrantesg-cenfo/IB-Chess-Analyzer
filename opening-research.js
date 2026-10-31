@@ -6,8 +6,8 @@ import { OPENING_RESEARCH_EXPANSION } from './opening-research-more.js';
 const KEY='ib-opening-research-v1';
 const el=id=>document.getElementById(id);
 function safeLoad(){
- try{const raw=JSON.parse(localStorage.getItem(KEY)||'{}');return {custom:Array.isArray(raw.custom)?raw.custom:[],notes:raw.notes&&typeof raw.notes==='object'?raw.notes:{},evidence:raw.evidence&&typeof raw.evidence==='object'?raw.evidence:{}};}
- catch{return {custom:[],notes:{},evidence:{}};}
+ try{const raw=JSON.parse(localStorage.getItem(KEY)||'{}');return {custom:Array.isArray(raw.custom)?raw.custom:[],notes:raw.notes&&typeof raw.notes==='object'?raw.notes:{},sources:raw.sources&&typeof raw.sources==='object'?raw.sources:{},evidence:raw.evidence&&typeof raw.evidence==='object'?raw.evidence:{}};}
+ catch{return {custom:[],notes:{},sources:{},evidence:{}};}
 }
 const mk=(tag,text='',className='')=>{const x=document.createElement(tag);x.textContent=text;if(className)x.className=className;return x;};
 function sanTokens(text){
@@ -31,13 +31,16 @@ export function initOpeningResearch({state,loadPGN,jump,notify,getLiveSnapshot,s
   <p class="opening-lab-warning">Investigación experimental: las líneas se validan legalmente, pero sus comentarios y evaluaciones NO son teoría aprobada. Nada se publica ni se comparte automáticamente con alumnos.</p>
   <label class="opening-lab-field">Familia y variante<select id="opening-lab-choice"></select></label>
   <p id="opening-lab-aim" class="opening-lab-muted"></p>
-  <div class="opening-lab-actions"><button class="btn primary" id="opening-lab-open">Abrir variante en Game Review</button><button class="btn outline" id="opening-lab-export">Exportar PGN anotado</button></div>
+  <div class="opening-lab-actions"><button class="btn primary" id="opening-lab-open">Abrir variante en Game Review</button><button class="btn outline" id="opening-lab-export">Exportar PGN anotado</button><button class="btn outline" id="opening-lab-export-family">Exportar familia completa</button></div>
   <div id="opening-lab-line" class="opening-lab-moves"></div>
   <section class="opening-lab-branches"><strong>Ramas de la misma posición</strong><p class="opening-lab-muted">Compara alternativas que parten de una posición idéntica. Las evaluaciones solo aparecen si hay una captura de Stockfish guardada para cada rama.</p><div id="opening-lab-branches" class="opening-lab-branch-list"></div></section>
   <p id="opening-lab-position" class="opening-lab-muted">Elegí una línea para comenzar.</p>
   <label class="opening-lab-field">Comentario editorial de la posición<textarea id="opening-lab-note" rows="4" placeholder="Qué cambia en la evaluación, qué amenaza el rival, planes con justificación..."></textarea></label>
   <div class="opening-lab-actions"><button class="btn outline" id="opening-lab-save-note">Guardar comentario local</button><button class="btn outline" id="opening-lab-capture">Guardar evaluación Stockfish</button></div>
   <div id="opening-lab-evidence" class="opening-lab-evidence">Sin evaluación guardada.</div>
+  <label class="opening-lab-field">Fuentes y partidas modelo de esta variante<textarea id="opening-lab-sources" rows="3" placeholder="URL de partida, autor, año o referencia bibliográfica. La fuente será revisada antes de aprobar el estudio."></textarea></label>
+  <div class="opening-lab-actions"><button class="btn outline" id="opening-lab-save-sources">Guardar referencias</button></div>
+  <p class="opening-lab-muted">Registro editorial privado. El laboratorio no valida automáticamente afirmaciones ni reutiliza comentarios de terceros.</p>
   <label class="opening-lab-field">Nueva continuación desde la jugada seleccionada (SAN)<input id="opening-lab-extra" placeholder="Ej.: 11. g4 b5 12. g5"></label>
   <div class="opening-lab-actions"><button class="btn outline" id="opening-lab-add">Añadir variante propia</button><button class="btn outline" id="opening-lab-refresh">Actualizar estado</button></div>
   <p id="opening-lab-status" role="status" aria-live="polite" class="opening-lab-muted"></p>
@@ -111,6 +114,7 @@ export function initOpeningResearch({state,loadPGN,jump,notify,getLiveSnapshot,s
   }
   el('opening-lab-position').textContent=(activeIsCorrect()?'Posición '+ply+'/'+sans.length:'Variante aún no abierta')+' · FEN: '+fens[ply];
   el('opening-lab-note').value=data.notes[key]??draft.notes?.[ply]??'';
+  el('opening-lab-sources').value=data.sources[selected]||'';
   const stored=data.evidence[key],evidence=el('opening-lab-evidence');evidence.replaceChildren();
   if(stored?.fen===fens[ply]){
    evidence.append(mk('strong','Stockfish 19 Lite · profundidad '+stored.depth+' · '+new Date(stored.capturedAt).toLocaleString('es-CR')));
@@ -139,6 +143,12 @@ export function initOpeningResearch({state,loadPGN,jump,notify,getLiveSnapshot,s
   if(text)data.notes[key]=text;else delete data.notes[key];
   persist();render();notify('Comentario guardado localmente como borrador editorial.');
  };
+ el('opening-lab-save-sources').onclick=()=>{
+  const refs=el('opening-lab-sources').value.trim();
+  if(refs.length>4000)return notify('El registro de fuentes supera 4000 caracteres.','err');
+  if(refs)data.sources[selected]=refs;else delete data.sources[selected];
+  persist();render();notify('Referencias guardadas como borrador; se comprobarán antes de aprobar el capítulo.');
+ };
  el('opening-lab-capture').onclick=()=>{
   if(!activeIsCorrect()||state.busy)return notify('Seleccioná una posición de la variante y terminá primero Game Review.','err');
   const snap=getLiveSnapshot();
@@ -161,10 +171,21 @@ export function initOpeningResearch({state,loadPGN,jump,notify,getLiveSnapshot,s
    notify('Variante legal agregada como borrador local. Validala con Stockfish.');
   }catch(e){notify('No se pudo crear la variante: '+e.message,'err');}
  };
+ function downloadPgn(text,filename){
+  const blob=new Blob([text],{type:'application/x-chess-pgn;charset=utf-8'});
+  const url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download=filename;a.click();setTimeout(()=>URL.revokeObjectURL(url),3000);
+ }
+ el('opening-lab-export-family').onclick=()=>{
+  try{
+    const draft=pick(),collection=entries().filter(x=>x.family===draft.family);
+    const output=collection.map(makePgn).join('\n\n');
+    downloadPgn(output,'IB_Aperturas_Familia_'+draft.family.replace(/[^a-zA-Z0-9]+/g,'_')+'.pgn');
+    notify(collection.length+' líneas exportadas como capítulos PGN independientes. Revisión pendiente.');
+  }catch(e){notify(e.message,'err');}
+ };
  el('opening-lab-export').onclick=()=>{
   try{
-   const text=makePgn(pick()),blob=new Blob([text],{type:'application/x-chess-pgn;charset=utf-8'});
-   const url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download='IB_Apertura_'+selected+'.pgn';a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);
+   downloadPgn(makePgn(pick()),'IB_Apertura_'+selected+'.pgn');
   }catch(e){notify(e.message,'err');}
  };
  // Deferred refresh avoids heavy render from every engine message.
