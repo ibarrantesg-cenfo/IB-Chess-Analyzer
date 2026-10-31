@@ -105,10 +105,10 @@ export const OPENING_RESEARCH_EXPANSION=[
   10:'...Axc3 crea una asimetría posicional importante; los peones c pueden ser fuerza y debilidad.',
   13:'Dg4 busca presión directa; calcular la seguridad del rey negro antes de hablar de ventaja.'
  },'Comparar respuestas negras tras Dg4; no trasladar análisis de la Francesa del Avance a la Winawer.'),
- make('caro-short-be3','caro','Avance Short · ...c5 y Ae3',C+' Nf3 e6 Be2 c5 O-O Nc6 c3 Be3','B12',{
+ make('caro-short-be3','caro','Avance Short · ...c5 y Ae3',C+' Nf3 e6 Be2 c5 O-O Nc6 c3 Nge7 Be3','B12',{
   6:'El alfil negro se desarrolla antes de ...e6; diferencia importante con la Francesa.',
   10:'...c5 pone a prueba d4 después de c7-c6-c5.',
-  14:'Ae3 sostiene el desarrollo y puede ayudar en la lucha sobre d4.'
+  15:'Ae3 sostiene el desarrollo y puede ayudar en la lucha sobre d4.'
  },'Contrastar 4.Cf3 y las opciones 4...e6/4...c5, teniendo en cuenta los tiempos del peón c.'),
  make('caro-g4-c5','caro','Avance 4.Cc3 · 5.g4 y ruptura ...c5',C+' Nc3 e6 g4 Bg6 Nge2 c5 h4 h5 Nf4','B12',{
   9:'g4 gana espacio, pero desprotege zonas del flanco de rey y exige cálculo.',
