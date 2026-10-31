@@ -2,6 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { Chess } from 'chess.js';
 import { OPENING_RESEARCH_DRAFTS } from './opening-research-data.js';
+import { OPENING_RESEARCH_EXPANSION } from './opening-research-more.js';
 import { validateOpeningLine } from './opening-research.js';
 
 test('every seed opening line is playable and has one FEN per ply',()=>{
@@ -36,4 +37,22 @@ test('French and Caro-Kann alternatives branch at a legal shared position',()=>{
 test('invalid proposed branches are rejected rather than silently imported',()=>{
   assert.throws(()=>validateOpeningLine('e4 e5 Qh8'),/Movimiento ilegal/);
   assert.throws(()=>validateOpeningLine(''),/no contiene jugadas/);
+});
+
+test('expanded editorial catalog contains diverse, valid and uniquely identified branches',()=>{
+  assert.ok(OPENING_RESEARCH_EXPANSION.length>=25);
+  const all=[...OPENING_RESEARCH_DRAFTS,...OPENING_RESEARCH_EXPANSION];
+  assert.equal(new Set(all.map(x=>x.id)).size,all.length);
+  assert.ok(new Set(all.map(x=>x.family)).size>=12);
+  for(const draft of all){
+    const {sans,fens}=validateOpeningLine(draft.moves);
+    assert.ok(sans.length>=9,draft.id+' too short');
+    assert.equal(fens.length,sans.length+1);
+    assert.ok(/^https:\/\//.test(draft.reference),draft.id+' missing reference');
+    assert.ok(draft.research&&draft.research.length>35,draft.id+' missing concrete research question');
+    for(const key of Object.keys(draft.notes||{})){
+      assert.ok(Number(key)>=1&&Number(key)<=sans.length,draft.id+' comment ply '+key+' exceeds '+sans.length);
+    }
+  }
+  assert.equal(new Set(all.map(x=>validateOpeningLine(x.moves).sans.join(' '))).size,all.length,'duplicate line');
 });
