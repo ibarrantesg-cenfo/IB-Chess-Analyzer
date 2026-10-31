@@ -2,6 +2,7 @@ import { Chess } from 'chess.js';
 import { OPENING_RESEARCH_DRAFTS } from './opening-research-data.js';
 import { OPENING_RESEARCH_EXPANSION } from './opening-research-more.js';
 import { queryMastersPosition } from './opening-masters.js';
+import { verifiedLine,extendLegalLine,readSanTokens,researchChecklist,cleanSnapshot } from './opening-research-tools.js';
 
 // Local-only opening research. Engine evidence NEVER promotes a chapter to verified content.
 const KEY='ib-opening-research-v1';
@@ -11,9 +12,7 @@ function safeLoad(){
  catch{return {custom:[],notes:{},sources:{},masters:{},evidence:{}};}
 }
 const mk=(tag,text='',className='')=>{const x=document.createElement(tag);x.textContent=text;if(className)x.className=className;return x;};
-function sanTokens(text){
- return String(text||'').replace(/\{[^}]*\}/g,' ').replace(/\d+\.(?:\.\.)?/g,' ').replace(/(?:1-0|0-1|1\/2-1\/2|\*)/g,' ').trim().split(/\s+/).filter(Boolean);
-}
+const sanTokens=readSanTokens;
 export function validateOpeningLine(line){
  const chess=new Chess(),sans=[],fens=[chess.fen()];
  for(const token of sanTokens(line)){
@@ -36,9 +35,11 @@ export function initOpeningResearch({state,loadPGN,jump,notify,getLiveSnapshot,s
   <div id="opening-lab-line" class="opening-lab-moves"></div>
   <section class="opening-lab-branches"><strong>Ramas de la misma posición</strong><p class="opening-lab-muted">Compara alternativas que parten de una posición idéntica. Las evaluaciones solo aparecen si hay una captura de Stockfish guardada para cada rama.</p><div id="opening-lab-branches" class="opening-lab-branch-list"></div></section>
   <p id="opening-lab-position" class="opening-lab-muted">Elegí una línea para comenzar.</p>
+  <section class="opening-lab-queue"><div class="opening-lab-queue-head"><strong>Agenda de posiciones críticas</strong><span id="opening-lab-queue-progress"></span></div><p class="opening-lab-muted">Revisá comentarios con evidencia histórica, motor y referencias editoriales. Ningún indicador equivale a aprobación.</p><div class="opening-lab-actions"><button class="btn outline" id="opening-lab-next">Ir a la siguiente posición pendiente</button></div><div id="opening-lab-queue-note" class="opening-lab-muted"></div></section>
   <label class="opening-lab-field">Comentario editorial de la posición<textarea id="opening-lab-note" rows="4" placeholder="Qué cambia en la evaluación, qué amenaza el rival, planes con justificación..."></textarea></label>
   <div class="opening-lab-actions"><button class="btn outline" id="opening-lab-save-note">Guardar comentario local</button><button class="btn outline" id="opening-lab-capture">Guardar evaluación Stockfish</button></div>
   <div id="opening-lab-evidence" class="opening-lab-evidence">Sin evaluación guardada.</div>
+  <div class="opening-lab-actions"><label class="opening-lab-pv-label">PV de Stockfish<select id="opening-lab-pv-rank"><option value="1">#1</option><option value="2">#2</option><option value="3">#3</option><option value="4">#4</option><option value="5">#5</option></select></label><button class="btn outline" id="opening-lab-add-pv">Crear una rama de esta PV guardada</button></div>
   <section class="opening-lab-masters"><div class="opening-lab-actions"><strong>Partidas de maestros · evidencia histórica</strong><button class="btn outline" id="opening-lab-masters-query">Consultar Lichess Masters</button></div><p class="opening-lab-muted">Solo se consulta al pulsar el botón. Frecuencia de jugadas no significa que sean correctas ni óptimas.</p><div id="opening-lab-masters-results" class="opening-lab-masters-results">Sin consulta para esta posición.</div></section>
   <label class="opening-lab-field">Fuentes y partidas modelo de esta variante<textarea id="opening-lab-sources" rows="3" placeholder="URL de partida, autor, año o referencia bibliográfica. La fuente será revisada antes de aprobar el estudio."></textarea></label>
   <div class="opening-lab-actions"><button class="btn outline" id="opening-lab-save-sources">Guardar referencias</button></div>
@@ -159,6 +160,10 @@ export function initOpeningResearch({state,loadPGN,jump,notify,getLiveSnapshot,s
    for(const line of stored.lines)evidence.append(mk('p','#'+line.rank+' · '+line.score+' · d'+line.depth+' · '+line.san));
    evidence.append(mk('small','Esta captura documenta resultados del motor en una posición concreta; no certifica explicaciones estratégicas.'));
   }else evidence.textContent='Sin evaluación MultiPV guardada para esta posición. Abrí la línea y esperá a que Stockfish complete el cálculo.';
+  const queue=researchChecklist(entries(),data,draft.family);
+  const done=queue.filter(x=>x.missing===0).length,eng=queue.filter(x=>x.hasEngine).length,history=queue.filter(x=>x.hasMasters).length,refs=queue.filter(x=>x.hasSources).length;
+  el('opening-lab-queue-progress').textContent=done+'/'+queue.length+' con 3 evidencias';
+  el('opening-lab-queue-note').textContent=eng+' con Stockfish · '+history+' con partidas de maestros · '+refs+' con referencias · '+(queue.length-done)+' pendientes';
   el('opening-lab-status').textContent=entries().length+' líneas en investigación · '+Object.keys(data.evidence).length+' posiciones con evidencia local. Ninguna aprobada automáticamente.';
  }
  function openAt(ply){
@@ -199,12 +204,44 @@ export function initOpeningResearch({state,loadPGN,jump,notify,getLiveSnapshot,s
   if(refs)data.sources[selected]=refs;else delete data.sources[selected];
   persist();render();notify('Referencias guardadas como borrador; se comprobarán antes de aprobar el capítulo.');
  };
+ el('opening-lab-next').onclick=()=>{
+  const draft=pick(),queue=researchChecklist(entries(),data,draft.family).filter(x=>x.missing>0);
+  if(!queue.length){notify('Todos los puntos registrados tienen tres tipos de evidencia; aún requieren revisión de entrenador.');return;}
+  let idx=queue.findIndex(x=>x.id===selected&&x.ply===currentPly());
+  if(idx<0){idx=-1;}
+  const next=queue[(idx+1)%queue.length];
+  selected=next.id;openAt(next.ply);
+  notify('Posición pendiente: '+next.name+'. Falta '+(!next.hasEngine?'Stockfish; ':'')+(!next.hasMasters?'partidas maestras; ':'')+(!next.hasSources?'fuentes; ':''));
+ };
+ el('opening-lab-add-pv').onclick=()=>{
+  if(!activeIsCorrect())return notify('Abrí primero una posición del capítulo.','err');
+  const base=pick(),ply=currentPly(),stored=data.evidence[selected+'|'+ply];
+  if(!stored)return notify('Guardá primero el análisis MultiPV desde esta misma posición.','err');
+  try{
+    const fen=validateOpeningLine(base.moves).fens[ply];
+    const snapshot=cleanSnapshot(stored,fen);
+    const rank=Number(el('opening-lab-pv-rank').value);
+    const candidate=snapshot.lines.find(x=>x.rank===rank);
+    if(!candidate)throw Error('La captura no incluye la variante #'+rank+'. Seleccioná un número disponible.');
+    const line=extendLegalLine(base.moves,ply,candidate.san);
+    if(entries().some(x=>validateOpeningLine(x.moves).sans.join(' ')==line.moves))throw Error('Esta línea ya existe en el laboratorio.');
+    const id='pv-'+Date.now().toString(36)+'-'+Math.random().toString(36).slice(2,8);
+    data.custom.push({id,eco:base.eco,family:base.family,
+      name:'Stockfish PV #'+rank+' · d'+candidate.depth+' · '+line.added.slice(0,3).join(' '),
+      moves:line.moves,notes:{},research:'Candidata calculada por '+snapshot.engine+' a profundidad '+candidate.depth+' con evaluación '+candidate.score+' desde la perspectiva blanca. No contrastada con partidas modelo.',
+      reference:base.reference,origin:{type:'engine-pv',parent:base.id,parentPly:ply,rootFen:fen,rank,depth:candidate.depth,score:candidate.score}});
+    persist();selected=id;render();openAt(ply+line.added.length);
+    notify('Variante PV #'+rank+' incorporada como borrador. No es teoría aprobada.');
+  }catch(e){notify('No se pudo añadir la variante de Stockfish: '+e.message,'err');}
+ };
  el('opening-lab-capture').onclick=()=>{
   if(!activeIsCorrect()||state.busy)return notify('Seleccioná una posición de la variante y terminá primero Game Review.','err');
   const snap=getLiveSnapshot();
   if(!snap||snap.fen!==state.positions[state.move])return notify('El motor aún no corresponde a esta posición. Esperá el análisis en directo.','err');
-  if(!snap.complete||snap.lines.length<2||Math.min(...snap.lines.map(line=>line.depth))<16)return notify('Esperá a que Stockfish termine con al menos dos variantes y profundidad mínima 16 en cada una.','err');
-  data.evidence[selected+'|'+currentPly()]={...snap,capturedAt:new Date().toISOString()};
+  let verified;
+  try{verified=cleanSnapshot(snap,state.positions[state.move]);}
+  catch(e){return notify(e.message,'err');}
+  data.evidence[selected+'|'+currentPly()]=verified;
   persist();render();notify('Captura de Stockfish guardada. Pendiente de contraste con partidas modelo.');
  };
  el('opening-lab-add').onclick=()=>{
