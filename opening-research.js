@@ -2,7 +2,8 @@ import { Chess } from 'chess.js';
 import { OPENING_RESEARCH_DRAFTS } from './opening-research-data.js';
 import { OPENING_RESEARCH_EXPANSION } from './opening-research-more.js';
 import { queryMastersPosition } from './opening-masters.js';
-import { verifiedLine,extendLegalLine,readSanTokens,researchChecklist,cleanSnapshot } from './opening-research-tools.js';
+import { extendLegalLine,readSanTokens,researchChecklist,cleanSnapshot } from './opening-research-tools.js';
+import { buildOpeningBackup, validateOpeningBackup } from './opening-research-backup.js';
 
 // Local-only opening research. Engine evidence NEVER promotes a chapter to verified content.
 const KEY='ib-opening-research-v1';
@@ -32,6 +33,7 @@ export function initOpeningResearch({state,loadPGN,jump,notify,getLiveSnapshot,s
   <label class="opening-lab-field">Familia y variante<select id="opening-lab-choice"></select></label>
   <p id="opening-lab-aim" class="opening-lab-muted"></p>
   <div class="opening-lab-actions"><button class="btn primary" id="opening-lab-open">Abrir variante en Game Review</button><button class="btn outline" id="opening-lab-export">Exportar PGN anotado</button><button class="btn outline" id="opening-lab-export-family">Exportar familia completa</button></div>
+  <div class="opening-lab-backup"><strong>Respaldo de la investigación</strong><p class="opening-lab-muted">Guardá ramas, comentarios, evaluaciones y estadísticas en un archivo JSON para no perderlas al cambiar de navegador.</p><div class="opening-lab-actions"><button class="btn outline" id="opening-lab-backup-download">Exportar respaldo completo</button><button class="btn outline" id="opening-lab-backup-import">Importar respaldo JSON</button><input type="file" accept=".json,application/json" id="opening-lab-backup-file" hidden></div></div>
   <div id="opening-lab-line" class="opening-lab-moves"></div>
   <section class="opening-lab-branches"><strong>Ramas de la misma posición</strong><p class="opening-lab-muted">Compara alternativas que parten de una posición idéntica. Las evaluaciones solo aparecen si hay una captura de Stockfish guardada para cada rama.</p><div id="opening-lab-branches" class="opening-lab-branch-list"></div></section>
   <p id="opening-lab-position" class="opening-lab-muted">Elegí una línea para comenzar.</p>
@@ -148,8 +150,8 @@ export function initOpeningResearch({state,loadPGN,jump,notify,getLiveSnapshot,s
     if(result.games.length){
       const examples=mk('div','','opening-lab-games');
       for(const g of result.games){if(!g.id)continue;
-        const link=document.createElement('a');link.href='https://lichess.org/'+g.id;link.rel='noopener noreferrer';link.target='_blank';
-        link.textContent=g.white+' – '+g.black+(g.year?' · '+g.year:'');examples.append(link);
+        const link=document.createElement('a');link.href='https://explorer.lichess.org/masters/pgn/'+g.id;link.rel='noopener noreferrer';link.target='_blank';
+        link.textContent='PGN maestro: '+g.white+' – '+g.black+(g.year?' · '+g.year:'');examples.append(link);
       }
       masterHost.append(examples);
     }
@@ -262,6 +264,26 @@ export function initOpeningResearch({state,loadPGN,jump,notify,getLiveSnapshot,s
   const blob=new Blob([text],{type:'application/x-chess-pgn;charset=utf-8'});
   const url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download=filename;a.click();setTimeout(()=>URL.revokeObjectURL(url),3000);
  }
+ el('opening-lab-backup-download').onclick=()=>{
+  try{
+    const body=JSON.stringify(buildOpeningBackup(data),null,2);
+    downloadPgn(body,'IB_Biblioteca_Maestra_Respaldo_'+new Date().toISOString().slice(0,10)+'.json');
+    notify('Respaldo completo descargado; contiene los datos personales que escribiste en tus comentarios y fuentes.');
+  }catch(e){notify('No se pudo exportar el respaldo: '+e.message,'err');}
+ };
+ el('opening-lab-backup-import').onclick=()=>el('opening-lab-backup-file').click();
+ el('opening-lab-backup-file').onchange=async()=>{
+  const input=el('opening-lab-backup-file'),file=input.files?.[0];
+  if(!file)return;
+  try{
+    if(file.size>5_000_000)throw Error('El archivo supera el límite de 5 MB.');
+    const imported=validateOpeningBackup(JSON.parse(await file.text()));
+    if(!window.confirm('Esta acción REEMPLAZARÁ los borradores, variantes y análisis locales del laboratorio. Exportá un respaldo antes de continuar. ¿Importar '+imported.custom.length+' variantes propias?'))return;
+    Object.assign(data,imported);
+    persist();render();notify('Respaldo de investigación restaurado. El contenido permanece sin aprobar.');
+  }catch(e){notify('No se pudo importar el respaldo: '+e.message,'err');}
+  finally{input.value='';}
+ };
  el('opening-lab-export-family').onclick=()=>{
   try{
     const draft=pick(),collection=entries().filter(x=>x.family===draft.family);
