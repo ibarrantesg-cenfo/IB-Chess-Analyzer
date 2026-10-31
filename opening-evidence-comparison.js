@@ -14,6 +14,6 @@ export function compareOpeningEvidence(snapshot,masters){
  const matches=Boolean(bestSan&&popular?.san===bestSan);
  return {sample:Number.isFinite(sample)?sample:0,engineBest:bestSan,engineEval:best?.score||'',
   engineDepth:best?.depth||0,mostPlayed:popular?.san||'',mostPlayedCount:popular?.count||0,
-  engineBestMasterCount:bestMaster?.count||0,match:matches,hasBoth:Boolean(bestSan&&popular&&snapshot?.complete),
+  engineBestMasterCount:bestMaster?.count||0,match:matches,hasBoth:Boolean(bestSan&&popular&&snapshot?.complete&&sample>0&&popular.count>0),
   moves: moves.sort((a,b)=>b.count-a.count)};
 }
