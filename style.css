@@ -802,3 +802,27 @@
 #chart-performance .game-side-kpis{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
 #chart-performance .game-side-kpis strong{font-size:21px;overflow-wrap:anywhere}
 @media(max-width:560px){#chart-performance{grid-template-columns:1fr}}
+
+/* Opening research laboratory — separate local-only editorial workspace. */
+.opening-lab-panel{margin-top:16px;padding:16px 18px;}
+.opening-lab-panel>summary{cursor:pointer;display:flex;flex-wrap:wrap;align-items:baseline;justify-content:space-between;gap:9px;list-style:none;color:#e9f6f1}
+.opening-lab-panel>summary::-webkit-details-marker{display:none}
+.opening-lab-panel>summary strong{font-size:16px}
+.opening-lab-panel>summary small{font-size:11px;color:#94b4c4}
+.opening-lab-body{display:grid;gap:12px;margin-top:17px}
+.opening-lab-warning{font-size:12px;line-height:1.5;padding:11px 13px;border:1px solid #84653e;background:#302719;border-radius:9px;color:#f0d4ac;margin:0}
+.opening-lab-field{display:grid;gap:7px;color:#c5dded;font-size:12px}
+.opening-lab-field select,.opening-lab-field input,.opening-lab-field textarea{width:100%;padding:10px;background:#112032;border:1px solid #365168;border-radius:7px;color:#e9f6f1;font:inherit}
+.opening-lab-field textarea{resize:vertical;min-height:96px;line-height:1.5}
+.opening-lab-actions{display:flex;gap:8px;flex-wrap:wrap}
+.opening-lab-actions .btn{white-space:normal}
+.opening-lab-muted{font-size:12px;color:#93afbf;line-height:1.55;overflow-wrap:anywhere;margin:0}
+.opening-lab-moves{display:flex;gap:5px;flex-wrap:wrap;padding:11px;background:#101d2d;border:1px solid #304b60;border-radius:9px}
+.opening-lab-move{font-size:12px;padding:6px 8px;border:1px solid #31495b;background:#1b3045;color:#e0eaf1;border-radius:6px}
+.opening-lab-move.selected{border-color:#71ddb7;background:#205041;color:#fff}
+.opening-lab-evidence{padding:11px 12px;border:1px solid #365469;border-radius:8px;background:#122738;color:#d7e8ee;font-size:12px;line-height:1.6;overflow-wrap:anywhere}
+.opening-lab-evidence strong{display:block;margin-bottom:6px;color:#a0edcd}
+.opening-lab-evidence p{margin:3px 0}
+.opening-lab-evidence small{color:#9cb4c5}
+#opening-lab-reference{font-size:12px;color:#84dbc1}
+@media(max-width:640px){.opening-lab-panel{padding:12px}.opening-lab-actions .btn{flex:1;min-width:130px}}
