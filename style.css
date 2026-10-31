@@ -837,3 +837,11 @@
 .opening-lab-branch-copy small{font-size:11px;color:#93b5c2}
 .opening-lab-branch .btn{font-size:11px;white-space:nowrap;flex-shrink:0}
 @media(max-width:490px){.opening-lab-branch{align-items:stretch;flex-direction:column}.opening-lab-branch .btn{width:100%}}
+
+.opening-lab-masters{display:grid;gap:8px;padding:12px;background:#112131;border:1px solid #315069;border-radius:9px}
+.opening-lab-masters>.opening-lab-actions{align-items:center;justify-content:space-between}
+.opening-lab-masters strong{font-size:13px}
+.opening-lab-masters-results{display:grid;gap:5px;max-height:450px;overflow:auto}
+.opening-lab-master-move{font-size:12px;margin:0;padding:7px 9px;background:#1b3347;border-radius:6px;color:#d0e8e4}
+.opening-lab-games{display:grid;gap:5px;margin-top:5px}
+.opening-lab-games a{font-size:12px;color:#8ad6bd;overflow-wrap:anywhere}
