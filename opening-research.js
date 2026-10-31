@@ -4,6 +4,7 @@ import { OPENING_RESEARCH_EXPANSION } from './opening-research-more.js';
 import { queryMastersPosition } from './opening-masters.js';
 import { extendLegalLine,readSanTokens,researchChecklist,cleanSnapshot } from './opening-research-tools.js';
 import { buildOpeningBackup, validateOpeningBackup } from './opening-research-backup.js';
+import { compareOpeningEvidence } from './opening-evidence-comparison.js';
 
 // Local-only opening research. Engine evidence NEVER promotes a chapter to verified content.
 const KEY='ib-opening-research-v1';
@@ -41,6 +42,7 @@ export function initOpeningResearch({state,loadPGN,jump,notify,getLiveSnapshot,s
   <label class="opening-lab-field">Comentario editorial de la posición<textarea id="opening-lab-note" rows="4" placeholder="Qué cambia en la evaluación, qué amenaza el rival, planes con justificación..."></textarea></label>
   <div class="opening-lab-actions"><button class="btn outline" id="opening-lab-save-note">Guardar comentario local</button><button class="btn outline" id="opening-lab-capture">Guardar evaluación Stockfish</button></div>
   <div id="opening-lab-evidence" class="opening-lab-evidence">Sin evaluación guardada.</div>
+  <div id="opening-lab-compare" class="opening-lab-compare" aria-live="polite">Comparación pendiente de datos verificables.</div>
   <div class="opening-lab-actions"><label class="opening-lab-pv-label">PV de Stockfish<select id="opening-lab-pv-rank"><option value="1">#1</option><option value="2">#2</option><option value="3">#3</option><option value="4">#4</option><option value="5">#5</option></select></label><button class="btn outline" id="opening-lab-add-pv">Crear una rama de esta PV guardada</button></div>
   <section class="opening-lab-masters"><div class="opening-lab-actions"><strong>Partidas de maestros · evidencia histórica</strong><button class="btn outline" id="opening-lab-masters-query">Consultar Lichess Masters</button></div><p class="opening-lab-muted">Solo se consulta al pulsar el botón. Frecuencia de jugadas no significa que sean correctas ni óptimas.</p><div id="opening-lab-masters-results" class="opening-lab-masters-results">Sin consulta para esta posición.</div></section>
   <label class="opening-lab-field">Fuentes y partidas modelo de esta variante<textarea id="opening-lab-sources" rows="3" placeholder="URL de partida, autor, año o referencia bibliográfica. La fuente será revisada antes de aprobar el estudio."></textarea></label>
@@ -162,6 +164,18 @@ export function initOpeningResearch({state,loadPGN,jump,notify,getLiveSnapshot,s
    for(const line of stored.lines)evidence.append(mk('p','#'+line.rank+' · '+line.score+' · d'+line.depth+' · '+line.san));
    evidence.append(mk('small','Esta captura documenta resultados del motor en una posición concreta; no certifica explicaciones estratégicas.'));
   }else evidence.textContent='Sin evaluación MultiPV guardada para esta posición. Abrí la línea y esperá a que Stockfish complete el cálculo.';
+  const comparison=el('opening-lab-compare');comparison.replaceChildren();
+  const collated=(stored?.fen===fens[ply]&&historic?.result)?compareOpeningEvidence(stored,historic.result):null;
+  if(!collated?.hasBoth){
+    comparison.append(mk('p','Para contrastar esta posición, guardá tanto una evaluación MultiPV de Stockfish como una consulta del Opening Explorer de maestros.','opening-lab-muted'));
+  }else{
+    comparison.append(mk('strong','Contraste · motor y práctica magistral'));
+    comparison.append(mk('p','Stockfish #1: '+collated.engineBest+' ('+collated.engineEval+' · d'+collated.engineDepth+'). Más jugada entre maestros: '+collated.mostPlayed+' ('+collated.mostPlayedCount+' de '+collated.sample+' partidas).'));
+    comparison.append(mk('p',collated.match?
+      'La primera jugada del motor coincide con la más frecuente en la muestra. Esta coincidencia no demuestra que sea óptima.':
+      'Las preferencias no coinciden. Es una posición candidata para investigar diferencias prácticas, cambios teóricos o limitaciones de la muestra; no implica refutación.'));
+    comparison.append(mk('small','Las evaluaciones son desde las blancas. El número de partidas no reemplaza cálculo táctico; comparar siempre búsquedas en la misma posición.'));
+  }
   const queue=researchChecklist(entries(),data,draft.family);
   const done=queue.filter(x=>x.missing===0).length,eng=queue.filter(x=>x.hasEngine).length,history=queue.filter(x=>x.hasMasters).length,refs=queue.filter(x=>x.hasSources).length;
   el('opening-lab-queue-progress').textContent=done+'/'+queue.length+' con 3 evidencias';
