@@ -826,3 +826,14 @@
 .opening-lab-evidence small{color:#9cb4c5}
 #opening-lab-reference{font-size:12px;color:#84dbc1}
 @media(max-width:640px){.opening-lab-panel{padding:12px}.opening-lab-actions .btn{flex:1;min-width:130px}}
+
+/* Branch comparisons: never equate evaluations from different search settings. */
+.opening-lab-branches{display:grid;gap:8px;padding:11px;border:1px solid #304b60;border-radius:9px;background:#102034}
+.opening-lab-branches>strong{font-size:13px;color:#e0f0eb}
+.opening-lab-branch-list{display:grid;gap:7px;max-height:380px;overflow-y:auto}
+.opening-lab-branch{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:9px;border:1px solid #30465a;border-radius:8px;background:#182c40}
+.opening-lab-branch-copy{display:grid;gap:3px;min-width:0}
+.opening-lab-branch-copy strong{font-size:12px;white-space:normal;overflow-wrap:anywhere}
+.opening-lab-branch-copy small{font-size:11px;color:#93b5c2}
+.opening-lab-branch .btn{font-size:11px;white-space:nowrap;flex-shrink:0}
+@media(max-width:490px){.opening-lab-branch{align-items:stretch;flex-direction:column}.opening-lab-branch .btn{width:100%}}
