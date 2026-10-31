@@ -855,3 +855,8 @@
 .opening-lab-pv-label{display:flex;align-items:center;gap:7px;font-size:12px;color:#bfd4e2}
 .opening-lab-pv-label select{background:#102033;border:1px solid #36546b;color:#e9f5ed;padding:8px;border-radius:7px}
 #opening-lab-add-pv{flex:1}
+
+.opening-lab-compare{display:grid;gap:7px;padding:12px;border:1px solid #406d67;border-radius:8px;background:#132b31}
+.opening-lab-compare strong{font-size:13px;color:#b3e7cd}
+.opening-lab-compare p{margin:0;font-size:12px;line-height:1.55;color:#d5e7e5}
+.opening-lab-compare small{font-size:11px;color:#98b8b9}
