@@ -17,7 +17,13 @@ const family={
  kid:'Defensa India de Rey',
  grunfeld:'Defensa Grünfeld',
  ru:'Apertura Española',
- italian:'Apertura Italiana'
+ italian:'Apertura Italiana',
+ scotch:'Apertura Escocesa',
+ slav:'Defensa Eslava',
+ catalan:'Apertura Catalana',
+ english:'Apertura Inglesa',
+ london:'Sistema Londres',
+ tromp:'Ataque Trompowsky'
 };
 const url={
  najdorf:'https://lichess.org/opening/Sicilian_Defense_Najdorf_Variation',
@@ -28,7 +34,13 @@ const url={
  kid:'https://lichess.org/opening/Kings_Indian_Defense',
  grunfeld:'https://lichess.org/opening/Grunfeld_Defense',
  ru:'https://lichess.org/opening/Ruy_Lopez',
- italian:'https://lichess.org/opening/Italian_Game'
+ italian:'https://lichess.org/opening/Italian_Game',
+ scotch:'https://lichess.org/opening/Scotch_Game',
+ slav:'https://lichess.org/opening/Slav_Defense',
+ catalan:'https://lichess.org/opening/Catalan_Opening',
+ english:'https://lichess.org/opening/English_Opening',
+ london:'https://lichess.org/opening/London_System',
+ tromp:'https://lichess.org/opening/Trompowsky_Attack'
 };
 const make=(id,key,name,moves,eco,notes,research)=>({id,family:family[key],eco,name,moves,notes,research,reference:url[key]});
 export const OPENING_RESEARCH_EXPANSION=[
@@ -170,34 +182,34 @@ export const OPENING_RESEARCH_EXPANSION=[
   9:'c3 sostiene una futura expansión d4 y conserva opciones estratégicas.',
   12:'...d6 frena ciertas rupturas; ambos bandos pueden desarrollar sin forzar cambios.'
  },'Contrastar Giuoco Pianissimo con aperturas abiertas donde d4 llega antes.'),
- make('scotch-classic','italian','Escocesa · ...Ac5 y ...Df6',E+' d4 exd4 Nxd4 Bc5 Be3 Qf6 c3 Nge7 Bc4','C45',{
+ make('scotch-classic','scotch','Escocesa · ...Ac5 y ...Df6',E+' d4 exd4 Nxd4 Bc5 Be3 Qf6 c3 Nge7 Bc4','C45',{
   5:'d4 abre el centro mientras las piezas menores aún se desarrollan.',
   8:'...Ac5 presiona d4; las blancas contestan con Ae3.',
   10:'...Df6 mantiene tensión táctica sobre d4 y f2; exigir verificación precisa.'
  },'Revisar recapturas sobre d4 y amenazas de ...Cxd4 antes de recomendar.',
 ),
- make('slav-main','qgd','Eslava · centro con ...dxc4','d4 d5 c4 c6 Nf3 Nf6 Nc3 dxc4 a4 Bf5 e3 e6 Bxc4 Bb4','D17',{
+ make('slav-main','slav','Eslava · centro con ...dxc4','d4 d5 c4 c6 Nf3 Nf6 Nc3 dxc4 a4 Bf5 e3 e6 Bxc4 Bb4','D17',{
   4:'...c6 sostiene d5 y deja libre la diagonal del alfil c8.',
   8:'...dxc4 plantea la cuestión de recuperar el peón y el tiempo.',
   10:'...Af5 desarrolla fuera de la cadena antes de jugar ...e6.',
   13:'Axc4 recupera material a costa de elegir el momento de actividad blanca.'
  },'Comprobar alternativas en 5.a4 y 5.e3; estudiar si ...b5 defiende c4.'),
- make('catalan-open','qgd','Catalana · ...dxc4 y recuperación', 'd4 Nf6 c4 e6 g3 d5 Bg2 Be7 Nf3 O-O O-O dxc4 Qc2 a6 Qxc4','E04',{
+ make('catalan-open','catalan','Catalana · ...dxc4 y recuperación', 'd4 Nf6 c4 e6 g3 d5 Bg2 Be7 Nf3 O-O O-O dxc4 Qc2 a6 Qxc4','E04',{
   5:'g3 anuncia el alfil en la diagonal larga hacia el centro negro.',
   12:'...dxc4 acepta ceder el centro a cambio de material y tiempos.',
   15:'Dxc4 recupera el peón; la actividad de las piezas tiene más importancia que contar peones aislados.'
  },'Examinar qué líneas permiten sostener el peón de c4 sin perder demasiados tiempos.'),
- make('english-symm','qgd','Inglesa · estructura simétrica','c4 c5 Nc3 Nc6 Nf3 Nf6 g3 g6 Bg2 Bg7 O-O O-O','A34',{
+ make('english-symm','english','Inglesa · estructura simétrica','c4 c5 Nc3 Nc6 Nf3 Nf6 g3 g6 Bg2 Bg7 O-O O-O','A34',{
   2:'...c5 crea simetría central, pero el orden de jugadas todavía permite planes diferentes.',
   8:'g3 busca control de casillas oscuras desde el flanco.',
   12:'...Ag7 coloca al alfil en una diagonal que puede cobrar importancia con d4 o ...d5.'
  },'Diferenciar simetría superficial de posiciones transpuestas a defensas contra d4.'),
- make('london-c5','qgd','Sistema Londres · presión ...c5','d4 d5 Bf4 Nf6 e3 c5 c3 Nc6 Nd2 Qb6 Qb3','D02',{
+ make('london-c5','london','Sistema Londres · presión ...c5','d4 d5 Bf4 Nf6 e3 c5 c3 Nc6 Nd2 Qb6 Qb3','D02',{
   3:'Af4 desarrolla el alfil antes de e3, evitando problemas de movilidad.',
   6:'...c5 interroga directamente el centro d4.',
   10:'...Db6 ataca b2 y d4; las blancas proponen el cambio de damas o tensión en b.'
  },'Comprobar si la dama en b6 puede ganar tiempos y cuándo la estructura es desfavorable.'),
- make('tromp-early','qgd','Trompowsky · ...Ce4 y ...Da5+','d4 Nf6 Bg5 Ne4 Bf4 c5 f3 Qa5+ c3 Nf6','A45',{
+ make('tromp-early','tromp','Trompowsky · ...Ce4 y ...Da5+','d4 Nf6 Bg5 Ne4 Bf4 c5 f3 Qa5+ c3 Nf6','A45',{
   3:'Ag5 plantea cambiar el alfil por el caballo antes de ...d5.',
   4:'...Ce4 evita la clavada y cuestiona la posición del alfil.',
   8:'...Da5+ explota las casillas que dejó el peón d4; revisar tácticas antes de memorizar.'
