@@ -60,11 +60,26 @@ export function initOpeningResearch({state,loadPGN,jump,notify,getLiveSnapshot,s
  function makePgn(draft){
   const {sans}=validateOpeningLine(draft.moves);
   const c=new Chess();
-  c.header('Event','IB Chess Academy - laboratorio sin publicar','White','Plan blanco','Black','Plan negro','Result','*','ECO',draft.eco||'?','ResearchID',draft.id,'StudyStatus','BORRADOR - REVISION PENDIENTE');
+  c.header('Event','IB Chess Academy - laboratorio sin publicar','White','Plan blanco','Black','Plan negro','Result','*','ECO',draft.eco||'?','ResearchID',draft.id,'StudyStatus','BORRADOR - REVISION PENDIENTE','ReferenceType','Clasificacion y estudio - no validacion tecnica');
   for(let ply=1;ply<=sans.length;ply++){
     c.move(sans[ply-1]);
-    const note=data.notes[draft.id+'|'+ply]??draft.notes?.[ply];
-    if(note)c.setComment(String(note));
+    const notes=[];
+    const original=data.notes[draft.id+'|'+ply]??draft.notes?.[ply];
+    if(original)notes.push(String(original));
+    const evidence=data.evidence[draft.id+'|'+ply];
+    if(evidence?.complete&&evidence.fen===c.fen()&&evidence.lines?.length){
+      notes.push('CAPTURA DE MOTOR (no equivale a teoria aprobada): '+evidence.engine+' d'+evidence.depth+'; '+evidence.lines.map(v=>'#'+v.rank+' '+v.score+' d'+v.depth+': '+v.san).join(' / '));
+    }
+    const masters=data.masters[c.fen()];
+    if(masters?.result){
+      const m=masters.result,n=m.white+m.draws+m.black;
+      notes.push('ESTADISTICA HISTORICA LICHESS MASTERS: '+n+' partidas; blancas '+m.white+', tablas '+m.draws+', negras '+m.black+'. Frecuencia no implica calidad objetiva.');
+    }
+    if(ply===sans.length){
+      const bibliography=data.sources[draft.id];
+      if(bibliography)notes.push('REFERENCIAS EDITORIALES PENDIENTES DE REVISION: '+bibliography.replace(/\s+/g,' ').slice(0,1600));
+    }
+    if(notes.length)c.setComment(notes.join(' | '));
   }
   return c.pgn();
  }
