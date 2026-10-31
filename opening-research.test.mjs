@@ -44,15 +44,20 @@ test('expanded editorial catalog contains diverse, valid and uniquely identified
   const all=[...OPENING_RESEARCH_DRAFTS,...OPENING_RESEARCH_EXPANSION];
   assert.equal(new Set(all.map(x=>x.id)).size,all.length);
   assert.ok(new Set(all.map(x=>x.family)).size>=12);
+  const issues=[],sequences=[];
   for(const draft of all){
-    const {sans,fens}=validateOpeningLine(draft.moves);
-    assert.ok(sans.length>=9,draft.id+' too short');
-    assert.equal(fens.length,sans.length+1);
-    assert.ok(/^https:\/\//.test(draft.reference),draft.id+' missing reference');
-    assert.ok(draft.research&&draft.research.length>35,draft.id+' missing concrete research question');
-    for(const key of Object.keys(draft.notes||{})){
-      assert.ok(Number(key)>=1&&Number(key)<=sans.length,draft.id+' comment ply '+key+' exceeds '+sans.length);
-    }
+    try{
+      const {sans,fens}=validateOpeningLine(draft.moves);
+      sequences.push(sans.join(' '));
+      if(sans.length<9)issues.push(draft.id+' too short');
+      if(fens.length!==sans.length+1)issues.push(draft.id+' FEN length');
+      if(!/^https:\/\//.test(draft.reference))issues.push(draft.id+' missing reference');
+      if(!draft.research||draft.research.length<=35)issues.push(draft.id+' missing research question');
+      for(const key of Object.keys(draft.notes||{})){
+        if(Number(key)<1||Number(key)>sans.length)issues.push(draft.id+' comment ply '+key+' exceeds '+sans.length);
+      }
+    }catch(error){issues.push(draft.id+': '+error.message);}
   }
-  assert.equal(new Set(all.map(x=>validateOpeningLine(x.moves).sans.join(' '))).size,all.length,'duplicate line');
+  if(new Set(sequences).size!==sequences.length)issues.push('Duplicate game sequences');
+  assert.deepEqual(issues,[],'Opening research catalog needs editorial repair');
 });
