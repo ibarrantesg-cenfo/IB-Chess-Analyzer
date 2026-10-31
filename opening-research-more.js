@@ -46,9 +46,9 @@ const make=(id,key,name,moves,eco,notes,research)=>({id,family:family[key],eco,n
 export const OPENING_RESEARCH_EXPANSION=[
  make('najdorf-bg5-classic','najdorf','6.Bg5 · estructura clásica con ...Be7',N+' Bg5 e6 f4 Be7 Qf3 Qc7 O-O-O Nbd7 g4 b5','B96',{
   11:'El alfil clava el caballo f6 contra la dama: la presión sobre e6 exige precisión.',
-  14:'f4 obtiene espacio, pero también deja casillas oscuras susceptibles de contraataque.',
-  18:'La dama en f3 refuerza el ataque; calcular tácticas sobre c3, e4 y d4.',
-  22:'...b5 apunta al enroque blanco. Comprobar si existen recursos centrales en este momento.'
+  13:'f4 obtiene espacio, pero también deja casillas oscuras susceptibles de contraataque.',
+  15:'La dama en f3 refuerza el ataque; calcular tácticas sobre c3, e4 y d4.',
+  20:'...b5 apunta al enroque blanco. Comprobar si existen recursos centrales en este momento.'
  },'Contrastar 7...Be7, 7...Qc7, 7...Nbd7 y 7...Qb6 en el mismo FEN.'),
  make('najdorf-poison','najdorf','6.Bg5 · Peón Envenenado 7...Db6',N+' Bg5 e6 f4 Qb6 Qd2 Qxb2 Rb1 Qa3 e5 dxe5 fxe5 Nfd7','B97',{
   14:'...Db6 ataca b2 y entra en una variante muy concreta; no es un plan universal.',
@@ -58,12 +58,12 @@ export const OPENING_RESEARCH_EXPANSION=[
  make('najdorf-bc4','najdorf','6.Ac4 · ataque Fischer-Sozin',N+' Bc4 e6 Bb3 b5 O-O Be7 f4 O-O Qe2 Qc7','B86',{
   11:'Ac4 presiona e6 y f7, con un enfoque distinto del Ataque Inglés.',
   14:'...b5 obtiene espacio, pero crea objetivos en casillas claras y posibles saltos de caballo.',
-  20:'La dama en e2 coordina el centro; comparar la amenaza f5 con el juego negro en c.'
+  19:'La dama en e2 coordina el centro; comparar la amenaza f5 con el juego negro en c.'
  },'Buscar partidas modelo de Sozin y contrastar cambios de orden con 7...b5.'),
  make('najdorf-f4','najdorf','6.f4 e5 · ataque de cuatro peones',N+' f4 e5 Nf3 Nbd7 a4 Be7 Bd3 O-O O-O','B93',{
   11:'f4 prepara e5 o f5 según la estructura; la casilla e4 también puede debilitarse.',
   12:'...e5 gana espacio y obliga al caballo a retirarse; comprobar d5 y d6.',
-  14:'Cf3 mantiene piezas activas; el momento de f5 depende de la respuesta negra.'
+  13:'Cf3 mantiene piezas activas; el momento de f5 depende de la respuesta negra.'
  },'Contrastar 7.Cf3 y posibles alternativas de desarrollo negro; evitar analogías automáticas con el Ataque Inglés.'),
  make('najdorf-be2','najdorf','6.Ae2 · desarrollo clásico',N+' Be2 e5 Nb3 Be7 O-O O-O Be3 Be6','B92',{
   11:'Ae2 reduce la exposición inmediata del rey, sin renunciar a presión central.',
@@ -72,13 +72,13 @@ export const OPENING_RESEARCH_EXPANSION=[
  },'Separar planes con 8.Ae3, 8.Te1 y rupturas del centro.'),
  make('najdorf-h3','najdorf','6.h3 e5 · expansión g4',N+' h3 e5 Nde2 Be7 g4 O-O Bg2','B90',{
   11:'h3 suele apoyar g4 y evita motivos de ...Cg4; requiere precisión en el orden de jugadas.',
-  14:'Cde2 conserva la flexibilidad del caballo sin cederlo por el alfil.',
+  13:'Cde2 conserva la flexibilidad del caballo sin cederlo por el alfil.',
   15:'El avance g4 cambia el equilibrio entre iniciativa y seguridad del rey.'
  },'Comparar 6.h3 y 6.f3; no suponer que una transposición conserva los mismos recursos.'),
  make('najdorf-g3','najdorf','6.g3 · desarrollo posicional',N+' g3 e5 Nde2 Be7 Bg2 O-O O-O','B91',{
   11:'g3 anuncia el fianchetto blanco y un enfoque más posicional.',
   12:'...e5 gana control sobre d4 y deja d5 como objetivo.',
-  16:'Ag2 presiona la diagonal larga; examinar si el centro permite explotar su actividad.'
+  15:'Ag2 presiona la diagonal larga; examinar si el centro permite explotar su actividad.'
  },'Investigar ataques negros con ...b5 y el empleo de f4 blanco.'),
  make('najdorf-f3','najdorf','6.f3 · orden alternativo del Ataque Inglés',N+' f3 e5 Nb3 Be6 Be3 Nbd7 Qd2 Be7 O-O-O','B90',{
   11:'f3 refuerza e4 antes de decidir la ubicación del alfil de c1.',
@@ -87,18 +87,18 @@ export const OPENING_RESEARCH_EXPANSION=[
  },'Anotar transposiciones reales por FEN, no únicamente por nombres.'),
  make('najdorf-ng4','najdorf','6.Ae3 Cg4 · intento de cambio',N+' Be3 Ng4 Bg5 h6 Bh4 g5 Bg3 Bg7 h3 Ne5','B90',{
   12:'...Cg4 ataca directamente el alfil en e3 antes de f3.',
-  14:'Ag5 evita el cambio inmediato: estudiar la reacción ...h6.',
-  20:'h3 cuestiona el caballo de g4, pero la expansión negra crea debilidades propias.'
+  13:'Ag5 evita el cambio inmediato: estudiar la reacción ...h6.',
+  19:'h3 cuestiona el caballo de g4, pero la expansión negra crea debilidades propias.'
  },'Comprobar 7.Ag5 y rutas alternativas del alfil con engine.'),
  make('french-a3-bd7','french','Avance 6.a3 · ...Ad7 y ...Tc8',F+' a3 Bd7 b4 cxd4 cxd4 Rc8 Bb2','C02',{
   11:'a3 puede preparar b4, ganando espacio en el flanco de dama y apoyando c3.',
-  14:'La expansión b4 debe medirse contra la posible presión negra en c.',
-  18:'...Tc8 utiliza una columna que quedó disponible por la evolución del centro.'
+  13:'La expansión b4 debe medirse contra la posible presión negra en c.',
+  16:'...Tc8 utiliza una columna que quedó disponible por la evolución del centro.'
  },'Comparar estructuras tras ...c4 y ...cxd4; identificar cuándo b4 es una ganancia de tiempo.'),
  make('french-be2','french','Avance 6.Ae2 · desarrollo flexible',F+' Be2 Bd7 O-O Nh6 Na3 cxd4 cxd4 Nf5','C02',{
   11:'Ae2 desarrolla sin ofrecer la misma iniciativa inmediata que Ad3.',
-  14:'El rey blanco se pone a salvo antes de decidir cómo contrarrestar la presión sobre d4.',
-  18:'La recaptura con el peón c modifica la base de la cadena y permite analizar c abierta.'
+  13:'El rey blanco se pone a salvo antes de decidir cómo contrarrestar la presión sobre d4.',
+  17:'La recaptura con el peón c modifica la base de la cadena y permite analizar c abierta.'
  },'Verificar si los planes con ...Cf5 dependen de transposiciones previas.'),
  make('french-winawer','french','Winawer 3.Cc3 Ab4 · tensión estructural','e4 e6 d4 d5 Nc3 Bb4 e5 c5 a3 Bxc3+ bxc3 Ne7 Qg4','C18',{
   6:'...Ab4 vincula la lucha del centro con la estructura blanca de peones doblados.',
@@ -134,7 +134,7 @@ export const OPENING_RESEARCH_EXPANSION=[
  make('qgd-exchange','qgd','Gambito Rehusado · Cambio y minorías',Q+' cxd5 exd5 Bg5 Be7 e3 O-O Bd3 Nbd7 Qc2 Re8','D35',{
   7:'cxd5 permite una estructura característica con la columna c relevante.',
   8:'...exd5 deja una cadena de peones en d5 y c7 que puede ser objetivo de ataque de minorías.',
-  14:'Ad3 influye en h7 y facilita el enroque, pero el plan de b4-b5 depende del desarrollo.'
+  13:'Ad3 influye en h7 y facilita el enroque, pero el plan de b4-b5 depende del desarrollo.'
  },'Relacionar con ataque de minorías y ruptura ...c5 solo cuando la estructura lo permita.'),
  make('nimzo-classic','nimzo','Nimzoindia · estructura clásica 4.e3',I+' e3 O-O Bd3 d5 Nf3 c5 O-O Nc6','E40',{
   6:'...Ab4 clava al caballo de c3 y vincula la lucha del centro con la estructura blanca.',
@@ -149,8 +149,8 @@ export const OPENING_RESEARCH_EXPANSION=[
  make('kid-classic','kid','India de Rey · centro clásico y ...e5',K+' Nf3 O-O Be2 e5 O-O Nc6 d5 Ne7 Ne1','E97',{
   8:'...d6 permite ...e5 sin abandonar inmediatamente el centro.',
   12:'...e5 bloquea el centro y anuncia una lucha por rupturas de flanco.',
-  16:'d5 fija la cadena; el blanco puede buscar c5 y el negro ...f5, según la configuración.',
-  18:'Ce1 prepara maniobras hacia d3 o f3 y libera f3; estudiar planes concretos.'
+  15:'d5 fija la cadena; el blanco puede buscar c5 y el negro ...f5, según la configuración.',
+  17:'Ce1 prepara maniobras hacia d3 o f3 y libera f3; estudiar planes concretos.'
  },'Comparar ...f5 con ...c6, fechas y recursos tácticos cuando ambos atacan en flancos.'),
  make('kid-saemisch','kid','India de Rey · Sämisch y presión sobre f3',K+' f3 O-O Be3 e5 d5 Nh5','E80',{
   9:'f3 refuerza e4 y condiciona el desarrollo natural del caballo de g1.',
@@ -163,24 +163,24 @@ export const OPENING_RESEARCH_EXPANSION=[
   14:'...c5 ataca la cadena desde un flanco; el blanco debe decidir entre d5 y desarrollo.'
  },'Precisar qué rupturas negras son tácticamente posibles según el alfil en g7.'),
  make('grunfeld-russian','grunfeld','Grünfeld · sistema Ruso con 5.Db3',G+' Nf3 Bg7 Qb3 dxc4 Qxc4 O-O e4','D97',{
-  10:'Db3 defiende indirectamente el centro y presiona d5; desarrolla la dama temprano.',
-  12:'...dxc4 convierte la tensión central en una carrera por desarrollo.',
-  14:'...O-O prioriza seguridad mientras prepara ataques al amplio centro blanco.'
+  9:'Db3 defiende indirectamente el centro y presiona d5; desarrolla la dama temprano.',
+  10:'...dxc4 convierte la tensión central en una carrera por desarrollo.',
+  12:'...O-O prioriza seguridad mientras prepara ataques al amplio centro blanco.'
  },'Comparar 5.Db3 con 5.Af4 y con el sistema de cambio.'),
  make('ru-berlin','ru','Española · Berlinesa 4...Cxe4',E+' Bb5 Nf6 O-O Nxe4 d4 Nd6 Bxc6 dxc6 dxe5 Nf5','C67',{
   8:'...Cxe4 obtiene un peón momentáneamente, pero el blanco dispone de d4.',
-  10:'d4 pregunta por la estabilidad del caballo y acelera el desarrollo.',
-  14:'dxe5 define el centro; evaluar movilidad de reyes y estructura antes de proyectar un final.'
+  9:'d4 pregunta por la estabilidad del caballo y acelera el desarrollo.',
+  13:'dxe5 define el centro; evaluar movilidad de reyes y estructura antes de proyectar un final.'
  },'Comprobar si las transposiciones llevan realmente al final berlinés típico.'),
  make('ru-closed','ru','Española · línea cerrada',E+' Bb5 a6 Ba4 Nf6 O-O Be7 Re1 b5 Bb3 d6 c3 O-O h3','C84',{
   6:'...a6 obliga a decidir el alfil de b5; también prepara espacio mediante ...b5.',
-  14:'...b5 expande en el flanco de dama; el alfil blanco reacciona con Ab3.',
-  19:'h3 restringe ...Ag4 y prepara una fase lenta de maniobras.'
+  12:'...b5 expande en el flanco de dama; el alfil blanco reacciona con Ab3.',
+  17:'h3 restringe ...Ag4 y prepara una fase lenta de maniobras.'
  },'Investigar rupturas d4, ...d5 y maniobras de caballos; no asumir equivalencia con la Berlinesa.'),
  make('italian-quiet','italian','Italiana · d3 y planes lentos',E+' Bc4 Bc5 c3 Nf6 d3 d6 O-O O-O Re1 a6','C54',{
   6:'Ac5 iguala la presencia de los alfiles en diagonales hacia los reyes.',
-  9:'c3 sostiene una futura expansión d4 y conserva opciones estratégicas.',
-  12:'...d6 frena ciertas rupturas; ambos bandos pueden desarrollar sin forzar cambios.'
+  7:'c3 sostiene una futura expansión d4 y conserva opciones estratégicas.',
+  10:'...d6 frena ciertas rupturas; ambos bandos pueden desarrollar sin forzar cambios.'
  },'Contrastar Giuoco Pianissimo con aperturas abiertas donde d4 llega antes.'),
  make('scotch-classic','scotch','Escocesa · ...Ac5 y ...Df6',E+' d4 exd4 Nxd4 Bc5 Be3 Qf6 c3 Nge7 Bc4','C45',{
   5:'d4 abre el centro mientras las piezas menores aún se desarrollan.',
@@ -201,8 +201,8 @@ export const OPENING_RESEARCH_EXPANSION=[
  },'Examinar qué líneas permiten sostener el peón de c4 sin perder demasiados tiempos.'),
  make('english-symm','english','Inglesa · estructura simétrica','c4 c5 Nc3 Nc6 Nf3 Nf6 g3 g6 Bg2 Bg7 O-O O-O','A34',{
   2:'...c5 crea simetría central, pero el orden de jugadas todavía permite planes diferentes.',
-  8:'g3 busca control de casillas oscuras desde el flanco.',
-  12:'...Ag7 coloca al alfil en una diagonal que puede cobrar importancia con d4 o ...d5.'
+  7:'g3 busca control de casillas oscuras desde el flanco.',
+  10:'...Ag7 coloca al alfil en una diagonal que puede cobrar importancia con d4 o ...d5.'
  },'Diferenciar simetría superficial de posiciones transpuestas a defensas contra d4.'),
  make('london-c5','london','Sistema Londres · presión ...c5','d4 d5 Bf4 Nf6 e3 c5 c3 Nc6 Nd2 Qb6 Qb3','D02',{
   3:'Af4 desarrolla el alfil antes de e3, evitando problemas de movilidad.',
