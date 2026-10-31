@@ -34,6 +34,6 @@ test('French and Caro-Kann alternatives branch at a legal shared position',()=>{
   }
 });
 test('invalid proposed branches are rejected rather than silently imported',()=>{
-  assert.throws(()=>validateOpeningLine('e4 e5 Qh5 Qh4'),/Movimiento ilegal/);
+  assert.throws(()=>validateOpeningLine('e4 e5 Qh8'),/Movimiento ilegal/);
   assert.throws(()=>validateOpeningLine(''),/no contiene jugadas/);
 });
