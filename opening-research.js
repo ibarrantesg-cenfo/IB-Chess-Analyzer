@@ -6,7 +6,7 @@ import { extendLegalLine,readSanTokens,researchChecklist,cleanSnapshot } from '.
 import { buildOpeningBackup, validateOpeningBackup } from './opening-research-backup.js';
 import { compareOpeningEvidence } from './opening-evidence-comparison.js';
 import { parsePersonalOpeningStudy } from './opening-study-import.js';
-import {prepareOpeningBranch,studyRootId} from './opening-study-branches.js';
+import {prepareOpeningBranch,studyRootId,linkedStudyIds} from './opening-study-branches.js';
 
 // Local-only opening research. Engine evidence NEVER promotes a chapter to verified content.
 const KEY='ib-opening-research-v1';
@@ -328,13 +328,17 @@ export function initOpeningResearch({state,loadPGN,jump,notify,getLiveSnapshot,s
  };
  el('opening-lab-delete').onclick=()=>{
   const item=data.custom.find(x=>x.id===selected);if(!item)return;
-  if(!window.confirm('¿Eliminar permanentemente este estudio personal y sus comentarios y evaluaciones locales? Exportá un respaldo si querés conservarlo.'))return;
-  data.custom=data.custom.filter(x=>x.id!==selected);
-  for(const key of Object.keys(data.notes))if(key.startsWith(selected+'|'))delete data.notes[key];
-  for(const key of Object.keys(data.evidence))if(key.startsWith(selected+'|'))delete data.evidence[key];
-  delete data.sources[selected];selected=entries()[0]?.id;
-  persist();if(selected)switchStudy(selected,{openLine:true});else render();
-  notify('Estudio personal eliminado de este navegador.');
+  const deleting=linkedStudyIds(data.custom,item.id),removed=new Set(deleting);
+  const parent=item.origin?.parent&&!removed.has(item.origin.parent)?item.origin.parent:null;
+  if(!window.confirm('Se eliminará este estudio y '+(deleting.length-1)+' rama(s) dependiente(s), junto con sus notas y evaluaciones locales. Esta acción es irreversible. ¿Continuar?'))return;
+  data.custom=data.custom.filter(x=>!removed.has(x.id));
+  for(const key of Object.keys(data.notes))if(deleting.some(id=>key.startsWith(id+'|')))delete data.notes[key];
+  for(const key of Object.keys(data.evidence))if(deleting.some(id=>key.startsWith(id+'|')))delete data.evidence[key];
+  for(const id of deleting)delete data.sources[id];
+  persist();
+  const next=parent||entries()[0]?.id;
+  if(next)switchStudy(next,{openLine:true});else render();
+  notify('Estudio y sus ramas dependientes eliminados únicamente de este navegador.');
  };
  el('opening-lab-choice').onchange=e=>{switchStudy(e.target.value,{openLine:true});};
  el('opening-lab-search').addEventListener('input',e=>{filterText=e.target.value.normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().trim();renderCatalog();});
