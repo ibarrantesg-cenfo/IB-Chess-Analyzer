@@ -174,6 +174,10 @@ export function initStudio(state,callbacks){selected=state;onChange=callbacks.re
  <p id="studio-share-notice" role="status" aria-live="polite">Seleccioná a alguien para continuar.</p>
  <div class="studio-share-footer"><button type="button" class="btn outline" id="studio-share-cancel">Cancelar</button><button type="button" class="btn primary" id="studio-share-confirm" disabled>Sincronizar y compartir</button></div>`;
  document.body.append(shareDialog);
+ el('studio-share-close').onclick=()=>shareDialog.close();
+ el('studio-share-cancel').onclick=()=>shareDialog.close();
+ el('studio-share-recipient').onchange=()=>{el('studio-share-confirm').disabled=!el('studio-share-recipient').value;};
+ if(!cloudAvailable)el('studio-share-quick').onclick=()=>notify('Para compartir estudios tenés que conectar Supabase e iniciar sesión. Tus estudios locales no se han publicado.','err');
 
  const pieces=[['wK','♔'],['wQ','♕'],['wR','♖'],['wB','♗'],['wN','♘'],['wP','♙'],['bK','♚'],['bQ','♛'],['bR','♜'],['bB','♝'],['bN','♞'],['bP','♟'],['empty','⌫']];
  el('studio-palette').innerHTML=pieces.map(([p,g])=>'<button type="button" title="'+p+'" data-piece="'+p+'">'+g+'</button>').join('');
@@ -275,7 +279,58 @@ el('studio-export').onclick=exportStudy;
       }
     }};
    el('cloud-filter').onchange=drawCloudLibrary;
-   let account=null;
+   let account=null,shareRecipients=[];
+   const shareNotice=message=>{el('studio-share-notice').textContent=message;};
+   el('studio-share-quick').onclick=async()=>{
+    try{
+     if(cloudSource?.shared)throw Error('El estudio abierto es de otra persona. Guardá primero una copia propia para compartir tu versión.');
+     await requireLogin();
+     if(!active)ensure();
+     account=await accountDetails();
+     const enrollments=account?.isTeacher?await myEnrollments():null;
+     const unique=new Map(eligibleStudyRecipients(account,enrollments).map(person=>[person.id,person]));
+     shareRecipients=[...unique.values()];
+     const select=el('studio-share-recipient');select.replaceChildren(new Option('Elegí una persona…',''));
+     for(const person of shareRecipients)select.add(new Option(person.name+(person.type==='student'?' · Alumno':' · Profesor'),person.id));
+     el('studio-share-intro').textContent='Estudio: «'+active.name+'». Al confirmar, se sincronizará en tu cuenta y la persona elegida tendrá acceso de lectura.';
+     shareNotice(shareRecipients.length?'Elegí una persona de la academia para continuar.':'No hay personas autorizadas disponibles. El profesor necesita alumnos con inscripción activa; el alumno necesita un profesor habilitado.');
+     el('studio-share-confirm').disabled=true;
+     if(!shareDialog.open)shareDialog.showModal();
+    }catch(e){notify('No se puede compartir: '+e.message,'err');}
+   };
+   el('studio-share-confirm').onclick=async()=>{
+    const button=el('studio-share-confirm');
+    let synchronized=false;
+    try{
+     const selectedId=el('studio-share-recipient').value;
+     const person=shareRecipients.find(x=>x.id===selectedId);
+     if(!person)throw Error('Elegí una persona autorizada.');
+     const session=await requireLogin();
+     const currentAccount=await accountDetails();
+     const currentEnrollments=currentAccount?.isTeacher?await myEnrollments():null;
+     if(!eligibleStudyRecipients(currentAccount,currentEnrollments).some(x=>x.id===selectedId&&x.type===person.type))
+       throw Error('La persona ya no tiene autorización activa para recibir este estudio.');
+     if(cloudSource?.shared)throw Error('No podés compartir un estudio propiedad de otra persona.');
+     button.disabled=true;
+     shareNotice('Guardando el estudio en tu cuenta…');
+     ensure();
+     active.student=el('studio-student').value.trim()||active.student||'Sin alumno';
+     await put(active);
+     await cloudSave(active);
+     synchronized=true;
+     shareNotice('Estudio guardado. Configurando acceso de lectura para '+person.name+'…');
+     if(person.type==='teacher')await shareWithTeacher(active.id,selectedId);
+     else await cloudShare(active.id,selectedId);
+     cloudSource={id:active.id,ownerId:session.user.id,shared:false};
+     shareNotice('Compartido correctamente con '+person.name+' (solo lectura).');
+     await show();
+     notify('Estudio sincronizado y compartido con '+person.name+' (solo lectura).');
+     shareDialog.close();
+    }catch(e){
+     shareNotice((synchronized?'El estudio quedó guardado en tu cuenta, pero no se pudo conceder el acceso: ':'No se pudo compartir: ')+e.message);
+     notify('Compartir: '+e.message,'err');
+    }finally{button.disabled=!el('studio-share-recipient').value;}
+   };
    const show=async()=>{try{
      const session=await getCloudSession();
      status(session?'Conectado: '+session.user.email:'Ingresá tu correo y abrí el enlace de acceso.');
