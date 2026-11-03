@@ -998,3 +998,51 @@
 
 #opening-lab-notation-help{display:block;font-size:11px;line-height:1.5;color:#a9d6c5}
 :root[data-theme="light"] #opening-lab-notation-help{color:#3b6970}
+
+/* v2 study workflow: fewer actions, position-led branches, named recipients. */
+.studio-action-hub{display:grid;gap:11px;margin:15px 0;padding:15px 16px;border:1px solid #3e756c;border-radius:12px;background:linear-gradient(135deg,#153b38,#142635)}
+.studio-action-hub>div:first-child{display:grid;gap:5px}
+.studio-action-hub strong{font:700 17px Outfit,sans-serif;color:#dcfff0}
+.studio-action-hub small{font-size:11px;color:#9dcab9}
+.studio-action-hub-buttons{display:flex;gap:8px;flex-wrap:wrap}
+.studio-action-hub-buttons .btn{flex:1;min-width:120px;white-space:normal}
+.studio-action-hub>p{font-size:11px;line-height:1.6;color:#a8c7c2;margin:0}
+#studio-comment-panel:not(.contextual){margin:15px 0;padding:14px;background:#132539;border:1px solid #3c5467;border-radius:11px}
+#studio-comment-panel:not(.contextual) .studio-close{display:block;position:static;margin-left:auto}
+.studio-variation-choices{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin:10px 0}
+.studio-variation-choices>span{font-size:11px;color:#9bb8c6}
+.studio-variation-choices button{font-size:11px}
+.studio-line-preview{margin:10px 0;padding:10px 12px;border-radius:8px;border-left:3px solid #5fa98d;background:#1b3740;color:#c7e9df;font-size:11px;line-height:1.6}
+#studio-line-input{min-height:70px;margin-top:8px}
+.studio-share-advanced{border-top:1px solid #365268;margin-top:14px;padding-top:8px}
+.studio-share-advanced>summary{cursor:pointer;font-size:11px;color:#86bac7}
+.studio-share-dialog{position:fixed;inset:0;max-width:min(520px,calc(100vw - 24px));width:100%;max-height:calc(100dvh - 32px);margin:auto;padding:22px;border:1px solid #4a8075;border-radius:16px;box-shadow:0 24px 80px #040f1e99;background:#102537;color:#e6f7f2}
+.studio-share-dialog::backdrop{background:#07151dbc;backdrop-filter:blur(3px)}
+.studio-share-dialog header{display:flex;align-items:flex-start;justify-content:space-between;gap:10px;border-bottom:1px solid #355768;padding-bottom:13px}
+.studio-share-dialog header h2{font:700 20px Outfit,sans-serif;margin:5px 0}
+.studio-share-dialog>p{font-size:12px;line-height:1.65;color:#bad6dc}
+.studio-share-dialog>label{display:grid;gap:7px;color:#c9e4eb;font-size:12px}
+.studio-share-dialog select{width:100%;background:#122c3e;color:#f0f8fc;border:1px solid #597b86;border-radius:8px;padding:12px}
+.studio-share-permission{background:#183b35;border:1px solid #467e68;border-radius:10px;padding:12px 13px;margin-top:16px}
+.studio-share-permission strong{font-size:12px;color:#c6f5df}
+.studio-share-permission p{font-size:11px;line-height:1.6;color:#bdd8d0;margin:6px 0 0}
+#studio-share-notice{font-size:12px;color:#c3dfe4;line-height:1.6;overflow-wrap:anywhere}
+.studio-share-footer{display:flex;gap:10px;flex-wrap:wrap;justify-content:flex-end}
+.studio-share-footer>.btn{min-width:125px}
+@media(max-width:560px){.studio-action-hub{padding:12px}.studio-action-hub-buttons .btn{min-width:100%}.studio-share-dialog{padding:14px}.studio-share-footer>.btn{flex:1}}
+:root[data-theme="light"] .studio-action-hub{background:#eaf6f0;border-color:#b6d7cb}
+:root[data-theme="light"] .studio-action-hub strong{color:#164838}
+:root[data-theme="light"] .studio-action-hub small,:root[data-theme="light"] .studio-action-hub>p{color:#436779}
+:root[data-theme="light"] #studio-comment-panel:not(.contextual){background:#f5fafb;border-color:#c2d6dd}
+:root[data-theme="light"] .studio-variation-choices>span{color:#547080}
+:root[data-theme="light"] .studio-line-preview{background:#e3f3ee;color:#1f5e4b;border-color:#60a989}
+:root[data-theme="light"] .studio-share-advanced{border-color:#d1e0e5}
+:root[data-theme="light"] .studio-share-advanced>summary{color:#216b5c}
+:root[data-theme="light"] .studio-share-dialog{background:#fff;color:#1d394a;border-color:#b6d5d1}
+:root[data-theme="light"] .studio-share-dialog header{border-color:#d5e4e6}
+:root[data-theme="light"] .studio-share-dialog header h2{color:#173e49}
+:root[data-theme="light"] .studio-share-dialog>p,:root[data-theme="light"] .studio-share-dialog>label{color:#4b6a78}
+:root[data-theme="light"] .studio-share-dialog select{background:#fff;color:#1a4251;border-color:#a7c7d0}
+:root[data-theme="light"] .studio-share-permission{background:#e8f6ef;border-color:#b9dcc8}
+:root[data-theme="light"] .studio-share-permission strong{color:#176447}
+:root[data-theme="light"] .studio-share-permission p,:root[data-theme="light"] #studio-share-notice{color:#446a64}
