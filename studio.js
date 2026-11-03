@@ -11,7 +11,7 @@ const getAll=()=>transaction('readonly',s=>s.getAll());
 const put=x=>transaction('readwrite',s=>s.put(x));
 const del=id=>transaction('readwrite',s=>s.delete(id));
 const el=id=>document.getElementById(id);
-let active=null, selected=null, paint=false, palette='wP', alternate=null, onChange=()=>{}, notify=()=>{};
+let active=null, selected=null, paint=false, palette='wP', alternate=null, onChange=()=>{}, notify=()=>{}, linePreview=null;
 let timer=null, tree=null,cloudSource=null;
 function key(){return active?.id;}
 function saveSoon(){clearTimeout(timer);const snapshot=active?structuredClone(active):null;timer=setTimeout(()=>{if(snapshot)put(snapshot).then(()=>{if(active?.id===snapshot.id)el('studio-save-status').textContent='Guardado localmente';}).catch(e=>notify('No se pudo guardar: '+e.message,'err'));},300);}
@@ -27,12 +27,47 @@ function renderDiagrams(){
     entry.append(button,remove);root.append(entry);
   }
 }
-function renderNotes(){const ply=selected?.move||0;el('studio-note-title').textContent=ply?('Comentario de '+labelMove(ply,selected.game.moves[ply-1]?.san||'')):'Comentario de la posición inicial';el('studio-note').value=activeNote(ply);const items=(active?.variations||[]).filter(v=>v.ply===ply);el('studio-variants').innerHTML=items.length?items.map(v=>'<div class="studio-variant"><button data-line="'+v.id+'">'+v.san.join(' ')+'</button><button aria-label="Eliminar variante" data-delete-line="'+v.id+'">×</button></div>').join(''):'<small>No hay variantes aquí.</small>';el('studio-save-status').textContent=active?'Guardado automático local':'Sin estudio guardado';renderDiagrams();}
+function renderNotes(){const ply=selected?.move||0;
+ const position=studyPositionLabel(ply,selected?.game);
+ const quick=el('studio-current-position'),origin=el('studio-variant-origin');
+ if(quick)quick.textContent='Posición elegida: '+position;
+ if(origin)origin.textContent=position;
+ if(linePreview?.ply!==ply){linePreview=null;const save=el('studio-add-line');if(save)save.disabled=true;}
+ el('studio-note-title').textContent=ply?('Comentario de '+labelMove(ply,selected.game.moves[ply-1]?.san||'')):'Comentario de la posición inicial';el('studio-note').value=activeNote(ply);const items=(active?.variations||[]).filter(v=>v.ply===ply);el('studio-variants').innerHTML=items.length?items.map(v=>'<div class="studio-variant"><button data-line="'+v.id+'">'+v.san.join(' ')+'</button><button aria-label="Eliminar variante" data-delete-line="'+v.id+'">×</button></div>').join(''):'<small>No hay variantes aquí.</small>';el('studio-save-status').textContent=active?'Guardado automático local':'Sin estudio guardado';renderDiagrams();}
 function loadFromGame(){if(!selected?.game)return;active={id:crypto.randomUUID(),name:(selected.game.headers.White||'Blancas')+' – '+(selected.game.headers.Black||'Negras'),student:el('studio-student').value.trim()||'Sin alumno',pgn:selected.game.pgn,comments:{},variations:[],diagrams:[],created:new Date().toISOString(),updated:new Date().toISOString()};renderNotes();}
 function ensure(){if(!active)loadFromGame();return active;}
 function change(){ensure().updated=new Date().toISOString();saveSoon();el('studio-save-status').textContent='Guardando en este navegador…';}
 function commentAt(ply){if(!active)loadFromGame();el('studio-comment-panel').hidden=false;el('studio-comment-panel').classList.add('contextual');renderNotes();el('studio-note').focus();}
-function lineFromInput(){const text=el('studio-line-input').value.trim();if(!text)return;const base=selected.positions[selected.move],c=new Chess(base),sans=[];try{for(const token of text.replace(/\d+\.(\.\.)?/g,' ').split(/\s+/).filter(Boolean)){if(['*','1-0','0-1','1/2-1/2'].includes(token))break;const move=c.move(token);if(!move)throw Error('Jugada ilegal: '+token);sans.push(move.san);}if(!sans.length)throw Error('No se encontraron jugadas');ensure().variations.push({id:crypto.randomUUID(),ply:selected.move,san:sans,fen:c.fen()});el('studio-line-input').value='';change();renderNotes();notify('Variante agregada a esta posición.');}catch(e){notify('Variante inválida: '+e.message,'err');}}
+function previewLineInput(){
+ const box=el('studio-line-preview'),button=el('studio-add-line');
+ if(!box||!button)return;
+ linePreview=null;button.disabled=true;
+ const raw=el('studio-line-input').value.trim();
+ if(!raw){box.textContent='Elegí una posición, escribí jugadas o mové piezas en el tablero.';return;}
+ if(selected?.previewFen){box.textContent='Salí de la variante activa antes de pegar otra continuación.';return;}
+ try{
+  const ply=selected.move,fen=selected.positions[ply];
+  const parsed=parseStudyContinuation(fen,raw,el('studio-line-notation').value);
+  const duplicate=(active?.variations||[]).some(v=>v.ply===ply&&v.san.join(' ')===parsed.sans.join(' '));
+  if(duplicate){box.textContent='Esta variante ya existe en la posición seleccionada.';return;}
+  linePreview={...parsed,ply,raw};
+  button.disabled=false;
+  box.textContent='✓ '+parsed.sans.length+' jugadas legales desde '+studyPositionLabel(ply,selected.game)+': '+parsed.sans.slice(0,14).join(' ')+(parsed.sans.length>14?'…':'');
+ }catch(e){box.textContent='Revisá la notación: '+e.message;}
+}
+function lineFromInput(){
+ try{
+  if(!linePreview||linePreview.ply!==selected.move||linePreview.raw!==el('studio-line-input').value.trim())throw Error('Revisá la continuación antes de guardarla.');
+  if(selected.previewFen)throw Error('Volvé a la partida para guardar la variante en su punto de origen.');
+  ensure();
+  const entry={id:crypto.randomUUID(),ply:linePreview.ply,san:[...linePreview.sans],fen:linePreview.finalFen};
+  if(active.variations.some(v=>v.ply===entry.ply&&v.san.join(' ')===entry.san.join(' ')))throw Error('Esta variante ya existe.');
+  active.variations.push(entry);
+  const saved=entry;
+  el('studio-line-input').value='';linePreview=null;change();renderNotes();tree?.open(saved);
+  notify('Variante guardada en este estudio y abierta en el tablero.');
+ }catch(e){notify('No se pudo guardar: '+e.message,'err');previewLineInput();}
+}
 function choosePalette(x){palette=x;document.querySelectorAll('[data-piece]').forEach(b=>b.classList.toggle('picked',b.dataset.piece===x));}
 function paintSquare(square){const fen=selected.previewFen||selected.positions[selected.move];const c=new Chess(fen);try{if(palette==='empty')c.remove(square);else {const side=palette[0],piece=palette[1].toLowerCase();c.remove(square);if(!c.put({type:piece,color:side},square))throw Error('Casilla no válida');}const next=c.fen();el('studio-fen').value=next;selected.previewFen=next;el('studio-turn').value=c.turn();callbacks.renderPreview();}catch(e){notify('Posición no válida: '+e.message,'err');}}
 // Board editor only edits an isolated position until it is exported; original PGN mainline is untouched.
@@ -161,6 +196,25 @@ export function initStudio(state,callbacks){selected=state;onChange=callbacks.re
  el('studio-copy-fen').onclick=()=>navigator.clipboard.writeText(el('studio-fen').value);
  el('studio-note').oninput=e=>{ensure().comments[selected.move]=e.target.value;change();};
  el('studio-add-line').onclick=lineFromInput;
+ el('studio-line-input').addEventListener('input',previewLineInput);
+ el('studio-line-notation').addEventListener('change',previewLineInput);
+ const openStudyTools=focusNotes=>{
+  if(window.IB_LIVE?.isPlayingBack?.())return notify('Terminá la reproducción de Stockfish con «Volver a la partida» antes de editar esta posición.','err');
+  el('studio-comment-panel').hidden=false;
+  el('studio-comment-panel').classList.remove('contextual');
+  renderNotes();
+  el('studio-comment-panel').scrollIntoView({behavior:'smooth',block:'center'});
+  if(focusNotes)el('studio-note').focus();
+  else{el('studio-line-input').focus();previewLineInput();}
+ };
+ el('studio-variation-quick').onclick=()=>openStudyTools(false);
+ el('studio-comment-quick').onclick=()=>openStudyTools(true);
+ el('studio-play-variation').onclick=()=>{
+  if(window.IB_LIVE?.isPlayingBack?.())return notify('Volvé a la partida principal desde Stockfish para comenzar otra variante.','err');
+  if(selected.previewFen)return notify('Terminá la variante o el editor que ya tenés abierto.','err');
+  ensure();tree?.startAt(selected.move);
+ };
+
  el('studio-close-note').onclick=()=>{el('studio-comment-panel').hidden=true;el('studio-comment-panel').classList.remove('contextual');};
  document.addEventListener('keydown',e=>{if(e.key==='Escape'){el('studio-comment-panel').hidden=true;el('studio-comment-panel').classList.remove('contextual');}});
  el('studio-variants').onclick=e=>{const remove=e.target.closest('[data-delete-line]');if(remove){active.variations=active.variations.filter(v=>v.id!==remove.dataset.deleteLine);change();renderNotes();return;}const play=e.target.closest('[data-line]');if(play){const v=active.variations.find(x=>x.id===play.dataset.line);if(v)tree?.open(v);}};
