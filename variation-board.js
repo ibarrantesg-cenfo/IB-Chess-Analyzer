@@ -29,6 +29,17 @@ export function initVariationBoard(state, options) {
     branch={id:entry.id,rootPly:entry.ply,san,fens,cursor:san.length};
     sync();
   };
+  const startAt=ply=>{
+    const fen=state.positions[ply];
+    if(!fen)return options.notify('Seleccioná una posición válida de la partida.','err');
+    if(options.isEditing())return options.notify('Desactivá el editor de posiciones antes de crear una variante.','err');
+    const c=new Chess(fen);
+    branch={id:crypto.randomUUID(),rootPly:ply,san:[],fens:[c.fen()],cursor:0};
+    from=null;
+    sync();
+    options.notify('Modo variante activo: mové una pieza en el tablero. Cada jugada legal se guarda localmente. Usá «Volver a partida» para terminar.');
+    return true;
+  };
   const selectFromSquare = sq => {
     if (options.isEditing()) return false;
     const base=branch?.fens[branch.cursor]||state.positions[state.move];
@@ -72,5 +83,5 @@ export function initVariationBoard(state, options) {
   $('v-main').onclick=clear;
   $('board').addEventListener('click',e=>{const square=e.target.closest('.square')?.title;if(square)selectFromSquare(square);});
   draw();
-  return {open,clear,draw,selectFromSquare, getActive:()=>branch,isActive:()=>Boolean(branch),step:navigate,seek,restoreMain(){if(branch)clear();}};
+  return {open,startAt,clear,draw,selectFromSquare, getActive:()=>branch,isActive:()=>Boolean(branch),step:navigate,seek,restoreMain(){if(branch)clear();}};
 }
