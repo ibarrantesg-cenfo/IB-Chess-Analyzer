@@ -63,7 +63,7 @@ export function initOpeningResearch({state,loadPGN,jump,notify,getLiveSnapshot,s
   <section class="opening-lab-builder" id="opening-lab-builder" aria-label="Añadir variante al estudio">
     <div class="opening-lab-builder-title"><span class="eyebrow">ÁRBOL DE VARIANTES</span><h3>＋ Añadir una variante a este estudio</h3><p>No necesitás crear otro estudio. La nueva rama quedará vinculada al capítulo y a la posición que elijás.</p></div>
     <div class="opening-lab-builder-step"><strong>1. Elegí dónde empieza la variante</strong><p id="opening-lab-branch-base">Seleccioná una jugada en el tablero o en la lista superior.</p></div>
-    <div class="opening-lab-builder-step"><strong>2. Elegí cómo ingresarla</strong><select id="opening-lab-branch-mode" aria-label="Método para agregar variante"><option value="san">Escribir jugadas SAN desde esta posición</option><option value="pgn">Pegar un PGN completo con las jugadas previas</option></select>
+    <div class="opening-lab-builder-step"><strong>2. Elegí cómo ingresarla</strong><select id="opening-lab-branch-mode" aria-label="Método para agregar variante"><option value="san">Escribir SAN internacional (N, B, R, Q, K)</option><option value="san-es">Escribir notación española (C, A, T, D, R)</option><option value="pgn">Pegar un PGN completo con las jugadas previas</option></select><small id="opening-lab-notation-help">SAN internacional: N=caballo, B=alfil, R=torre, Q=dama, K=rey. Ejemplo: Be7 Qd2 O-O.</small>
       <textarea id="opening-lab-extra" rows="3" spellcheck="false" placeholder="Ej.: 8... Be7 9. Qd2 O-O"></textarea>
       <label class="opening-lab-branch-import">O cargar un archivo PGN/TXT <input type="file" id="opening-lab-branch-file" accept=".pgn,.txt,application/x-chess-pgn,text/plain"></label>
       <div class="opening-lab-actions"><button type="button" class="btn outline" id="opening-lab-branch-check">✓ Revisar jugadas</button><button type="button" class="btn primary" id="opening-lab-add" disabled>Guardar rama vinculada</button></div>
@@ -433,7 +433,17 @@ export function initOpeningResearch({state,loadPGN,jump,notify,getLiveSnapshot,s
  };
  el('opening-lab-branch-check').onclick=checkBranch;
  el('opening-lab-branch-mode').onchange=e=>{
-  el('opening-lab-extra').placeholder=e.target.value==='pgn'?'[Event "Estudio"]\\n1. e4 c5 2. Nf3 …':'Ej.: 8... Ae7 9. Dd2 O-O (SAN: Be7 Qd2 O-O)';
+  const help=el('opening-lab-notation-help');
+  if(e.target.value==='pgn'){
+   el('opening-lab-extra').placeholder='[Event "Estudio"]\\n1. e4 c5 2. Nf3 …';
+   help.textContent='El PGN debe incluir las jugadas desde el inicio hasta la posición seleccionada, y después la variante.';
+  }else if(e.target.value==='san-es'){
+   el('opening-lab-extra').placeholder='8... Ae7 9. Dd2 O-O';
+   help.textContent='En español: C=caballo, A=alfil, T=torre, D=dama, R=rey. Convertiremos las letras al guardar.';
+  }else{
+   el('opening-lab-extra').placeholder='8... Be7 9. Qd2 O-O';
+   help.textContent='SAN internacional: N=caballo, B=alfil, R=torre, Q=dama, K=rey. Ejemplo: Be7 Qd2 O-O.';
+  }
   invalidateBranchPreview('Método cambiado. Revisá nuevamente las jugadas.');
  };
  el('opening-lab-extra').oninput=()=>invalidateBranchPreview('El texto cambió. Revisá nuevamente la nueva variante.');
