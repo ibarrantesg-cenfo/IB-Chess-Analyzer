@@ -27,11 +27,12 @@ export function validateOpeningLine(line){
 }
 export function initOpeningResearch({state,loadPGN,jump,notify,getLiveSnapshot,showReview}){
  const host=document.querySelector('.analysis-column');
- const panel=document.createElement('details');panel.className='panel opening-lab-panel';panel.id='opening-lab';
- panel.innerHTML=`<summary><strong>Biblioteca Maestra · Laboratorio de aperturas</strong><small>Variantes, Stockfish MultiPV y comentarios en borrador · solo local</small></summary>
+ const panel=document.createElement('section');panel.className='panel opening-lab-panel';panel.id='opening-lab';panel.hidden=true;
+ panel.innerHTML=`<div class="opening-lab-title"><div><span class="eyebrow">ESTUDIO INDIVIDUAL · BIBLIOTECA MAESTRA</span><h2>Mi repertorio de aperturas</h2><p>Un espacio independiente por capítulo: tablero, árbol de jugadas, variantes del motor y comentarios propios.</p></div><a href="?view=openings" id="opening-lab-study-link" class="btn outline" draggable="true" title="Arrastrá este enlace a la barra de pestañas o usá Ctrl + clic">↗ Abrir este estudio en otra pestaña</a></div>
  <div class="opening-lab-body">
+  <details class="opening-lab-catalog" open><summary><strong>Explorador de estudios</strong><small id="opening-lab-catalog-count">Cargando capítulos…</small></summary><div class="opening-lab-catalog-body"><label>Buscar apertura, defensa o variante<input type="search" id="opening-lab-search" placeholder="Najdorf, Francesa, 6.Ag5…" /></label><div id="opening-lab-catalog-items" class="opening-lab-catalog-items"></div></div></details>
   <p class="opening-lab-warning">Investigación experimental: las líneas se validan legalmente, pero sus comentarios y evaluaciones NO son teoría aprobada. Nada se publica ni se comparte automáticamente con alumnos.</p>
-  <label class="opening-lab-field">Familia y variante<select id="opening-lab-choice"></select></label>
+  <label class="opening-lab-field">Capítulo actual<select id="opening-lab-choice"></select></label>
   <p id="opening-lab-aim" class="opening-lab-muted"></p>
   <div class="opening-lab-actions"><button class="btn primary" id="opening-lab-open">Abrir variante en Game Review</button><button class="btn outline" id="opening-lab-export">Exportar PGN anotado</button><button class="btn outline" id="opening-lab-export-family">Exportar familia completa</button></div>
   <div class="opening-lab-backup"><strong>Respaldo de la investigación</strong><p class="opening-lab-muted">Guardá ramas, comentarios, evaluaciones y estadísticas en un archivo JSON para no perderlas al cambiar de navegador.</p><div class="opening-lab-actions"><button class="btn outline" id="opening-lab-backup-download">Exportar respaldo completo</button><button class="btn outline" id="opening-lab-backup-import">Importar respaldo JSON</button><input type="file" accept=".json,application/json" id="opening-lab-backup-file" hidden></div></div>
@@ -57,8 +58,27 @@ export function initOpeningResearch({state,loadPGN,jump,notify,getLiveSnapshot,s
  const data=safeLoad();
  const persist=()=>{try{localStorage.setItem(KEY,JSON.stringify(data));}catch{notify('No se pudo guardar el laboratorio en este navegador. Exportá el PGN para conservarlo.','err');}};
  const entries=()=>[...OPENING_RESEARCH_DRAFTS,...OPENING_RESEARCH_EXPANSION,...data.custom].sort((a,b)=>a.family.localeCompare(b.family,'es')||a.name.localeCompare(b.name,'es'));
- let selected=OPENING_RESEARCH_DRAFTS[0]?.id;
+ let selected=OPENING_RESEARCH_DRAFTS[0]?.id,visible=false,filterText='';
+ const requestedId=new URLSearchParams(window.location.search).get('study');
+ if(requestedId&&entries().some(x=>x.id===requestedId))selected=requestedId;
  const pick=()=>entries().find(x=>x.id===selected);
+ const studyHref=id=>{
+   const url=new URL(window.location.href);
+   url.searchParams.delete('solicitar');url.searchParams.set('view','openings');url.searchParams.set('study',id);
+   url.hash='';return url.pathname+url.search;
+ };
+ const switchStudy=(id,{push=true,openLine=true}={})=>{
+   if(!entries().some(x=>x.id===id))return false;
+   const changed=selected!==id;
+   selected=id;
+   if(push&&visible){
+     const url=studyHref(id);
+     if(location.pathname+location.search!==url)history.pushState({view:'openings',study:id},'',url);
+   }
+   render();
+   if(openLine&&visible)openAt(0);
+   return changed;
+ };
  function currentPly(){
   return state.game?.headers?.ResearchID===selected?state.move:0;
  }
@@ -98,10 +118,37 @@ export function initOpeningResearch({state,loadPGN,jump,notify,getLiveSnapshot,s
   if(!entries().some(x=>x.id===selected))selected=entries()[0]?.id;
   select.value=selected||'';
  }
+ function renderCatalog(){
+  const list=el('opening-lab-catalog-items');list.replaceChildren();
+  const items=entries().filter(x=>(x.family+' '+x.name+' '+x.eco).normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().includes(filterText));
+  el('opening-lab-catalog-count').textContent=items.length+'/'+entries().length+' capítulos';
+  let currentFamily='',group=null;
+  for(const item of items){
+    if(item.family!==currentFamily){
+      currentFamily=item.family;
+      const details=document.createElement('details');details.className='opening-lab-catalog-family';details.open=true;
+      const summary=mk('summary',currentFamily+' · '+entries().filter(x=>x.family===currentFamily).length,'opening-lab-family-summary');
+      group=mk('div','','opening-lab-family-items');details.append(summary,group);list.append(details);
+    }
+    const card=document.createElement('a');card.className='opening-lab-chapter'+(selected===item.id?' current':'');card.href=studyHref(item.id);card.draggable=true;
+    const title=mk('span',item.name),meta=mk('small',item.eco+' · '+(data.custom.some(x=>x.id===item.id)?'Estudio propio':'Borrador teórico'));
+    card.append(title,meta);
+    card.addEventListener('click',event=>{
+      if(event.button!==0||event.ctrlKey||event.metaKey||event.shiftKey||event.altKey)return;
+      event.preventDefault();switchStudy(item.id,{openLine:true});
+    });
+    group.append(card);
+  }
+  if(!items.length)list.append(mk('p','No se encontraron estudios con ese nombre.','opening-lab-muted'));
+ }
  function activeIsCorrect(){return state.game?.headers?.ResearchID===selected;}
  function render(){
   const draft=pick();if(!draft)return;
   renderChoices();
+  renderCatalog();
+  const selectedStudyLink=el('opening-lab-study-link');
+  selectedStudyLink.href=studyHref(selected);
+  selectedStudyLink.setAttribute('aria-label','Abrir '+draft.name+' en otra pestaña');
   el('opening-lab-aim').textContent=(draft.eco||'')+' · Investigación: '+(draft.research||'Revisión editorial pendiente.');
   const reference=el('opening-lab-reference');reference.hidden=!draft.reference;
   if(draft.reference)reference.href=draft.reference;
@@ -131,7 +178,7 @@ export function initOpeningResearch({state,loadPGN,jump,notify,getLiveSnapshot,s
     const validEvidence=evidence?.fen===fensOther[common+1]&&evidence?.complete===true;
     details.append(mk('small',validEvidence?'Captura: '+(evidence.lines[0]?.score||'—')+' · d'+evidence.depth+' · orientación blancas':'Sin evaluación guardada de esta continuación'));
     const open=mk('button','Abrir rama','btn outline');open.type='button';
-    open.onclick=()=>{selected=other.id;openAt(common+1);};
+    open.onclick=()=>{switchStudy(other.id,{openLine:false});openAt(common+1);};
     row.append(details,open);branchHost.append(row);
   }
   el('opening-lab-position').textContent=(activeIsCorrect()?'Posición '+ply+'/'+sans.length:'Variante aún no abierta')+' · FEN: '+fens[ply];
@@ -185,14 +232,15 @@ export function initOpeningResearch({state,loadPGN,jump,notify,getLiveSnapshot,s
  function openAt(ply){
   try{
    const draft=pick(),{sans}=validateOpeningLine(draft.moves);
-   showReview();
+   if(!visible)open();
    if(!activeIsCorrect())loadPGN(makePgn(draft),'Laboratorio · '+draft.name);
    if(!activeIsCorrect())throw Error('Game Review no cargó la variante. Comprobá el PGN.');
    jump(Math.max(0,Math.min(ply,sans.length)));
    panel.open=true;render();
   }catch(e){notify('No se pudo abrir la línea: '+e.message,'err');}
  }
- el('opening-lab-choice').onchange=e=>{selected=e.target.value;render();};
+ el('opening-lab-choice').onchange=e=>{switchStudy(e.target.value,{openLine:true});};
+ el('opening-lab-search').addEventListener('input',e=>{filterText=e.target.value.normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().trim();renderCatalog();});
  el('opening-lab-open').onclick=()=>{const {sans}=validateOpeningLine(pick().moves);openAt(sans.length);};
  el('opening-lab-refresh').onclick=render;
  el('opening-lab-save-note').onclick=()=>{
@@ -226,7 +274,7 @@ export function initOpeningResearch({state,loadPGN,jump,notify,getLiveSnapshot,s
   let idx=queue.findIndex(x=>x.id===selected&&x.ply===currentPly());
   if(idx<0){idx=-1;}
   const next=queue[(idx+1)%queue.length];
-  selected=next.id;openAt(next.ply);
+  switchStudy(next.id,{openLine:false});openAt(next.ply);
   notify('Posición pendiente: '+next.name+'. Falta '+(!next.hasEngine?'Stockfish; ':'')+(!next.hasMasters?'partidas maestras; ':'')+(!next.hasSources?'fuentes; ':''));
  };
  el('opening-lab-add-pv').onclick=()=>{
@@ -246,7 +294,7 @@ export function initOpeningResearch({state,loadPGN,jump,notify,getLiveSnapshot,s
       name:'Stockfish PV #'+rank+' · d'+candidate.depth+' · '+line.added.slice(0,3).join(' '),
       moves:line.moves,notes:{},research:'Candidata calculada por '+snapshot.engine+' a profundidad '+candidate.depth+' con evaluación '+candidate.score+' desde la perspectiva blanca. No contrastada con partidas modelo.',
       reference:base.reference,origin:{type:'engine-pv',parent:base.id,parentPly:ply,rootFen:fen,rank,depth:candidate.depth,score:candidate.score}});
-    persist();selected=id;render();openAt(ply+line.added.length);
+    persist();switchStudy(id,{openLine:false});openAt(ply+line.added.length);
     notify('Variante PV #'+rank+' incorporada como borrador. No es teoría aprobada.');
   }catch(e){notify('No se pudo añadir la variante de Stockfish: '+e.message,'err');}
  };
@@ -270,7 +318,7 @@ export function initOpeningResearch({state,loadPGN,jump,notify,getLiveSnapshot,s
    if(entries().some(x=>validateOpeningLine(x.moves).sans.join(' ')===line.join(' ')))throw Error('Ya existe una variante idéntica.');
    const id='user-'+Date.now().toString(36)+'-'+Math.random().toString(36).slice(2,8);
    const branch={id,eco:base.eco,family:base.family,name:'Variante propia · '+additional.slice(0,4).join(' '),moves:line.join(' '),notes:{},research:'Bifurcación de usuario, sin evaluación ni publicación.',reference:base.reference};
-   data.custom.push(branch);persist();selected=id;el('opening-lab-extra').value='';render();openAt(line.length);
+   data.custom.push(branch);persist();switchStudy(id,{openLine:false});el('opening-lab-extra').value='';openAt(line.length);
    notify('Variante legal agregada como borrador local. Validala con Stockfish.');
   }catch(e){notify('No se pudo crear la variante: '+e.message,'err');}
  };
@@ -311,8 +359,36 @@ export function initOpeningResearch({state,loadPGN,jump,notify,getLiveSnapshot,s
    downloadPgn(makePgn(pick()),'IB_Apertura_'+selected+'.pgn');
   }catch(e){notify(e.message,'err');}
  };
- // Deferred refresh avoids heavy render from every engine message.
- panel.addEventListener('toggle',()=>{if(panel.open)render();});
+ function open(){
+  visible=true;
+  panel.hidden=false;
+  const main=document.querySelector('main.main');
+  main.classList.add('opening-study-mode');
+  document.querySelector('.layout').hidden=false;
+  document.querySelector('.toolbar').hidden=true;
+  const tools=document.querySelector('.workspace-tools');if(tools)tools.hidden=true;
+  const paste=document.querySelector('#paste-pgn-panel');if(paste)paste.hidden=true;
+  document.querySelector('.topbar h1').textContent='Biblioteca Maestra · Estudio individual';
+  document.querySelector('.topbar p').textContent='Investigá un capítulo por vez con tu tablero, variantes de Stockfish, fuentes y comentarios propios.';
+  document.querySelector('#nav-openings')?.classList.add('active');
+  document.querySelector('#nav-review')?.classList.remove('active');
+  document.querySelector('#nav-library')?.classList.remove('active');
+  render();
+  window.IB_LIVE?.positionChanged(true);
+  window.scrollTo?.(0,0);
+ }
+ function close(){
+  if(!visible)return;
+  visible=false;panel.hidden=true;
+  document.querySelector('main.main')?.classList.remove('opening-study-mode');
+  document.querySelector('#nav-openings')?.classList.remove('active');
+ }
+ window.addEventListener('storage',event=>{
+  if(event.key!==KEY)return;
+  const refreshed=safeLoad();
+  Object.assign(data,refreshed);
+  if(visible)render();
+ });
  render();
- return {open(){panel.open=true;render();panel.scrollIntoView({behavior:'smooth',block:'start'});},refresh:render};
+ return {open,close,refresh:render,selectStudy:(id,options)=>switchStudy(id,{push:false,...options}),getCurrentStudy:()=>selected};
 }
