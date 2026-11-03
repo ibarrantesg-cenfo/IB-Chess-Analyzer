@@ -8,7 +8,7 @@ export function spanishToInternationalSan(text){
  return readSanTokens(text).map(token=>{
   if(/^(O|0)-(O|0)(-(O|0))?[+#]?$/.test(token))return token.replace(/0/g,'O');
   return token.replace(/^([CADTR])(?=[a-h1-8x])/,(_,piece)=>map[piece])
-    .replace(/=([CADTR])(?=[+#]?$)/g,(_,piece)=>map[piece]);
+    .replace(/=([CADTR])(?=[+#]?$)/g,(_,piece)=>'='+map[piece]);
  }).join(' ');
 }
 export function prepareOpeningBranch(baseMoves,ply,source,mode='san'){
