@@ -50,3 +50,17 @@ export function studyRootId(catalog,id){
  }
  return current;
 }
+
+export function linkedStudyIds(catalog,id){
+ const ids=new Set([id]),items=Array.isArray(catalog)?catalog:[];
+ let changed=true;
+ while(changed){
+  changed=false;
+  for(const item of items){
+   if(item.origin?.parent&&ids.has(item.origin.parent)&&!ids.has(item.id)){
+    ids.add(item.id);changed=true;
+   }
+  }
+ }
+ return [...ids];
+}
