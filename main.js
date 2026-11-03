@@ -162,7 +162,24 @@ $('#paste-pgn-import').onclick=()=>{
 };
 
 $('#game-select').addEventListener('change',e=>{stopAnalysis();chooseGame(Number(e.target.value));});$('#move-list').addEventListener('click',e=>{const b=e.target.closest('[data-ply]');if(b)jump(Number(b.dataset.ply));});
-$('#first').onclick=()=>jump(0);$('#back').onclick=()=>jump(state.move-1);$('#next').onclick=()=>jump(state.move+1);$('#last').onclick=()=>jump(state.positions.length-1);$('#flip').onclick=()=>{state.orientation=state.orientation==='white'?'black':'white';try{localStorage.setItem('ib-board-orientation',state.orientation);}catch{}render();};$('#analyze').onclick=analyze;$('#cancel').onclick=()=>{state.stop=true;status('Cancelando análisis…');};$('#csv').onclick=csv;$('#pgn').onclick=annotated;$('#chart').onclick=e=>{const r=e.currentTarget.getBoundingClientRect();jump(Math.round((e.clientX-r.left)/r.width*(state.positions.length-1)));};document.addEventListener('keydown',e=>{if(['INPUT','SELECT','TEXTAREA'].includes(document.activeElement?.tagName))return;if(e.key==='ArrowLeft')jump(state.move-1);if(e.key==='ArrowRight')jump(state.move+1);});window.addEventListener('resize',drawChart);
+function stepDisplayedLine(delta){
+ if(window.IB_LIVE?.isPlayingBack?.())return window.IB_LIVE.stepPlayback(delta);
+ if(window.IB_STUDIO?.isVariationActive?.())return window.IB_STUDIO.stepVariation(delta);
+ return false;
+}
+function seekDisplayedLine(last){
+ if(window.IB_LIVE?.isPlayingBack?.())return window.IB_LIVE.seekPlayback(last);
+ if(window.IB_STUDIO?.isVariationActive?.())return window.IB_STUDIO.seekVariation(last);
+ return false;
+}
+$('#first').onclick=()=>{if(!seekDisplayedLine(false))jump(0);};
+$('#back').onclick=()=>{if(!stepDisplayedLine(-1))jump(state.move-1);};
+$('#next').onclick=()=>{if(!stepDisplayedLine(1))jump(state.move+1);};
+$('#last').onclick=()=>{if(!seekDisplayedLine(true))jump(state.positions.length-1);};$('#flip').onclick=()=>{state.orientation=state.orientation==='white'?'black':'white';try{localStorage.setItem('ib-board-orientation',state.orientation);}catch{}render();};$('#analyze').onclick=analyze;$('#cancel').onclick=()=>{state.stop=true;status('Cancelando análisis…');};$('#csv').onclick=csv;$('#pgn').onclick=annotated;$('#chart').onclick=e=>{const r=e.currentTarget.getBoundingClientRect();jump(Math.round((e.clientX-r.left)/r.width*(state.positions.length-1)));};document.addEventListener('keydown',e=>{
+ if(['INPUT','SELECT','TEXTAREA'].includes(document.activeElement?.tagName)||e.ctrlKey||e.metaKey||e.altKey)return;
+ if(e.key==='ArrowLeft'){e.preventDefault();if(!stepDisplayedLine(-1))jump(state.move-1);}
+ if(e.key==='ArrowRight'){e.preventDefault();if(!stepDisplayedLine(1))jump(state.move+1);}
+});window.addEventListener('resize',drawChart);
 const g=parsePGN(demo);state.games=g;chooseGame(0);$('#black-name').textContent=state.game.headers.Black||'Negras';$('#white-name').textContent=state.game.headers.White||'Blancas';
 const initialRender=render;render=function(){initialRender();$('#black-name').textContent=[state.game?.headers.BlackTitle,state.game?.headers.Black||'Negras'].filter(Boolean).join(' ');$('#white-name').textContent=[state.game?.headers.WhiteTitle,state.game?.headers.White||'Blancas'].filter(Boolean).join(' ');const cp=state.evaluations[state.move]?.cp;$('#eval-fill').style.height=(cp==null?50:(50+Math.tanh(cp/430)*46))+'%';$('#board-eval-value').textContent=state.previewFen?'Variante':fmtEv(cp);$('#board-eval-note').textContent=state.previewFen?'Evaluación en el panel de variantes':cp==null?'Análisis pendiente':'Ventaja '+(Math.abs(cp)<30?'equilibrada':cp>0?'blancas':'negras');};render();
 
