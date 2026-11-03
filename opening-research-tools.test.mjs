@@ -50,12 +50,16 @@ test('editorial research queue requires engine, masters and bibliography separat
 });
 test('versioned backup restores legal branches and rejects invalid studies',()=>{
  const branch=extendLegalLine(draft.moves,15,'8... Be7 9. Qd2 O-O');
- const info={custom:[{id:'user-test',name:'PV de Najdorf',family:draft.family,moves:branch.moves,eco:'B90',research:'Borrador',reference:draft.reference}],
+ const info={custom:[{id:'user-test',name:'PV de Najdorf',family:draft.family,moves:branch.moves,eco:'B90',research:'Borrador',reference:draft.reference,origin:{type:'engine-pv',parent:draft.id,rootStudy:draft.id,parentPly:15,rootFen:verifiedLine(draft.moves).fens[15],rank:1,depth:24,score:'+0.21'}}],
    notes:{'user-test|16':'Revisar esta jugada'},sources:{'user-test':'Estudio de prueba'},evidence:{},masters:{}};
  const serialized=JSON.stringify(buildOpeningBackup(info));
  const restored=validateOpeningBackup(JSON.parse(serialized));
  assert.equal(restored.custom.length,1);
  assert.equal(restored.notes['user-test|16'],'Revisar esta jugada');
+ assert.equal(restored.custom[0].origin.parent,draft.id);
+ assert.equal(restored.custom[0].origin.rootStudy,draft.id);
+ assert.equal(restored.custom[0].origin.rank,1);
+ assert.equal(restored.custom[0].origin.depth,24);
  assert.deepEqual(verifiedLine(restored.custom[0].moves).sans,verifiedLine(branch.moves).sans);
  assert.throws(()=>validateOpeningBackup({...JSON.parse(serialized),version:99}),/compatible/);
  assert.throws(()=>validateOpeningBackup({...JSON.parse(serialized),custom:[{...info.custom[0],moves:'e4 e5 Qh8'}]}),/ilegal/);
