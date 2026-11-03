@@ -5,6 +5,7 @@ import { queryMastersPosition } from './opening-masters.js';
 import { extendLegalLine,readSanTokens,researchChecklist,cleanSnapshot } from './opening-research-tools.js';
 import { buildOpeningBackup, validateOpeningBackup } from './opening-research-backup.js';
 import { compareOpeningEvidence } from './opening-evidence-comparison.js';
+import { parsePersonalOpeningStudy } from './opening-study-import.js';
 
 // Local-only opening research. Engine evidence NEVER promotes a chapter to verified content.
 const KEY='ib-opening-research-v1';
@@ -31,6 +32,15 @@ export function initOpeningResearch({state,loadPGN,jump,notify,getLiveSnapshot,s
  panel.innerHTML=`<div class="opening-lab-title"><div><span class="eyebrow">ESTUDIO INDIVIDUAL · BIBLIOTECA MAESTRA</span><h2>Mi repertorio de aperturas</h2><p>Un espacio independiente por capítulo: tablero, árbol de jugadas, variantes del motor y comentarios propios.</p></div><a href="?view=openings" id="opening-lab-study-link" class="btn outline" target="_blank" rel="noopener noreferrer" draggable="true" title="Abrí este estudio en una pestaña independiente o arrastrá el enlace">↗ Abrir en otra pestaña</a></div>
  <div class="opening-lab-body">
   <details class="opening-lab-catalog" open><summary><strong>Explorador de estudios</strong><small id="opening-lab-catalog-count">Cargando capítulos…</small></summary><div class="opening-lab-catalog-body"><label>Buscar apertura, defensa o variante<input type="search" id="opening-lab-search" placeholder="Najdorf, Francesa, 6.Ag5…" /></label><div id="opening-lab-catalog-items" class="opening-lab-catalog-items"></div></div></details>
+  <details class="opening-lab-personal" id="opening-lab-new-study"><summary><strong>＋ Crear estudio personal independiente</strong><small>Desde un archivo PGN o una línea SAN</small></summary><div class="opening-lab-new-body">
+   <label>Nombre del estudio<input type="text" id="opening-lab-new-name" maxlength="120" placeholder="Mi repertorio contra la Francesa"></label>
+   <label>Familia / apertura<input type="text" id="opening-lab-new-family" maxlength="100" placeholder="Defensa Francesa"></label>
+   <label>PGN o jugadas<textarea id="opening-lab-new-pgn" rows="5" placeholder='[Event "Estudio personal"]&#10;1. e4 e6 2. d4 d5 3. e5 *'></textarea></label>
+   <label class="opening-lab-file-import">Seleccionar archivo .pgn o .txt<input type="file" id="opening-lab-new-file" accept=".pgn,.txt,text/plain,application/x-chess-pgn"></label>
+   <div class="opening-lab-actions"><button type="button" class="btn primary" id="opening-lab-new-create">Guardar y abrir estudio</button></div>
+   <p class="opening-lab-muted">Importa la línea principal. Los comentarios sobre ella se conservan; las variantes secundarias del archivo deben añadirse como ramas independientes.</p>
+  </div></details>
+  <div class="opening-lab-study-actions"><span id="opening-lab-study-type">Capítulo de investigación</span><button type="button" class="btn outline" id="opening-lab-rename" hidden>Renombrar estudio</button><button type="button" class="btn outline" id="opening-lab-delete" hidden>Eliminar estudio propio</button></div>
   <p class="opening-lab-warning">Investigación experimental: las líneas se validan legalmente, pero sus comentarios y evaluaciones NO son teoría aprobada. Nada se publica ni se comparte automáticamente con alumnos.</p>
   <label class="opening-lab-field">Capítulo actual<select id="opening-lab-choice"></select></label>
   <p id="opening-lab-aim" class="opening-lab-muted"></p>
@@ -149,6 +159,10 @@ export function initOpeningResearch({state,loadPGN,jump,notify,getLiveSnapshot,s
   const selectedStudyLink=el('opening-lab-study-link');
   selectedStudyLink.href=studyHref(selected);
   selectedStudyLink.setAttribute('aria-label','Abrir '+draft.name+' en otra pestaña');
+  const ownStudy=data.custom.some(x=>x.id===selected);
+  el('opening-lab-study-type').textContent=ownStudy?'Estudio personal privado · editable':'Capítulo de investigación · borrador';
+  el('opening-lab-rename').hidden=!ownStudy;
+  el('opening-lab-delete').hidden=!ownStudy;
   el('opening-lab-aim').textContent=(draft.eco||'')+' · Investigación: '+(draft.research||'Revisión editorial pendiente.');
   const reference=el('opening-lab-reference');reference.hidden=!draft.reference;
   if(draft.reference)reference.href=draft.reference;
@@ -239,6 +253,50 @@ export function initOpeningResearch({state,loadPGN,jump,notify,getLiveSnapshot,s
    panel.open=true;render();
   }catch(e){notify('No se pudo abrir la línea: '+e.message,'err');}
  }
+ el('opening-lab-new-file').onchange=async()=>{
+  const input=el('opening-lab-new-file'),file=input.files?.[0];if(!file)return;
+  try{
+    if(file.size>250000)throw Error('El archivo supera el máximo de 250 KB para un estudio.');
+    const raw=await file.text();
+    el('opening-lab-new-pgn').value=raw;
+    if(!el('opening-lab-new-name').value.trim())el('opening-lab-new-name').value=file.name.replace(/\.(pgn|txt)$/i,'').slice(0,120);
+    notify('Archivo cargado. Revisá el nombre y guardá el estudio personal.');
+  }catch(e){notify(e.message,'err');}finally{input.value='';}
+ };
+ el('opening-lab-new-create').onclick=()=>{
+  try{
+    const title=el('opening-lab-new-name').value.trim(),family=el('opening-lab-new-family').value.trim();
+    if(title.length<3)throw Error('Ingresá un nombre de estudio de al menos tres caracteres.');
+    const result=parsePersonalOpeningStudy(el('opening-lab-new-pgn').value);
+    const id='user-'+Date.now().toString(36)+'-'+Math.random().toString(36).slice(2,9);
+    const study={id,name:title,family:family||'Mis estudios personales',eco:String(result.headers.ECO||'').slice(0,12),moves:result.moves,
+      research:'Estudio personal creado desde PGN. Pendiente de análisis con Stockfish.',notes:{},reference:''};
+    data.custom.push(study);
+    for(const [ply,note] of Object.entries(result.notes))data.notes[id+'|'+ply]=note;
+    persist();
+    el('opening-lab-new-name').value='';el('opening-lab-new-pgn').value='';
+    el('opening-lab-new-study').open=false;
+    switchStudy(id,{openLine:true});
+    notify('Estudio personal creado con '+result.plyCount+' medias jugadas. Podés crear ramas y comentarios propios.');
+  }catch(error){notify('No se pudo crear el estudio: '+error.message,'err');}
+ };
+ el('opening-lab-rename').onclick=()=>{
+  const item=data.custom.find(x=>x.id===selected);if(!item)return;
+  const next=window.prompt('Nuevo nombre del estudio',item.name);
+  if(next===null)return;
+  const name=next.trim();if(name.length<3||name.length>120)return notify('Usá un nombre de 3 a 120 caracteres.','err');
+  item.name=name;persist();render();notify('Nombre del estudio actualizado.');
+ };
+ el('opening-lab-delete').onclick=()=>{
+  const item=data.custom.find(x=>x.id===selected);if(!item)return;
+  if(!window.confirm('¿Eliminar permanentemente este estudio personal y sus comentarios y evaluaciones locales? Exportá un respaldo si querés conservarlo.'))return;
+  data.custom=data.custom.filter(x=>x.id!==selected);
+  for(const key of Object.keys(data.notes))if(key.startsWith(selected+'|'))delete data.notes[key];
+  for(const key of Object.keys(data.evidence))if(key.startsWith(selected+'|'))delete data.evidence[key];
+  delete data.sources[selected];selected=entries()[0]?.id;
+  persist();if(selected)switchStudy(selected,{openLine:true});else render();
+  notify('Estudio personal eliminado de este navegador.');
+ };
  el('opening-lab-choice').onchange=e=>{switchStudy(e.target.value,{openLine:true});};
  el('opening-lab-search').addEventListener('input',e=>{filterText=e.target.value.normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().trim();renderCatalog();});
  el('opening-lab-open').onclick=()=>{const {sans}=validateOpeningLine(pick().moves);openAt(sans.length);};
