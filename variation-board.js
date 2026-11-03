@@ -56,11 +56,21 @@ export function initVariationBoard(state, options) {
     options.save({id:branch.id,ply:branch.rootPly,san:[...branch.san],fen:branch.fens.at(-1)});
     sync();return true;
   };
-  $('v-start').onclick=()=>{branch.cursor=0;sync();};
-  $('v-prev').onclick=()=>{branch.cursor=Math.max(0,branch.cursor-1);sync();};
-  $('v-next').onclick=()=>{branch.cursor=Math.min(branch.san.length,branch.cursor+1);sync();};
+  const navigate=delta=>{
+    if(!branch)return false;
+    branch.cursor=Math.max(0,Math.min(branch.san.length,branch.cursor+delta));
+    sync();return true;
+  };
+  const seek=last=>{
+    if(!branch)return false;
+    branch.cursor=last?branch.san.length:0;
+    sync();return true;
+  };
+  $('v-start').onclick=()=>seek(false);
+  $('v-prev').onclick=()=>navigate(-1);
+  $('v-next').onclick=()=>navigate(1);
   $('v-main').onclick=clear;
   $('board').addEventListener('click',e=>{const square=e.target.closest('.square')?.title;if(square)selectFromSquare(square);});
   draw();
-  return {open,clear,draw,selectFromSquare, getActive:()=>branch, restoreMain(){if(branch)clear();}};
+  return {open,clear,draw,selectFromSquare, getActive:()=>branch,isActive:()=>Boolean(branch),step:navigate,seek,restoreMain(){if(branch)clear();}};
 }
