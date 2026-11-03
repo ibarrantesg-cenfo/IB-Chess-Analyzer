@@ -6,6 +6,7 @@ import { extendLegalLine,readSanTokens,researchChecklist,cleanSnapshot } from '.
 import { buildOpeningBackup, validateOpeningBackup } from './opening-research-backup.js';
 import { compareOpeningEvidence } from './opening-evidence-comparison.js';
 import { parsePersonalOpeningStudy } from './opening-study-import.js';
+import {prepareOpeningBranch,studyRootId} from './opening-study-branches.js';
 
 // Local-only opening research. Engine evidence NEVER promotes a chapter to verified content.
 const KEY='ib-opening-research-v1';
@@ -59,8 +60,19 @@ export function initOpeningResearch({state,loadPGN,jump,notify,getLiveSnapshot,s
   <label class="opening-lab-field">Fuentes y partidas modelo de esta variante<textarea id="opening-lab-sources" rows="3" placeholder="URL de partida, autor, año o referencia bibliográfica. La fuente será revisada antes de aprobar el estudio."></textarea></label>
   <div class="opening-lab-actions"><button class="btn outline" id="opening-lab-save-sources">Guardar referencias</button></div>
   <p class="opening-lab-muted">Registro editorial privado. El laboratorio no valida automáticamente afirmaciones ni reutiliza comentarios de terceros.</p>
-  <label class="opening-lab-field">Nueva continuación desde la jugada seleccionada (SAN)<input id="opening-lab-extra" placeholder="Ej.: 11. g4 b5 12. g5"></label>
-  <div class="opening-lab-actions"><button class="btn outline" id="opening-lab-add">Añadir variante propia</button><button class="btn outline" id="opening-lab-refresh">Actualizar estado</button></div>
+  <section class="opening-lab-builder" id="opening-lab-builder" aria-label="Añadir variante al estudio">
+    <div class="opening-lab-builder-title"><span class="eyebrow">ÁRBOL DE VARIANTES</span><h3>＋ Añadir una variante a este estudio</h3><p>No necesitás crear otro estudio. La nueva rama quedará vinculada al capítulo y a la posición que elijás.</p></div>
+    <div class="opening-lab-builder-step"><strong>1. Elegí dónde empieza la variante</strong><p id="opening-lab-branch-base">Seleccioná una jugada en el tablero o en la lista superior.</p></div>
+    <div class="opening-lab-builder-step"><strong>2. Elegí cómo ingresarla</strong><select id="opening-lab-branch-mode" aria-label="Método para agregar variante"><option value="san">Escribir jugadas SAN desde esta posición</option><option value="pgn">Pegar un PGN completo con las jugadas previas</option></select>
+      <textarea id="opening-lab-extra" rows="3" spellcheck="false" placeholder="Ej.: 8... Be7 9. Qd2 O-O"></textarea>
+      <label class="opening-lab-branch-import">O cargar un archivo PGN/TXT <input type="file" id="opening-lab-branch-file" accept=".pgn,.txt,application/x-chess-pgn,text/plain"></label>
+      <div class="opening-lab-actions"><button type="button" class="btn outline" id="opening-lab-branch-check">✓ Revisar jugadas</button><button type="button" class="btn primary" id="opening-lab-add" disabled>Guardar rama vinculada</button></div>
+      <p id="opening-lab-branch-feedback" role="status" aria-live="polite">Primero verificá las jugadas. Podés recorrer el resultado en el tablero después de guardar.</p>
+    </div>
+    <div class="opening-lab-builder-step"><strong>3. O utilizar Stockfish</strong><p>Calculá una posición con MultiPV y pulsá «Añadir al estudio personal» en una de sus líneas; también podés usar «Crear una rama de esta PV guardada» junto a la evaluación.</p></div>
+    <div id="opening-lab-family-tree" class="opening-lab-family-tree"></div>
+  </section>
+  <div class="opening-lab-actions"><button class="btn outline" id="opening-lab-refresh">Actualizar estado</button></div>
   <p id="opening-lab-status" role="status" aria-live="polite" class="opening-lab-muted"></p>
   <a id="opening-lab-reference" target="_blank" rel="noopener noreferrer">Abrir referencia de clasificación</a>
  </div>`;
@@ -68,7 +80,7 @@ export function initOpeningResearch({state,loadPGN,jump,notify,getLiveSnapshot,s
  const data=safeLoad();
  const persist=()=>{try{localStorage.setItem(KEY,JSON.stringify(data));}catch{notify('No se pudo guardar el laboratorio en este navegador. Exportá el PGN para conservarlo.','err');}};
  const entries=()=>[...OPENING_RESEARCH_DRAFTS,...OPENING_RESEARCH_EXPANSION,...data.custom].sort((a,b)=>a.family.localeCompare(b.family,'es')||a.name.localeCompare(b.name,'es'));
- let selected=OPENING_RESEARCH_DRAFTS[0]?.id,visible=false,filterText='';
+ let selected=OPENING_RESEARCH_DRAFTS[0]?.id,visible=false,filterText='',branchPreview=null;
  const requestedId=new URLSearchParams(window.location.search).get('study');
  if(requestedId&&entries().some(x=>x.id===requestedId))selected=requestedId;
  const pick=()=>entries().find(x=>x.id===selected);
@@ -77,10 +89,17 @@ export function initOpeningResearch({state,loadPGN,jump,notify,getLiveSnapshot,s
    url.searchParams.delete('solicitar');url.searchParams.set('view','openings');url.searchParams.set('study',id);
    url.hash='';return url.pathname+url.search;
  };
+ const invalidateBranchPreview=message=>{
+   branchPreview=null;
+   const button=el('opening-lab-add'),status=el('opening-lab-branch-feedback');
+   if(button)button.disabled=true;
+   if(status)status.textContent=message||'Revisá las jugadas antes de guardar.';
+ };
  const switchStudy=(id,{push=true,openLine=true}={})=>{
    if(!entries().some(x=>x.id===id))return false;
    const changed=selected!==id;
    selected=id;
+   if(changed)invalidateBranchPreview('Elegí la posición de origen y revisá las jugadas de la nueva rama.');
    if(visible)document.title=(pick()?.name||'Biblioteca Maestra')+' · IB Chess Analyzer';
    if(push&&visible){
      const url=studyHref(id);
@@ -131,8 +150,9 @@ export function initOpeningResearch({state,loadPGN,jump,notify,getLiveSnapshot,s
  }
  function renderCatalog(){
   const list=el('opening-lab-catalog-items');list.replaceChildren();
-  const items=entries().filter(x=>(x.family+' '+x.name+' '+x.eco).normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().includes(filterText));
-  el('opening-lab-catalog-count').textContent=items.length+'/'+entries().length+' capítulos';
+  const roots=entries().filter(x=>!x.origin?.parent);
+  const items=roots.filter(x=>(x.family+' '+x.name+' '+x.eco).normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().includes(filterText));
+  el('opening-lab-catalog-count').textContent=items.length+'/'+roots.length+' estudios';
   let currentFamily='',group=null;
   for(const item of items){
     if(item.family!==currentFamily){
@@ -175,6 +195,24 @@ export function initOpeningResearch({state,loadPGN,jump,notify,getLiveSnapshot,s
    chip.onclick=()=>openAt(i+1);lineEl.append(chip);
   });
   const ply=Math.min(currentPly(),sans.length),key=selected+'|'+ply;
+  const lastLabel=ply?(Math.floor((ply-1)/2)+1)+(ply%2===0?'... ':'. ')+sans[ply-1]:'posición inicial';
+  el('opening-lab-branch-base').textContent='Posición elegida: '+lastLabel+' · media jugada '+ply+' · '+(ply%2===0?'juegan blancas':'juegan negras')+'. La rama empieza AQUÍ.';
+  const treeRoot=studyRootId(entries(),selected);
+  const linked=data.custom.filter(x=>x.origin?.parent&&studyRootId(entries(),x.id)===treeRoot);
+  const familyTree=el('opening-lab-family-tree');familyTree.replaceChildren();
+  if(treeRoot!==selected){
+    const back=document.createElement('button');back.type='button';back.className='btn outline';back.textContent='↩ Volver al estudio principal';back.onclick=()=>switchStudy(treeRoot,{openLine:true});familyTree.append(back);
+  }
+  familyTree.append(mk('strong','Ramas guardadas en este estudio: '+linked.length));
+  if(!linked.length)familyTree.append(mk('p','Todavía no hay ramas personales vinculadas.','opening-lab-muted'));
+  for(const item of linked){
+    const row=mk('div','','opening-lab-branch-entry');
+    const parent=entries().find(x=>x.id===item.origin.parent);
+    const info=mk('span',item.name+' · desde '+(parent?.name||'estudio')+' · ply '+item.origin.parentPly);
+    const open=document.createElement('button');open.type='button';open.className='btn outline';open.textContent='Abrir rama';
+    open.onclick=()=>switchStudy(item.id,{openLine:true});
+    row.append(info,open);familyTree.append(row);
+  }
   const branchHost=el('opening-lab-branches');branchHost.replaceChildren();
   const related=entries().filter(other=>other.family===draft.family&&other.id!==draft.id).map(other=>{
     const otherSans=validateOpeningLine(other.moves).sans;
