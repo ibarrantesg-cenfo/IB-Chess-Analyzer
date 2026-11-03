@@ -81,6 +81,7 @@ export function initOpeningResearch({state,loadPGN,jump,notify,getLiveSnapshot,s
    if(!entries().some(x=>x.id===id))return false;
    const changed=selected!==id;
    selected=id;
+   if(visible)document.title=(pick()?.name||'Biblioteca Maestra')+' · IB Chess Analyzer';
    if(push&&visible){
      const url=studyHref(id);
      if(location.pathname+location.search!==url)history.pushState({view:'openings',study:id},'',url);
@@ -432,6 +433,7 @@ export function initOpeningResearch({state,loadPGN,jump,notify,getLiveSnapshot,s
   document.querySelector('#nav-review')?.classList.remove('active');
   document.querySelector('#nav-library')?.classList.remove('active');
   render();
+  document.title=(pick()?.name||'Biblioteca Maestra')+' · IB Chess Analyzer';
   if(!activeIsCorrect())openAt(0);
   window.IB_LIVE?.positionChanged(true);
   window.scrollTo?.(0,0);
@@ -449,5 +451,5 @@ export function initOpeningResearch({state,loadPGN,jump,notify,getLiveSnapshot,s
   if(visible)render();
  });
  render();
- return {open,close,refresh:render,selectStudy:(id,options)=>switchStudy(id,{push:false,...options}),getCurrentStudy:()=>selected};
+ return {open,close,refresh:render,selectStudy:(id,options)=>switchStudy(id,{push:false,...options}),getCurrentStudy:()=>selected,getCurrentTitle:()=>pick()?.name||'Biblioteca Maestra'};
 }
