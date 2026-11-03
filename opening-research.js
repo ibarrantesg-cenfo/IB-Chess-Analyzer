@@ -28,7 +28,7 @@ export function validateOpeningLine(line){
 export function initOpeningResearch({state,loadPGN,jump,notify,getLiveSnapshot,showReview}){
  const host=document.querySelector('.analysis-column');
  const panel=document.createElement('section');panel.className='panel opening-lab-panel';panel.id='opening-lab';panel.hidden=true;
- panel.innerHTML=`<div class="opening-lab-title"><div><span class="eyebrow">ESTUDIO INDIVIDUAL · BIBLIOTECA MAESTRA</span><h2>Mi repertorio de aperturas</h2><p>Un espacio independiente por capítulo: tablero, árbol de jugadas, variantes del motor y comentarios propios.</p></div><a href="?view=openings" id="opening-lab-study-link" class="btn outline" draggable="true" title="Arrastrá este enlace a la barra de pestañas o usá Ctrl + clic">↗ Abrir este estudio en otra pestaña</a></div>
+ panel.innerHTML=`<div class="opening-lab-title"><div><span class="eyebrow">ESTUDIO INDIVIDUAL · BIBLIOTECA MAESTRA</span><h2>Mi repertorio de aperturas</h2><p>Un espacio independiente por capítulo: tablero, árbol de jugadas, variantes del motor y comentarios propios.</p></div><a href="?view=openings" id="opening-lab-study-link" class="btn outline" target="_blank" rel="noopener noreferrer" draggable="true" title="Abrí este estudio en una pestaña independiente o arrastrá el enlace">↗ Abrir en otra pestaña</a></div>
  <div class="opening-lab-body">
   <details class="opening-lab-catalog" open><summary><strong>Explorador de estudios</strong><small id="opening-lab-catalog-count">Cargando capítulos…</small></summary><div class="opening-lab-catalog-body"><label>Buscar apertura, defensa o variante<input type="search" id="opening-lab-search" placeholder="Najdorf, Francesa, 6.Ag5…" /></label><div id="opening-lab-catalog-items" class="opening-lab-catalog-items"></div></div></details>
   <p class="opening-lab-warning">Investigación experimental: las líneas se validan legalmente, pero sus comentarios y evaluaciones NO son teoría aprobada. Nada se publica ni se comparte automáticamente con alumnos.</p>
@@ -374,6 +374,7 @@ export function initOpeningResearch({state,loadPGN,jump,notify,getLiveSnapshot,s
   document.querySelector('#nav-review')?.classList.remove('active');
   document.querySelector('#nav-library')?.classList.remove('active');
   render();
+  if(!activeIsCorrect())openAt(0);
   window.IB_LIVE?.positionChanged(true);
   window.scrollTo?.(0,0);
  }
