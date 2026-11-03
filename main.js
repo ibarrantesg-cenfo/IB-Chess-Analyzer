@@ -193,6 +193,7 @@ document.querySelectorAll('.player-edit').forEach(button=>button.addEventListene
  catch(e){notify('Error al editar el jugador: '+e.message,'err');}
 }));
 window.IB_STUDIO=initStudio(state,{render:()=>{render();window.IB_LIVE?.positionChanged(true);},renderPreview:()=>{render();window.IB_LIVE?.positionChanged();},notify,loadPGN:loadText,jump});
+document.querySelector('#study-tools-shortcut').onclick=()=>window.IB_STUDIO?.openTools();
 window.IB_WORKSPACE=initWorkspace();
 window.IB_APPEARANCE=initBoardAppearance({refreshPieces:()=>{if(state.game){$('#board').innerHTML=boardHTML();window.IB_ARROWS?.positionChanged();}}});
 if(state.game)$('#board').innerHTML=boardHTML(); // restore saved SVG set immediately
