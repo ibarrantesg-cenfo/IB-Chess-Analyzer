@@ -385,14 +385,11 @@ export function initOpeningResearch({state,loadPGN,jump,notify,getLiveSnapshot,s
     const candidate=snapshot.lines.find(x=>x.rank===rank);
     if(!candidate)throw Error('La captura no incluye la variante #'+rank+'. Seleccioná un número disponible.');
     const line=extendLegalLine(base.moves,ply,candidate.san);
-    if(entries().some(x=>validateOpeningLine(x.moves).sans.join(' ')==line.moves))throw Error('Esta línea ya existe en el laboratorio.');
-    const id='pv-'+Date.now().toString(36)+'-'+Math.random().toString(36).slice(2,8);
-    data.custom.push({id,eco:base.eco,family:base.family,
+    saveLinkedBranch(base,ply,{...line,baseFen:fen},{
       name:'Stockfish PV #'+rank+' · d'+candidate.depth+' · '+line.added.slice(0,3).join(' '),
-      moves:line.moves,notes:{},research:'Candidata calculada por '+snapshot.engine+' a profundidad '+candidate.depth+' con evaluación '+candidate.score+' desde la perspectiva blanca. No contrastada con partidas modelo.',
-      reference:base.reference,origin:{type:'engine-pv',parent:base.id,parentPly:ply,rootFen:fen,rank,depth:candidate.depth,score:candidate.score}});
-    persist();switchStudy(id,{openLine:false});openAt(ply+line.added.length);
-    notify('Variante PV #'+rank+' incorporada como borrador. No es teoría aprobada.');
+      method:'engine-pv',engine:{rank,depth:candidate.depth,score:candidate.score},
+      research:'Candidata calculada por '+snapshot.engine+' a profundidad '+candidate.depth+' con evaluación '+candidate.score+' para las blancas. Requiere contrastar partidas y planes.'
+    });
   }catch(e){notify('No se pudo añadir la variante de Stockfish: '+e.message,'err');}
  };
  el('opening-lab-capture').onclick=()=>{
@@ -463,6 +460,19 @@ export function initOpeningResearch({state,loadPGN,jump,notify,getLiveSnapshot,s
   }catch(e){invalidateBranchPreview('No se pudo guardar: '+e.message);notify(e.message,'err');}
  };
 
+ function addEngineVariation(moves,explanation=''){
+   if(!visible||!activeIsCorrect()){notify('Abrí primero el estudio y elegí una posición.','err');return false;}
+   try{
+     const base=pick(),ply=currentPly(),rootFen=validateOpeningLine(base.moves).fens[ply];
+     const engineFen=window.IB_LIVE?.snapshot?.()?.fen;
+     if(engineFen!==rootFen)throw Error('La variante del motor pertenece a otra posición. Seleccioná la posición y volvé a calcular.');
+     const raw=Array.isArray(moves)?moves.join(' '):String(moves||'');
+     const prepared=prepareOpeningBranch(base.moves,ply,raw,'san');
+     saveLinkedBranch(base,ply,prepared,{name:'Stockfish en directo · '+prepared.added.slice(0,3).join(' '),
+       method:'engine-live',research:'Variante tomada de Stockfish en directo, sin aprobación editorial. '+String(explanation||'').slice(0,850)});
+     return true;
+   }catch(e){notify('No se pudo guardar la PV: '+e.message,'err');return false;}
+ }
  function downloadPgn(text,filename){
   const blob=new Blob([text],{type:'application/x-chess-pgn;charset=utf-8'});
   const url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download=filename;a.click();setTimeout(()=>URL.revokeObjectURL(url),3000);
@@ -533,5 +543,7 @@ export function initOpeningResearch({state,loadPGN,jump,notify,getLiveSnapshot,s
   if(visible)render();
  });
  render();
- return {open,close,refresh:render,selectStudy:(id,options)=>switchStudy(id,{push:false,...options}),getCurrentStudy:()=>selected,getCurrentTitle:()=>pick()?.name||'Biblioteca Maestra'};
+ return {open,close,isOpen:()=>visible,addEngineVariation,
+  positionChanged(){if(visible){invalidateBranchPreview('Cambió la posición de origen. Revisá la variante antes de guardarla.');render();}},
+  refresh:render,selectStudy:(id,options)=>switchStudy(id,{push:false,...options}),getCurrentStudy:()=>selected,getCurrentTitle:()=>pick()?.name||'Biblioteca Maestra'};
 }
