@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 import {verifiedLine} from './opening-research-tools.js';
-import {prepareOpeningBranch,describesStudyBranch,studyRootId} from './opening-study-branches.js';
+import {prepareOpeningBranch,describesStudyBranch,studyRootId,spanishToInternationalSan} from './opening-study-branches.js';
 
 const root='e4 c5 Nf3 d6 d4 cxd4 Nxd4 Nf6 Nc3 a6 Be3 e5 Nb3 Be6 f3';
 test('a concrete SAN continuation branches precisely after the selected Najdorf position',()=>{
@@ -12,6 +12,13 @@ test('a concrete SAN continuation branches precisely after the selected Najdorf 
  assert.equal(branch.baseFen,base.fens[15]);
  assert.equal(branch.added.join(' '),'Be7 Qd2 O-O');
  assert.equal(branch.moves,'e4 c5 Nf3 d6 d4 cxd4 Nxd4 Nf6 Nc3 a6 Be3 e5 Nb3 Be6 f3 Be7 Qd2 O-O');
+});
+test('Spanish piece notation is translated without changing the resulting position',()=>{
+ const international=prepareOpeningBranch(root,15,'8... Be7 9. Qd2 O-O','san');
+ const spanish=prepareOpeningBranch(root,15,'8... Ae7 9. Dd2 O-O','san-es');
+ assert.equal(spanish.moves,international.moves);
+ assert.equal(spanish.fens.at(-1),international.fens.at(-1));
+ assert.equal(spanishToInternationalSan('Cxd5 Axc3+ Dxd4 Txe1 e8=D'),'Nxd5 Bxc3+ Qxd4 Rxe1 e8=Q');
 });
 test('full PGN imported as a branch must contain the position selected in the study',()=>{
  const pgn='[Event "Mi variante"]\n[Result "*"]\n\n1. e4 c5 2. Nf3 d6 3. d4 cxd4 4. Nxd4 Nf6 5. Nc3 a6 6. Be3 e5 7. Nb3 Be6 8. f3 Be7 9. Qd2 O-O *';
