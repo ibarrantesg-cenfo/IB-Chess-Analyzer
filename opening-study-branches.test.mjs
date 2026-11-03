@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 import {verifiedLine} from './opening-research-tools.js';
-import {prepareOpeningBranch,describesStudyBranch,studyRootId,spanishToInternationalSan} from './opening-study-branches.js';
+import {prepareOpeningBranch,describesStudyBranch,studyRootId,spanishToInternationalSan,linkedStudyIds} from './opening-study-branches.js';
 
 const root='e4 c5 Nf3 d6 d4 cxd4 Nxd4 Nf6 Nc3 a6 Be3 e5 Nb3 Be6 f3';
 test('a concrete SAN continuation branches precisely after the selected Najdorf position',()=>{
@@ -60,4 +60,17 @@ test('light mode provides explicit contrast for modern opening and Stockfish wor
   assert.ok(css.includes(':root[data-theme="light"]')&&css.lastIndexOf(selector)>0,selector+' is unstyled');
  }
  assert.ok(css.includes('background:#fff;color:#153b4d'),'light form inputs must have contrast');
+});
+
+test('removing a private study identifies dependent branches without touching other studies',()=>{
+ const studies=[
+  {id:'study-a'},
+  {id:'branch-a',origin:{parent:'study-a'}},
+  {id:'branch-a2',origin:{parent:'branch-a'}},
+  {id:'study-b'},
+  {id:'branch-b',origin:{parent:'study-b'}}
+ ];
+ assert.deepEqual(linkedStudyIds(studies,'study-a'),['study-a','branch-a','branch-a2']);
+ assert.deepEqual(linkedStudyIds(studies,'branch-a'),['branch-a','branch-a2']);
+ assert.deepEqual(linkedStudyIds(studies,'study-b'),['study-b','branch-b']);
 });
