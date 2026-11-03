@@ -924,3 +924,5 @@
 .opening-lab-study-actions>span{flex:1;font-size:11px;color:#90c1b5}
 .opening-lab-study-actions button{font-size:11px}
 .opening-lab-study-actions [hidden]{display:none!important}
+
+.sidebar-tab-tip{font-size:10px;color:#88a7b2;line-height:1.5;padding:7px 11px;margin:4px 0 10px;border-left:2px solid #35645d}
