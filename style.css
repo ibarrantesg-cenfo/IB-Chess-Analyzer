@@ -995,3 +995,6 @@
 :root[data-theme="light"] .variation-workspace{border-color:#cbdce3}
 :root[data-theme="light"] :is(.chart-performance-heading strong,.chart-performance-heading small){color:#214b59}
 @media(max-width:560px){.opening-lab-branch-entry{align-items:stretch;flex-direction:column}.opening-lab-branch-entry .btn{width:100%}}
+
+#opening-lab-notation-help{display:block;font-size:11px;line-height:1.5;color:#a9d6c5}
+:root[data-theme="light"] #opening-lab-notation-help{color:#3b6970}
