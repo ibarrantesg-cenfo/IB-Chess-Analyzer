@@ -405,20 +405,64 @@ export function initOpeningResearch({state,loadPGN,jump,notify,getLiveSnapshot,s
   data.evidence[selected+'|'+currentPly()]=verified;
   persist();render();notify('Captura de Stockfish guardada. Pendiente de contraste con partidas modelo.');
  };
- el('opening-lab-add').onclick=()=>{
-  if(!activeIsCorrect())return notify('Abrí la variante base antes de introducir una bifurcación.','err');
-  const base=pick(),prefix=validateOpeningLine(base.moves).sans.slice(0,currentPly());
-  const additional=sanTokens(el('opening-lab-extra').value);
-  if(!additional.length)return notify('Ingresá la nueva continuación en notación algebraica SAN.','err');
-  try{
-   const line=validateOpeningLine([...prefix,...additional].join(' ')).sans;
-   if(entries().some(x=>validateOpeningLine(x.moves).sans.join(' ')===line.join(' ')))throw Error('Ya existe una variante idéntica.');
-   const id='user-'+Date.now().toString(36)+'-'+Math.random().toString(36).slice(2,8);
-   const branch={id,eco:base.eco,family:base.family,name:'Variante propia · '+additional.slice(0,4).join(' '),moves:line.join(' '),notes:{},research:'Bifurcación de usuario, sin evaluación ni publicación.',reference:base.reference};
-   data.custom.push(branch);persist();switchStudy(id,{openLine:false});el('opening-lab-extra').value='';openAt(line.length);
-   notify('Variante legal agregada como borrador local. Validala con Stockfish.');
-  }catch(e){notify('No se pudo crear la variante: '+e.message,'err');}
+ const saveLinkedBranch=(base,ply,prepared,{name,method='san',research='',engine=null}={})=>{
+  if(entries().some(x=>validateOpeningLine(x.moves).sans.join(' ')===prepared.moves))throw Error('Esta continuación ya existe. Abrí la rama existente en el árbol del estudio.');
+  const id='user-'+Date.now().toString(36)+'-'+Math.random().toString(36).slice(2,9);
+  const root=studyRootId(entries(),base.id);
+  const branch={id,eco:base.eco,family:base.family,name:(name||'Variante · '+prepared.added.slice(0,4).join(' ')).slice(0,150),
+    moves:prepared.moves,notes:{},reference:base.reference,
+    research:research||'Variante creada en un estudio personal. Validación editorial pendiente.',
+    origin:{type:method,parent:base.id,rootStudy:root,parentPly:ply,rootFen:prepared.baseFen||validateOpeningLine(base.moves).fens[ply],
+      ...(engine?{rank:engine.rank,depth:engine.depth,score:engine.score}: {})}};
+  data.custom.push(branch);
+  persist();
+  switchStudy(id,{openLine:false});
+  openAt(prepared.added.length+ply);
+  notify('Variante guardada dentro del estudio. Podés volver al principal desde el árbol de ramas.');
+  return id;
  };
+ const checkBranch=()=>{
+  try{
+   if(!activeIsCorrect())throw Error('Primero abrí una línea y elegí la jugada donde querés bifurcar.');
+   const base=pick(),ply=currentPly(),mode=el('opening-lab-branch-mode').value,raw=el('opening-lab-extra').value;
+   const prepared=prepareOpeningBranch(base.moves,ply,raw,mode);
+   if(entries().some(x=>validateOpeningLine(x.moves).sans.join(' ')===prepared.moves))throw Error('La variante ya está guardada. Buscala en el árbol del estudio.');
+   branchPreview={baseId:base.id,ply,mode,raw,prepared};
+   el('opening-lab-add').disabled=false;
+   el('opening-lab-branch-feedback').textContent='✓ Variante legal: '+prepared.added.length+' medias jugadas desde esta posición. '+prepared.added.slice(0,12).join(' ')+(prepared.added.length>12?'…':'')+'. Ya podés guardarla.';
+  }catch(e){
+   invalidateBranchPreview('No se pudo validar: '+e.message);
+  }
+ };
+ el('opening-lab-branch-check').onclick=checkBranch;
+ el('opening-lab-branch-mode').onchange=e=>{
+  el('opening-lab-extra').placeholder=e.target.value==='pgn'?'[Event "Estudio"]\\n1. e4 c5 2. Nf3 …':'Ej.: 8... Ae7 9. Dd2 O-O (SAN: Be7 Qd2 O-O)';
+  invalidateBranchPreview('Método cambiado. Revisá nuevamente las jugadas.');
+ };
+ el('opening-lab-extra').oninput=()=>invalidateBranchPreview('El texto cambió. Revisá nuevamente la nueva variante.');
+ el('opening-lab-branch-file').onchange=async()=>{
+  const input=el('opening-lab-branch-file'),file=input.files?.[0];
+  if(!file)return;
+  try{
+   if(file.size>250000)throw Error('Archivo demasiado grande (máximo 250 KB).');
+   el('opening-lab-branch-mode').value='pgn';
+   el('opening-lab-extra').value=await file.text();
+   invalidateBranchPreview('PGN cargado. Seleccioná Revisar jugadas y después Guardar rama vinculada.');
+  }catch(e){invalidateBranchPreview(e.message);}finally{input.value='';}
+ };
+ el('opening-lab-add').onclick=()=>{
+  try{
+   const pending=branchPreview;
+   if(!pending)throw Error('Primero revisá la variante.');
+   if(!activeIsCorrect()||selected!==pending.baseId||currentPly()!==pending.ply||
+      el('opening-lab-extra').value!==pending.raw||el('opening-lab-branch-mode').value!==pending.mode)
+     throw Error('La posición o las jugadas cambiaron. Revisá la variante nuevamente.');
+   const base=pick();saveLinkedBranch(base,pending.ply,pending.prepared,{method:pending.mode});
+   el('opening-lab-extra').value='';
+   invalidateBranchPreview('Rama guardada y vinculada a su estudio.');
+  }catch(e){invalidateBranchPreview('No se pudo guardar: '+e.message);notify(e.message,'err');}
+ };
+
  function downloadPgn(text,filename){
   const blob=new Blob([text],{type:'application/x-chess-pgn;charset=utf-8'});
   const url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download=filename;a.click();setTimeout(()=>URL.revokeObjectURL(url),3000);
