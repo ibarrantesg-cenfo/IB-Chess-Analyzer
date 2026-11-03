@@ -113,7 +113,7 @@ export function initLiveAnalysis({getFen,getEngineUrl,notify,onSaveVariation,onP
   }
   function draw(){
     const status=$('live-status');
-    status.textContent=!enabled?'Pausado':paused?'Game Review activo':loading?'Cargando Stockfish':busy?'Calculando':'Listo';
+    status.textContent=!enabled?'Pausado':playback?'Reproduciendo variante':paused?'Análisis pausado':loading?'Cargando Stockfish':busy?'Calculando':'Listo';
     status.className='live-chip'+(busy?' live-running':'');
     $('live-depth-status').textContent=bestDepth?'Profundidad alcanzada: '+bestDepth:'Sin evaluación';
     if(!lines.size){
@@ -142,7 +142,7 @@ export function initLiveAnalysis({getFen,getEngineUrl,notify,onSaveVariation,onP
       }
       const explanation=document.createElement('p');explanation.className='live-idea';explanation.textContent=idea(item.moves[0],activeFen);
       const replay=document.createElement('button');replay.type='button';replay.className='live-replay';replay.textContent='▶ Reproducir en tablero';replay.onclick=()=>enterPlayback(n,0);
-      const save=document.createElement('button');save.type='button';save.className='live-save-line';save.textContent='＋ Añadir al estudio';save.title='Guardar esta línea y una explicación en el estudio actual';
+      const save=document.createElement('button');save.type='button';save.className='live-save-line';save.textContent=document.querySelector('main.main')?.classList.contains('opening-study-mode')?'＋ Guardar en este estudio':'＋ Añadir al estudio';save.title='Guardar esta continuación como una rama vinculada a la posición actual';
       save.onclick=()=>{const notes='Stockfish, alternativa '+n+' ('+item.score+', profundidad '+item.depth+'): '+item.san+'. '+idea(item.moves[0],activeFen);onSaveVariation?.(item.moves.map(m=>m.san),notes);};
       explanation.textContent=interpretation(item,n);div.append(header,variation,explanation,replay,save);host.append(div);
     }
