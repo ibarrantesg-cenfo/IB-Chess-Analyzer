@@ -13,7 +13,7 @@ export function initLiveAnalysis({getFen,getEngineUrl,notify,onSaveVariation,onP
       <label>Líneas <select id="live-count"><option value="1">1</option><option value="3" selected>3</option><option value="5">5</option></select></label>
       <label>Profundidad <select id="live-depth"><option value="16">16</option><option value="20" selected>20</option><option value="24">24</option><option value="28">28</option></select></label>
     </div>
-    <div id="live-playback" class="live-playback" hidden><strong data-progress>Variante</strong><div class="live-playback-buttons"><button id="pv-back" class="btn outline">◀ Anterior</button><button id="pv-next" class="btn outline">Siguiente ▶</button><button id="pv-exit" class="btn subtle">Volver a partida</button></div></div>
+    <div id="live-playback" class="live-playback" hidden><strong data-progress>Variante</strong><p class="live-playback-hint">Estás recorriendo una variante, no la partida principal. Usá también las flechas del tablero o las teclas ← → para avanzar y retroceder sin salir de ella.</p><div class="live-playback-buttons"><button id="pv-back" class="btn outline">◀ Anterior</button><button id="pv-next" class="btn outline">Siguiente ▶</button><button id="pv-exit" class="btn subtle">↩ Volver a la partida principal</button></div></div>
     <div id="live-lines" class="live-lines" aria-live="polite"><p class="live-empty">Iniciando motor de análisis…</p></div>
     <p id="live-explanation" class="live-explanation">Las alternativas se actualizan mientras el motor calcula. Las explicaciones son heurísticas, no texto generado por un modelo de IA.</p>
     <div class="live-footer"><span id="live-depth-status">Sin evaluación</span><button class="btn outline" id="live-restart">Reiniciar motor</button></div>`;
@@ -81,7 +81,9 @@ export function initLiveAnalysis({getFen,getEngineUrl,notify,onSaveVariation,onP
     if(!playback){p.hidden=true;return;}
     p.hidden=false;
     const item=lines.get(playback.rank)||playback.item;
-    p.querySelector('[data-progress]').textContent='Línea '+playback.rank+' · '+playback.cursor+'/'+item.moves.length;
+    p.querySelector('[data-progress]').textContent='Reproduciendo variante Stockfish #'+playback.rank+' · '+playback.cursor+'/'+item.moves.length+' movimientos';
+    $('pv-back').disabled=playback.cursor===0;
+    $('pv-next').disabled=playback.cursor>=item.moves.length;
   }
   function enterPlayback(n,index=0){
     const item=lines.get(n);if(!item)return;
@@ -93,10 +95,17 @@ export function initLiveAnalysis({getFen,getEngineUrl,notify,onSaveVariation,onP
     draw();showPlayback();
   }
   function changePlayback(delta){
-    if(!playback)return;
+    if(!playback)return false;
     const item=playback.item;
     playback.cursor=Math.max(0,Math.min(item.moves.length,playback.cursor+delta));
     onPreview?.(playbackFen(item,playback.cursor),true);showPlayback();
+    return true;
+  }
+  function seekPlayback(toEnd){
+    if(!playback)return false;
+    playback.cursor=toEnd?playback.item.moves.length:0;
+    onPreview?.(playbackFen(playback.item,playback.cursor),true);showPlayback();
+    return true;
   }
   function exitPlayback(){
     if(!playback)return;
@@ -215,6 +224,9 @@ export function initLiveAnalysis({getFen,getEngineUrl,notify,onSaveVariation,onP
   update(true);
   return {
     positionChanged:update,
+    isPlayingBack:()=>Boolean(playback),
+    stepPlayback:changePlayback,
+    seekPlayback,
     exitPlayback,
     pause(){if(playback)exitPlayback();paused=true;clearTimeout(debounce);stopWorker();draw();},
     resume(){paused=false;update(true);},
