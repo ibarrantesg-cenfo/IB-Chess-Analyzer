@@ -907,3 +907,20 @@
 .opening-lab-moves{scroll-margin-top:14px}
 @media(max-width:1120px){.opening-study-mode .layout{grid-template-columns:minmax(270px,.9fr) minmax(350px,1.1fr)}.opening-study-mode .board-column{position:static}}
 @media(max-width:810px){.opening-study-mode .layout{grid-template-columns:minmax(0,1fr)}.opening-study-mode .board-column{max-width:580px;width:100%;margin:0 auto}.opening-lab-title h2{font-size:19px}}
+
+/* Each opening study is an editable, independently addressable research space. */
+.opening-lab-personal{padding:12px;background:#142733;border:1px solid #345b57;border-radius:10px}
+.opening-lab-personal>summary{cursor:pointer;display:flex;flex-wrap:wrap;gap:8px;justify-content:space-between;align-items:center;list-style:none}
+.opening-lab-personal>summary::-webkit-details-marker{display:none}
+.opening-lab-personal>summary strong{font-size:13px;color:#bdebd8}
+.opening-lab-personal>summary small{font-size:11px;color:#87aea8}
+.opening-lab-new-body{display:grid;gap:11px;margin-top:13px}
+.opening-lab-new-body>label{display:grid;gap:6px;font-size:11px;color:#b9d6da}
+.opening-lab-new-body input,.opening-lab-new-body textarea{width:100%;background:#0d1e29;border:1px solid #385c64;border-radius:8px;color:#edf9f5;padding:10px;font-size:12px;font-family:inherit}
+.opening-lab-new-body textarea{resize:vertical;line-height:1.6;min-height:125px}
+.opening-lab-new-body .opening-lab-file-import{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+.opening-lab-file-import input{max-width:100%;font-size:11px;padding:7px}
+.opening-lab-study-actions{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.opening-lab-study-actions>span{flex:1;font-size:11px;color:#90c1b5}
+.opening-lab-study-actions button{font-size:11px}
+.opening-lab-study-actions [hidden]{display:none!important}
