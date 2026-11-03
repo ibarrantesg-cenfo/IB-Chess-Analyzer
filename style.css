@@ -860,3 +860,50 @@
 .opening-lab-compare strong{font-size:13px;color:#b3e7cd}
 .opening-lab-compare p{margin:0;font-size:12px;line-height:1.55;color:#d5e7e5}
 .opening-lab-compare small{font-size:11px;color:#98b8b9}
+
+/* Native browser tab navigation (anchors remain draggable and Ctrl-clickable). */
+.sidebar a.nav{display:flex;text-decoration:none;border:1px solid transparent;cursor:pointer}
+.sidebar a.nav:hover{background:#1b2d3a;color:#e6f7f1;border-color:#314b50}
+.sidebar a.nav.active{background:#19362f;color:#8be5c6}
+.sidebar a.nav:focus-visible{outline:2px solid #86e2c4;outline-offset:2px}
+.sidebar a.nav[hidden]{display:none!important}
+
+/* Standalone editorial opening studio, not a collapsible Game Review widget. */
+.opening-lab-panel[hidden]{display:none!important}
+.opening-study-mode .layout{grid-template-columns:minmax(300px,.87fr) minmax(430px,1.13fr);gap:22px;align-items:start}
+.opening-study-mode .analysis-column{display:flex;flex-direction:column;min-width:0}
+.opening-study-mode .opening-lab-panel{order:-3}
+.opening-study-mode .live-analysis-panel{order:-2}
+.opening-study-mode .moves-panel{order:-1}
+.opening-study-mode .analysis-column>.review-panel,
+.opening-study-mode .analysis-column>.engine-panel,
+.opening-study-mode .analysis-column>.studio-panel,
+.opening-study-mode .chart-panel,
+.opening-study-mode .game-summary{display:none!important}
+.opening-study-mode .board-column{position:sticky;top:12px;align-self:start}
+.opening-study-mode .board-column .board-panel{margin-bottom:0}
+.opening-lab-title{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-bottom:14px}
+.opening-lab-title h2{font:700 21px Outfit,sans-serif;margin:6px 0}
+.opening-lab-title p{font-size:12px;line-height:1.5;color:#a2bcc8;margin:0;max-width:470px}
+.opening-lab-title>a{font-size:11px;text-decoration:none;align-self:center}
+.opening-lab-panel .opening-lab-body{margin-top:0}
+.opening-lab-catalog{padding:12px;border:1px solid #365569;border-radius:10px;background:#101c2c}
+.opening-lab-catalog>summary{cursor:pointer;display:flex;align-items:center;justify-content:space-between;gap:10px;list-style:none;color:#d7ecf1}
+.opening-lab-catalog>summary::-webkit-details-marker{display:none}
+.opening-lab-catalog>summary strong{font-size:13px}
+.opening-lab-catalog>summary small{color:#85c1b0;font-size:11px}
+.opening-lab-catalog-body{display:grid;gap:11px;padding-top:12px}
+.opening-lab-catalog-body>label{display:grid;gap:6px;font-size:11px;color:#b0c6d3}
+.opening-lab-catalog-body input{width:100%;background:#0d1a2a;color:#ecf6f3;border:1px solid #355568;border-radius:8px;padding:9px}
+.opening-lab-catalog-items{display:grid;gap:7px;max-height:315px;overflow:auto;padding-right:4px}
+.opening-lab-catalog-family{border:1px solid #2c4355;border-radius:8px;background:#142638}
+.opening-lab-catalog-family>summary{cursor:pointer;padding:9px 11px;font-size:12px;color:#c9dedf}
+.opening-lab-family-items{display:grid;gap:4px;padding:4px 7px 9px}
+.opening-lab-chapter{display:grid;gap:3px;text-decoration:none;color:#dceaf4;padding:9px 10px;border:1px solid transparent;border-radius:7px;font-size:12px;transition:background .15s ease}
+.opening-lab-chapter small{font-size:10px;color:#8faabb}
+.opening-lab-chapter.current{background:#214638;border-color:#437e69;color:#aaf0cd}
+.opening-lab-chapter:hover{background:#234158;border-color:#3b6171}
+.opening-lab-chapter:focus-visible{outline:2px solid #87d7c6}
+.opening-lab-moves{scroll-margin-top:14px}
+@media(max-width:1120px){.opening-study-mode .layout{grid-template-columns:minmax(270px,.9fr) minmax(350px,1.1fr)}.opening-study-mode .board-column{position:static}}
+@media(max-width:810px){.opening-study-mode .layout{grid-template-columns:minmax(0,1fr)}.opening-study-mode .board-column{max-width:580px;width:100%;margin:0 auto}.opening-lab-title h2{font-size:19px}}
