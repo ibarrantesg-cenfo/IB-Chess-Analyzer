@@ -39,7 +39,14 @@ export function validateOpeningBackup(raw){
   custom.push({id:item.id,family,name,moves,eco,
    research:String(item.research||'').slice(0,1200),reference:/^https:\/\//.test(item.reference||'')?String(item.reference).slice(0,500):'',
    notes:{},origin:item.origin&&typeof item.origin==='object'?
-    {type:String(item.origin.type||'').slice(0,40),parent:String(item.origin.parent||'').slice(0,150),parentPly:Number(item.origin.parentPly)||0}:undefined});
+    {type:String(item.origin.type||'').slice(0,40),
+     parent:String(item.origin.parent||'').slice(0,150),
+     rootStudy:String(item.origin.rootStudy||'').slice(0,150),
+     parentPly:Number.isInteger(Number(item.origin.parentPly))?Math.max(0,Number(item.origin.parentPly)):0,
+     rootFen:typeof item.origin.rootFen==='string'&&item.origin.rootFen.length<=110?item.origin.rootFen:'',
+     ...(Number.isInteger(Number(item.origin.rank))&&Number(item.origin.rank)>0?{rank:Number(item.origin.rank)}:{}),
+     ...(Number.isInteger(Number(item.origin.depth))&&Number(item.origin.depth)>0?{depth:Number(item.origin.depth)}:{}),
+     score:String(item.origin.score||'').slice(0,30)}:undefined});
  }
  const notes=cleanMap(raw.notes,20000,4000),sources=cleanMap(raw.sources,3000,4000);
  const evidence=rawMap(raw.evidence,10000),verifiedEvidence=Object.create(null);
