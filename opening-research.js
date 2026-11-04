@@ -205,6 +205,7 @@ export function initOpeningResearch({state,loadPGN,jump,notify,getLiveSnapshot,s
  const entries=()=>[...OPENING_RESEARCH_DRAFTS,...OPENING_RESEARCH_EXPANSION,...data.custom].sort((a,b)=>a.family.localeCompare(b.family,'es')||a.name.localeCompare(b.name,'es'));
  let selected=OPENING_RESEARCH_DRAFTS[0]?.id,visible=false,filterText='',branchPreview=null;
  const expandedFamilies=new Set(),expandedLines=new Set();
+ let catalogFingerprint='';
  const requestedId=new URLSearchParams(window.location.search).get('study');
  if(requestedId&&entries().some(x=>x.id===requestedId))selected=requestedId;
  const pick=()=>entries().find(x=>x.id===selected);
@@ -273,8 +274,12 @@ export function initOpeningResearch({state,loadPGN,jump,notify,getLiveSnapshot,s
   select.value=selected||'';
  }
  function renderCatalog(){
-  const list=el('opening-lab-catalog-items');list.replaceChildren();
   const roots=entries().filter(x=>!x.origin?.parent);
+  // Rebuilding 39+ DOM cards on every board move collapses expanded lines.
+  const fingerprint=filterText+'|'+roots.map(x=>x.id+':'+x.family+':'+x.name+':'+x.eco+':'+x.moves+':'+x.research).join('|');
+  if(fingerprint===catalogFingerprint)return;
+  catalogFingerprint=fingerprint;
+  const list=el('opening-lab-catalog-items');list.replaceChildren();
   const normalize=x=>String(x||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase();
   const filtered=roots.filter(x=>normalize(x.family+' '+x.name+' '+x.eco).includes(filterText));
   const groups=new Map();
