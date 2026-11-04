@@ -43,7 +43,7 @@ export function initOpeningResearch({state,loadPGN,jump,notify,getLiveSnapshot,s
   </div></details>
   <div class="opening-lab-study-actions"><span id="opening-lab-study-type">Capítulo de investigación</span><button type="button" class="btn outline" id="opening-lab-rename" hidden>Renombrar estudio</button><button type="button" class="btn outline" id="opening-lab-delete" hidden>Eliminar estudio propio</button></div>
   <p class="opening-lab-warning">Investigación experimental: las líneas se validan legalmente, pero sus comentarios y evaluaciones NO son teoría aprobada. Nada se publica ni se comparte automáticamente con alumnos.</p>
-  <label class="opening-lab-field">Capítulo actual<select id="opening-lab-choice"></select></label>
+  <label class="opening-lab-field opening-lab-picker">Saltar directamente a otra línea<select id="opening-lab-choice"></select></label>
   <p id="opening-lab-aim" class="opening-lab-muted"></p>
   <div class="opening-lab-actions opening-lab-main-actions"><button class="btn primary" id="opening-lab-open">Analizar línea en el tablero</button><button class="btn outline" id="opening-lab-copy-selected">＋ Agregar a mis estudios</button><button class="btn outline" id="opening-lab-export">Exportar PGN</button></div>
   <div class="opening-lab-backup"><strong>Respaldo de la investigación</strong><p class="opening-lab-muted">Guardá ramas, comentarios, evaluaciones y estadísticas en un archivo JSON para no perderlas al cambiar de navegador.</p><div class="opening-lab-actions"><button class="btn outline" id="opening-lab-export-family">Exportar familia PGN</button><button class="btn outline" id="opening-lab-backup-download">Exportar respaldo completo</button><button class="btn outline" id="opening-lab-backup-import">Importar respaldo JSON</button><input type="file" accept=".json,application/json" id="opening-lab-backup-file" hidden></div></div>
@@ -92,6 +92,7 @@ export function initOpeningResearch({state,loadPGN,jump,notify,getLiveSnapshot,s
  fold('.opening-lab-branches','Alternativas y transposiciones','Mostrá solo cuando necesités comparar rutas que parten de la misma posición.');
  fold('.opening-lab-builder','Crear una variante manual o desde Stockfish','Panel avanzado: pegá jugadas, importá PGN o guardá una PV del motor.');
  fold('.opening-lab-backup','Herramientas y respaldos','Exportación masiva y copia de seguridad local para proteger tu investigación.');
+ fold('.opening-lab-picker','Cambiar de línea por lista','Alternativa al explorador de familias, útil cuando ya conocés el nombre.');
  const advanced=document.createElement('details');advanced.className='opening-lab-fold opening-lab-research-fold';
  const advancedSummary=mk('summary','Verificación, estadísticas y fuentes','opening-lab-fold-title');
  const advancedInfo=mk('p','Investigación adicional con Stockfish, Lichess Masters y bibliografía. Los resultados no aprueban por sí solos una variante.','opening-lab-muted');
