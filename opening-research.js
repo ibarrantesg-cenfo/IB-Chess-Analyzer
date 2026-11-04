@@ -89,6 +89,7 @@ export function initOpeningResearch({state,loadPGN,jump,notify,getLiveSnapshot,s
   const description=mk('p',help,'opening-lab-muted');
   content.replaceWith(wrap);wrap.append(summary,description,content);
  };
+ fold('.opening-lab-moves','Línea de jugadas · desplegar para recorrer','Tocá una jugada para llevarla al tablero. También podés avanzar con las flechas.');
  fold('.opening-lab-branches','Alternativas y transposiciones','Mostrá solo cuando necesités comparar rutas que parten de la misma posición.');
  fold('.opening-lab-builder','Crear una variante manual o desde Stockfish','Panel avanzado: pegá jugadas, importá PGN o guardá una PV del motor.');
  fold('.opening-lab-backup','Herramientas y respaldos','Exportación masiva y copia de seguridad local para proteger tu investigación.');
