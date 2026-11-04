@@ -134,10 +134,14 @@ export function initLibraryWorkspace({studio,notify,onOpen}){
    const badge=make('span','library-source '+(entry.shared?'shared':entry.source),entry.shared?'Compartido':entry.source==='cloud'?'En la nube':'Local');
    header.append(badge);wrap.append(header);
    if(entry.source==='local'){const select=make('label','library-checkbox');const check=document.createElement('input');check.type='checkbox';check.checked=checked.has(entry.id);check.onchange=()=>{if(check.checked)checked.add(entry.id);else checked.delete(entry.id);updateSelected();};select.append(check,document.createTextNode(' Seleccionar'));wrap.append(select);}
-   wrap.append(make('p','library-subtitle',entry.student));
+   wrap.append(make('p','library-subtitle',entry.chapterType==='opening'?'Capítulo de apertura · estudio privado':entry.student));
    const details=make('div','library-game-details','Leyendo datos PGN…');wrap.append(details);
    studio.getLibraryPgn(entry.source,entry.id).then(async pgn=>{
     const chess=new Chess();chess.loadPgn(pgn,{strict:false});const h=chess.header();
+    if(entry.chapterType==='opening'){
+     details.textContent=(h.ECO?h.ECO+' · ':'')+Math.ceil(chess.history().length/2)+' jugadas · Línea comentada · investigación pendiente de validar';
+     return;
+    }
     const white=[h.WhiteTitle,h.White].filter(Boolean).join(' ')||'Blancas',black=[h.BlackTitle,h.Black].filter(Boolean).join(' ')||'Negras';
     details.textContent=[white+(h.WhiteElo?' ('+h.WhiteElo+')':''),'vs',black+(h.BlackElo?' ('+h.BlackElo+')':''),'·',h.Result||'*',h.Round?'· Ronda '+h.Round:''].filter(Boolean).join(' ');
     const review=await findReview({headers:h,moves:chess.history({verbose:true})});
@@ -146,7 +150,7 @@ export function initLibraryWorkspace({studio,notify,onOpen}){
    const metadata=make('small','library-card-date',entry.date?new Date(entry.date).toLocaleDateString('es-CR'):'Sin fecha');
    wrap.append(metadata);
    const actions=make('div','library-card-actions');
-   const open=make('button','btn primary','Abrir y analizar');
+   const open=make('button','btn primary',entry.chapterType==='opening'?'Abrir línea en tablero':'Abrir y analizar');
    const download=make('button','btn outline','Descargar PGN');
    open.onclick=async()=>{try{open.disabled=true;await studio.openLibraryItem(entry.source,entry.id);switchView(false);onOpen?.();notify('Estudio abierto en Game Review.');}
      catch(e){notify('No se pudo abrir: '+e.message,'err');}finally{open.disabled=false;}};
@@ -161,7 +165,7 @@ export function initLibraryWorkspace({studio,notify,onOpen}){
    actions.append(previewButton,open,download);
    if(entry.source==='local'){
      const rename=make('button','btn outline','Editar nombre');
-     rename.onclick=async()=>{const name=window.prompt('Nombre de la partida',entry.title);if(name===null)return;try{await studio.renameLibraryItem('local',entry.id,name);await refresh();}catch(e){notify(e.message,'err');}};
+     rename.onclick=async()=>{const name=window.prompt(entry.chapterType==='opening'?'Nombre del capítulo':'Nombre de la partida',entry.title);if(name===null)return;try{await studio.renameLibraryItem('local',entry.id,name);await refresh();}catch(e){notify(e.message,'err');}};
      actions.append(rename);
    }
    if(entry.source==='local'){
@@ -197,7 +201,7 @@ export function initLibraryWorkspace({studio,notify,onOpen}){
   const groups=new Map();
   for(const x of filtered){const key=x.collectionId?'collection:'+x.source+':'+x.collectionId:x.source+':'+x.id;if(!groups.has(key))groups.set(key,[]);groups.get(key).push(x);}
   const counts=$('library-counts');counts.replaceChildren();
-  for(const [name,count] of [['Estudios',groups.size],['Partidas',items.length],['En nube',items.filter(x=>x.source==='cloud').length],['Compartidos',items.filter(x=>x.shared).length]]){
+  for(const [name,count] of [['Estudios',groups.size],['Capítulos y partidas',items.length],['En nube',items.filter(x=>x.source==='cloud').length],['Compartidos',items.filter(x=>x.shared).length]]){
     const box=make('div','library-stat');box.append(make('strong','',String(count)),make('small','',name));counts.append(box);
   }
   const root=$('library-items');root.replaceChildren();
