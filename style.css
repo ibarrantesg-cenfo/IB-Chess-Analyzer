@@ -1129,3 +1129,92 @@
 :root[data-theme="light"] .opening-lab-copy-field input,:root[data-theme="light"] .opening-lab-copy-field select{background:#fff;color:#1c4355;border-color:#a8c6d0}
 :root[data-theme="light"] .opening-lab-copy-disclaimer{background:#eff8f4;border-color:#b6d8c9;color:#46685c}
 :root[data-theme="light"] #opening-copy-message{color:#1d6854}
+
+/* 2026-11 · Responsive chess analysis: board-first review, without nested PV scrolling. */
+.live-analysis-panel .live-lines{
+  max-height:none;
+  overflow:visible;
+  scrollbar-gutter:auto;
+  overscroll-behavior:auto;
+  display:grid;
+  gap:8px;
+}
+.live-line-accordion{
+  display:block;
+  padding:0;
+  overflow:hidden;
+}
+.live-line-accordion>.live-line-head{
+  cursor:pointer;
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  min-height:49px;
+  padding:11px 13px;
+  list-style:none;
+  gap:9px;
+  user-select:none;
+}
+.live-line-accordion>.live-line-head::-webkit-details-marker{display:none}
+.live-line-accordion>.live-line-head:before{
+  content:'▸';
+  color:#83d6bc;
+  font-size:14px;
+  flex:none;
+}
+.live-line-accordion[open]>.live-line-head:before{content:'▾'}
+.live-line-accordion>.live-line-head>strong{margin-right:auto}
+.live-line-accordion>.live-line-head:focus-visible{outline:2px solid #79d5b7;outline-offset:-2px;border-radius:7px}
+.live-line-accordion:not([open])>.live-line-head:hover{background:#1a3440}
+.live-line-accordion>.live-line-body{padding:0 13px 13px;border-top:1px solid #304758}
+.live-line-accordion .live-pv{line-height:1.8;margin:10px 0}
+.live-line-accordion .live-idea{line-height:1.55;margin:9px 0}
+.live-line-actions{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-top:8px}
+.live-line-actions .live-replay,.live-line-actions .live-save-line{margin:0;flex:0 1 auto}
+.live-analysis-panel .live-explanation{
+  margin:10px 0;
+  font-size:11px;
+  line-height:1.45;
+}
+:root[data-theme="light"] .live-line-accordion{
+  background:#fff;
+  border-color:#c5d8df;
+  color:#1c4250;
+}
+:root[data-theme="light"] .live-line-accordion:first-child{background:#edf8f3;border-color:#afd9c8}
+:root[data-theme="light"] .live-line-accordion>.live-line-head{color:#12664e}
+:root[data-theme="light"] .live-line-accordion>.live-line-head:before{color:#16795b}
+:root[data-theme="light"] .live-line-accordion>.live-line-head>span{color:#50707e}
+:root[data-theme="light"] .live-line-accordion:not([open])>.live-line-head:hover{background:#e4f3ee}
+:root[data-theme="light"] .live-line-accordion>.live-line-body{border-color:#d1e2e6}
+:root[data-theme="light"] .live-line-accordion .live-idea,
+:root[data-theme="light"] .live-analysis-panel .live-explanation{color:#436879}
+/* Compact desktop mode adapts to available height, not just horizontal width.
+   Comfortable mode intentionally retains its larger board and longer reading layout. */
+@media (min-width:851px) and (max-height:960px){
+  .main.workspace-compact:not(.opening-study-mode){padding-top:14px}
+  .main.workspace-compact:not(.opening-study-mode) .topbar{margin-bottom:10px;align-items:center}
+  .main.workspace-compact:not(.opening-study-mode) .topbar .eyebrow{display:none}
+  .main.workspace-compact:not(.opening-study-mode) .topbar h1{font-size:28px;margin:3px 0}
+  .main.workspace-compact:not(.opening-study-mode) .topbar p{display:none}
+  .main.workspace-compact:not(.opening-study-mode) .top-status{padding:7px 11px}
+  .main.workspace-compact:not(.opening-study-mode) .toolbar{margin-bottom:9px;gap:8px}
+  .main.workspace-compact:not(.opening-study-mode) .toolbar .upload,
+  .main.workspace-compact:not(.opening-study-mode) .toolbar .btn{padding:9px 11px}
+  .main.workspace-compact:not(.opening-study-mode) .workspace-tools{margin:0 0 9px}
+  .main.workspace-compact:not(.opening-study-mode) .board-panel{padding:10px}
+  .main.workspace-compact:not(.opening-study-mode) .board-compact-eval{margin-bottom:7px;padding:6px 9px}
+  .main.workspace-compact:not(.opening-study-mode) .board-panel .player{margin-bottom:6px}
+  .main.workspace-compact:not(.opening-study-mode) .board-panel .board-row+.player{margin-top:6px}
+  .main.workspace-compact:not(.opening-study-mode) .board-panel .controls{margin-top:8px}
+  .main.workspace-compact:not(.opening-study-mode) .board-row{
+    max-width:min(510px,calc(100dvh - 435px));
+  }
+}
+@media (min-width:851px) and (max-height:700px){
+  .main.workspace-compact:not(.opening-study-mode) .board-row{max-width:min(425px,calc(100dvh - 330px))}
+}
+@media (max-width:850px){
+  .main.workspace-compact .live-lines{max-height:none;overflow:visible}
+  .main.workspace-compact .board-row{max-width:min(100%,540px)}
+}
