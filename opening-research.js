@@ -33,7 +33,7 @@ export function initOpeningResearch({state,loadPGN,jump,notify,getLiveSnapshot,s
  panel.innerHTML=`<div class="opening-lab-title"><div><span class="eyebrow">BIBLIOTECA MAESTRA · LÍNEA ACTIVA</span><h2>Explorar y analizar</h2><p>Seleccioná una línea, recorré sus jugadas en el tablero y guardá las que necesités en un estudio propio.</p></div><a href="?view=openings" id="opening-lab-study-link" class="btn outline" target="_blank" rel="noopener noreferrer" draggable="true" title="Abrí este estudio en una pestaña independiente o arrastrá el enlace">↗ Abrir en otra pestaña</a></div>
  <div class="opening-lab-body">
   <details class="opening-lab-catalog" open><summary><strong>Explorar aperturas y estudios</strong><small id="opening-lab-catalog-count">Cargando líneas…</small></summary><div class="opening-lab-catalog-body"><label>Buscar familia, línea o defensa<input type="search" id="opening-lab-search" placeholder="Najdorf, Francesa, 6.Ag5…" /></label><p class="opening-lab-muted">Las familias y sus líneas aparecen plegadas. Abrí una para ver sus jugadas, analizarla o incorporarla a un estudio.</p><div id="opening-lab-catalog-items" class="opening-lab-catalog-items"></div></div></details>
-  <details class="opening-lab-personal" id="opening-lab-new-study"><summary><strong>＋ Crear estudio personal independiente</strong><small>Desde un archivo PGN o una línea SAN</small></summary><div class="opening-lab-new-body">
+  <details class="opening-lab-personal" id="opening-lab-new-study"><summary><strong>＋ Crear borrador de investigación local</strong><small>Herramienta anterior · no va a Mis estudios</small></summary><div class="opening-lab-new-body">
    <label>Nombre del estudio<input type="text" id="opening-lab-new-name" maxlength="120" placeholder="Mi repertorio contra la Francesa"></label>
    <label>Familia / apertura<input type="text" id="opening-lab-new-family" maxlength="100" placeholder="Defensa Francesa"></label>
    <label>PGN o jugadas<textarea id="opening-lab-new-pgn" rows="5" placeholder='[Event "Estudio personal"]&#10;1. e4 e6 2. d4 d5 3. e5 *'></textarea></label>
@@ -80,7 +80,12 @@ export function initOpeningResearch({state,loadPGN,jump,notify,getLiveSnapshot,s
  // Discovery and study analysis are independent surfaces. Technical controls stay folded.
  const explorer=document.createElement('section');explorer.className='panel opening-lab-explorer';explorer.hidden=true;
  explorer.innerHTML='<div class="opening-lab-explorer-head"><span class="eyebrow">IB CHESS ACADEMY · EXPLORAR</span><h2>Biblioteca de aperturas</h2><p>Familias plegadas, líneas organizadas y acceso directo a tus estudios.</p></div>';
- explorer.append(panel.querySelector('.opening-lab-catalog'),panel.querySelector('.opening-lab-personal'));
+ explorer.append(panel.querySelector('.opening-lab-catalog'));
+ const legacy=document.createElement('details');legacy.className='opening-lab-fold opening-lab-legacy';
+ legacy.append(mk('summary','Borradores locales de investigación · herramienta anterior','opening-lab-fold-title'),
+  mk('p','Para guardar una línea dentro de Mis estudios, utilizá «Agregar a mis estudios». Los borradores antiguos permanecen accesibles aquí y no se eliminarán.','opening-lab-muted'),
+  panel.querySelector('.opening-lab-personal'));
+ explorer.append(legacy);
  host.insertBefore(explorer,panel);
  const fold=(selector,title,help)=>{
   const content=panel.querySelector(selector);if(!content)return;
@@ -111,14 +116,14 @@ export function initOpeningResearch({state,loadPGN,jump,notify,getLiveSnapshot,s
  for(const node of advancedNodes)if(node)researchBody.append(node);
  const data=safeLoad();
  const copyDialog=document.createElement('dialog');copyDialog.className='opening-lab-copy-dialog';
- copyDialog.innerHTML=`<div class="opening-lab-copy-heading"><div><span class="eyebrow">MIS ESTUDIOS · BIBLIOTECA PGN</span><h2>Agregar esta línea a un estudio</h2></div><button type="button" class="btn outline" id="opening-copy-close" aria-label="Cerrar">✕ Cerrar</button></div>
+ copyDialog.innerHTML=`<div class="opening-lab-copy-heading"><div><span class="eyebrow">MIS ESTUDIOS · CAPÍTULOS</span><h2>Agregar esta línea a un estudio</h2></div><button type="button" class="btn outline" id="opening-copy-close" aria-label="Cerrar">✕ Cerrar</button></div>
  <p id="opening-copy-source" class="opening-lab-copy-source"></p>
  <fieldset class="opening-lab-copy-options"><legend>¿Dónde querés guardarla?</legend><label><input type="radio" name="opening-copy-mode" value="existing" checked/> Agregar como capítulo a un estudio existente</label><label><input type="radio" name="opening-copy-mode" value="new"/> Crear un estudio nuevo con esta línea</label></fieldset>
  <label class="opening-lab-copy-field" id="opening-copy-existing-field">Seleccioná uno de tus estudios<select id="opening-copy-existing"><option value="">Cargando estudios…</option></select></label>
  <label class="opening-lab-copy-field" id="opening-copy-new-field" hidden>Nombre del estudio nuevo<input type="text" id="opening-copy-new-name" maxlength="120" placeholder="Mi repertorio de aperturas"/></label>
- <p class="opening-lab-copy-disclaimer">Se guardará como capítulo en tu <strong>Biblioteca PGN local</strong>. No modifica la línea original ni se comparte con alumnos automáticamente. Los comentarios siguen siendo borradores editoriales.</p>
+ <p class="opening-lab-copy-disclaimer">Se guardará como capítulo en <strong>Mis estudios</strong> de este navegador. No modifica la línea original ni se comparte con alumnos automáticamente. Los comentarios siguen siendo borradores editoriales.</p>
  <p id="opening-copy-message" role="status" aria-live="polite"></p>
- <div class="opening-lab-copy-actions"><button type="button" class="btn outline" id="opening-copy-cancel">Cancelar</button><button type="button" class="btn primary" id="opening-copy-confirm">Guardar capítulo</button><button type="button" class="btn outline" id="opening-copy-library" hidden>Ver en Biblioteca PGN</button></div>`;
+ <div class="opening-lab-copy-actions"><button type="button" class="btn outline" id="opening-copy-cancel">Cancelar</button><button type="button" class="btn primary" id="opening-copy-confirm">Guardar capítulo</button><button type="button" class="btn outline" id="opening-copy-library" hidden>Ver en Mis estudios</button></div>`;
  document.body.append(copyDialog);
  let copySourceId=null,copyDestinations=[],copyVersion=0;
  const copyMode=()=>copyDialog.querySelector('input[name="opening-copy-mode"]:checked')?.value||'new';
@@ -187,10 +192,10 @@ export function initOpeningResearch({state,loadPGN,jump,notify,getLiveSnapshot,s
     pgn:makePgn(source),sourceId:source.id,lineName:source.name,
     targetId,newStudyName
    });
-   el('opening-copy-message').textContent='✓ '+result.lineName+' se guardó en «'+result.collectionName+'» como capítulo independiente. Ya podés abrirlo, comentarlo o compartir tu estudio desde Biblioteca PGN.';
+   el('opening-copy-message').textContent='✓ '+result.lineName+' se guardó en «'+result.collectionName+'» como capítulo independiente. Ya podés abrirlo, comentarlo o compartir tu estudio desde Mis estudios.';
    el('opening-copy-confirm').hidden=true;
    el('opening-copy-library').hidden=false;
-   notify('Línea agregada al estudio «'+result.collectionName+'» en Biblioteca PGN.');
+   notify('Línea agregada al estudio «'+result.collectionName+'» en Mis estudios.');
   }catch(e){
    el('opening-copy-message').textContent='No se pudo guardar: '+e.message;
    copyState();notify(e.message,'err');
@@ -275,7 +280,7 @@ export function initOpeningResearch({state,loadPGN,jump,notify,getLiveSnapshot,s
   const groups=new Map();
   const personal=filtered.filter(x=>data.custom.some(y=>y.id===x.id));
   const editorial=filtered.filter(x=>!data.custom.some(y=>y.id===x.id));
-  if(personal.length)groups.set('mine',{label:'Mis estudios de aperturas · privados',items:personal});
+  if(personal.length)groups.set('mine',{label:'Borradores locales antiguos · solo este navegador',items:personal});
   for(const item of editorial){
    const key='family:'+item.family;
    if(!groups.has(key))groups.set(key,{label:item.family,items:[]});
