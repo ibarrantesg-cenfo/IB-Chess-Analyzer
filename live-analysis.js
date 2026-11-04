@@ -22,6 +22,8 @@ export function initLiveAnalysis({getFen,getEngineUrl,notify,onSaveVariation,onP
   const $=id=>document.getElementById(id);
   let worker=null,ready=false,busy=false,activeFen=null,queuedFen=null,enabled=true,loading=false,sequence=0,debounce=null,paused=false;
   let lines=new Map(),bestDepth=0,failures=0,playback=null;
+  // The principal variation starts expanded; alternatives can be opened independently.
+  const expandedRanks=new Set([1]);
   const compactScore=(kind,value,fen)=>{
     const white=fen.split(' ')[1]==='w';
     const sign=white?1:-1;
@@ -125,11 +127,15 @@ export function initLiveAnalysis({getFen,getEngineUrl,notify,onSaveVariation,onP
     const host=$('live-lines');
     host.replaceChildren();
     for(const [n,item] of ordered){
-      const div=document.createElement('div');div.className='live-line';
-      const header=document.createElement('div');header.className='live-line-head';
+      const card=document.createElement('details');card.className='live-line live-line-accordion';
+      card.open=expandedRanks.has(n);
+      const header=document.createElement('summary');header.className='live-line-head';
+      header.setAttribute('aria-label','Variante Stockfish '+n+', evaluación '+item.score+', profundidad '+item.depth);
       const title=document.createElement('strong');title.textContent='#'+n+' · '+item.score;
-      const depth=document.createElement('span');depth.textContent='d'+item.depth;
+      const depth=document.createElement('span');depth.textContent='d'+item.depth+' · '+(n===1?'Principal':'Alternativa');
       header.append(title,depth);
+      card.append(header);
+      const body=document.createElement('div');body.className='live-line-body';
       const variation=document.createElement('div');variation.className='live-pv';
       let playedFen=new Chess(activeFen);
       for(let j=0;j<item.moves.length;j++){
@@ -140,14 +146,25 @@ export function initLiveAnalysis({getFen,getEngineUrl,notify,onSaveVariation,onP
         chip.onclick=()=>enterPlayback(n,j+1);variation.append(chip);
         try{playedFen.move({from:m.from,to:m.to,promotion:m.promotion||'q'});}catch{break;}
       }
-      const explanation=document.createElement('p');explanation.className='live-idea';explanation.textContent=idea(item.moves[0],activeFen);
-      const replay=document.createElement('button');replay.type='button';replay.className='live-replay';replay.textContent='▶ Reproducir en tablero';replay.onclick=()=>enterPlayback(n,0);
-      const save=document.createElement('button');save.type='button';save.className='live-save-line';save.textContent=document.querySelector('main.main')?.classList.contains('opening-study-mode')?'＋ Guardar en este estudio':'＋ Añadir al estudio';save.title='Guardar esta continuación como una rama vinculada a la posición actual';
-      save.onclick=()=>{const notes='Stockfish, alternativa '+n+' ('+item.score+', profundidad '+item.depth+'): '+item.san+'. '+idea(item.moves[0],activeFen);onSaveVariation?.(item.moves.map(m=>m.san),notes);};
-      explanation.textContent=interpretation(item,n);div.append(header,variation,explanation,replay,save);host.append(div);
+      const explanation=document.createElement('p');explanation.className='live-idea';
+      explanation.textContent=interpretation(item,n);
+      const actions=document.createElement('div');actions.className='live-line-actions';
+      const replay=document.createElement('button');replay.type='button';replay.className='live-replay';
+      replay.textContent='▶ Reproducir en tablero';replay.onclick=()=>enterPlayback(n,0);
+      const save=document.createElement('button');save.type='button';save.className='live-save-line';
+      save.textContent=document.querySelector('main.main')?.classList.contains('opening-study-mode')?'＋ Guardar en este estudio':'＋ Añadir al estudio';
+      save.title='Guardar esta continuación como una rama vinculada a la posición actual';
+      save.onclick=()=>{
+        const notes='Stockfish, alternativa '+n+' ('+item.score+', profundidad '+item.depth+'): '+item.san+'. '+idea(item.moves[0],activeFen);
+        onSaveVariation?.(item.moves.map(m=>m.san),notes);
+      };
+      actions.append(replay,save);
+      body.append(variation,explanation,actions);card.append(body);
+      // The engine updates continuously: preserve which lines the user opened.
+      card.addEventListener('toggle',()=>{if(card.open)expandedRanks.add(n);else expandedRanks.delete(n);});
+      host.append(card);
     }
-    const first=lines.get(1);
-    $('live-explanation').textContent=first?interpretation(first,1):'Las evaluaciones están expresadas desde la perspectiva de las blancas.';
+    $('live-explanation').textContent='Evaluaciones orientativas desde las blancas. Tocá una línea para mostrar u ocultar las jugadas y sus planes; Stockfish puede cambiar de opinión al profundizar.';
   }
   function configure(){
     if(!worker)return;
