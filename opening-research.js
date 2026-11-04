@@ -108,6 +108,92 @@ export function initOpeningResearch({state,loadPGN,jump,notify,getLiveSnapshot,s
  ];
  for(const node of advancedNodes)if(node)researchBody.append(node);
  const data=safeLoad();
+ const copyDialog=document.createElement('dialog');copyDialog.className='opening-lab-copy-dialog';
+ copyDialog.innerHTML=`<div class="opening-lab-copy-heading"><div><span class="eyebrow">MIS ESTUDIOS · BIBLIOTECA PGN</span><h2>Agregar esta línea a un estudio</h2></div><button type="button" class="btn outline" id="opening-copy-close" aria-label="Cerrar">✕ Cerrar</button></div>
+ <p id="opening-copy-source" class="opening-lab-copy-source"></p>
+ <fieldset class="opening-lab-copy-options"><legend>¿Dónde querés guardarla?</legend><label><input type="radio" name="opening-copy-mode" value="existing" checked/> Agregar como capítulo a un estudio existente</label><label><input type="radio" name="opening-copy-mode" value="new"/> Crear un estudio nuevo con esta línea</label></fieldset>
+ <label class="opening-lab-copy-field" id="opening-copy-existing-field">Seleccioná uno de tus estudios<select id="opening-copy-existing"><option value="">Cargando estudios…</option></select></label>
+ <label class="opening-lab-copy-field" id="opening-copy-new-field" hidden>Nombre del estudio nuevo<input type="text" id="opening-copy-new-name" maxlength="120" placeholder="Mi repertorio de aperturas"/></label>
+ <p class="opening-lab-copy-disclaimer">Se guardará como capítulo en tu <strong>Biblioteca PGN local</strong>. No modifica la línea original ni se comparte con alumnos automáticamente. Los comentarios siguen siendo borradores editoriales.</p>
+ <p id="opening-copy-message" role="status" aria-live="polite"></p>
+ <div class="opening-lab-copy-actions"><button type="button" class="btn outline" id="opening-copy-cancel">Cancelar</button><button type="button" class="btn primary" id="opening-copy-confirm">Guardar capítulo</button><button type="button" class="btn outline" id="opening-copy-library" hidden>Ver en Biblioteca PGN</button></div>`;
+ document.body.append(copyDialog);
+ let copySourceId=null,copyDestinations=[],copyVersion=0;
+ const copyMode=()=>copyDialog.querySelector('input[name="opening-copy-mode"]:checked')?.value||'new';
+ const copyState=()=>{
+  const existing=copyMode()==='existing';
+  el('opening-copy-existing-field').hidden=!existing;
+  el('opening-copy-new-field').hidden=existing;
+  el('opening-copy-confirm').disabled=existing?!el('opening-copy-existing').value:el('opening-copy-new-name').value.trim().length<3;
+ };
+ const closeCopy=()=>copyDialog.close();
+ el('opening-copy-close').onclick=closeCopy;el('opening-copy-cancel').onclick=closeCopy;
+ copyDialog.addEventListener('close',()=>{copyVersion++;});
+ for(const input of copyDialog.querySelectorAll('input[name="opening-copy-mode"]'))input.onchange=copyState;
+ el('opening-copy-existing').onchange=copyState;
+ el('opening-copy-new-name').oninput=copyState;
+ el('opening-copy-library').onclick=()=>{
+  closeCopy();document.querySelector('#nav-library')?.click();
+ };
+ async function openCopyToLibrary(id){
+  const source=entries().find(x=>x.id===id);
+  if(!source)return notify('La línea seleccionada ya no está disponible.','err');
+  copySourceId=id;
+  const request=++copyVersion;
+  el('opening-copy-source').textContent=(source.family||'Apertura')+' · '+source.name+' · '+(source.eco||'sin ECO');
+  el('opening-copy-new-name').value=('Mi estudio · '+source.name).slice(0,120);
+  el('opening-copy-message').textContent='Buscando tus estudios guardados en este navegador…';
+  el('opening-copy-library').hidden=true;
+  el('opening-copy-confirm').hidden=false;el('opening-copy-confirm').disabled=true;
+  el('opening-copy-existing').replaceChildren(new Option('Cargando estudios…',''));
+  if(!copyDialog.open)copyDialog.showModal();
+  try{
+   if(!window.IB_STUDIO?.listOpeningStudyDestinations)throw Error('La Biblioteca PGN no está disponible en esta versión.');
+   const destinations=await window.IB_STUDIO.listOpeningStudyDestinations();
+   if(request!==copyVersion||!copyDialog.open)return;
+   copyDestinations=destinations;
+   const select=el('opening-copy-existing');select.replaceChildren(new Option('Elegí un estudio…',''));
+   for(const item of destinations){
+    const option=document.createElement('option');option.value=item.id;
+    option.textContent=item.title+' · '+item.count+' capítulo(s)';select.append(option);
+   }
+   const existingRadio=copyDialog.querySelector('input[value="existing"]');
+   existingRadio.disabled=!destinations.length;
+   copyDialog.querySelector('input[value="'+(destinations.length?'existing':'new')+'"]').checked=true;
+   el('opening-copy-message').textContent=destinations.length?
+     'Elegí un estudio para añadir una nueva línea, o creá uno nuevo.':'Todavía no hay estudios guardados. Creá uno nuevo con esta línea.';
+   copyState();
+  }catch(e){
+   if(request!==copyVersion)return;
+   copyDialog.querySelector('input[value="existing"]').disabled=true;
+   copyDialog.querySelector('input[value="new"]').checked=true;copyState();
+   el('opening-copy-message').textContent='No se pudo leer la biblioteca existente: '+e.message+'. Podés crear un estudio nuevo si el almacenamiento local está disponible.';
+  }
+ }
+ el('opening-copy-confirm').onclick=async()=>{
+  const source=entries().find(x=>x.id===copySourceId);
+  if(!source)return;
+  const selectedMode=copyMode();
+  const targetId=selectedMode==='existing'?el('opening-copy-existing').value:'';
+  const newStudyName=selectedMode==='new'?el('opening-copy-new-name').value.trim():'';
+  const button=el('opening-copy-confirm');
+  button.disabled=true;
+  el('opening-copy-message').textContent='Guardando la línea en tu biblioteca…';
+  try{
+   if(!window.IB_STUDIO?.addOpeningLineToLibrary)throw Error('No se encontró el guardado de estudios.');
+   const result=await window.IB_STUDIO.addOpeningLineToLibrary({
+    pgn:makePgn(source),sourceId:source.id,lineName:source.name,
+    targetId,newStudyName
+   });
+   el('opening-copy-message').textContent='✓ '+result.lineName+' se guardó en «'+result.collectionName+'» como capítulo independiente. Ya podés abrirlo, comentarlo o compartir tu estudio desde Biblioteca PGN.';
+   el('opening-copy-confirm').hidden=true;
+   el('opening-copy-library').hidden=false;
+   notify('Línea agregada al estudio «'+result.collectionName+'» en Biblioteca PGN.');
+  }catch(e){
+   el('opening-copy-message').textContent='No se pudo guardar: '+e.message;
+   copyState();notify(e.message,'err');
+  }
+ };
  const persist=()=>{try{localStorage.setItem(KEY,JSON.stringify(data));}catch{notify('No se pudo guardar el laboratorio en este navegador. Exportá el PGN para conservarlo.','err');}};
  const entries=()=>[...OPENING_RESEARCH_DRAFTS,...OPENING_RESEARCH_EXPANSION,...data.custom].sort((a,b)=>a.family.localeCompare(b.family,'es')||a.name.localeCompare(b.name,'es'));
  let selected=OPENING_RESEARCH_DRAFTS[0]?.id,visible=false,filterText='',branchPreview=null;
@@ -401,6 +487,7 @@ export function initOpeningResearch({state,loadPGN,jump,notify,getLiveSnapshot,s
  el('opening-lab-choice').onchange=e=>{switchStudy(e.target.value,{openLine:true});};
  el('opening-lab-search').addEventListener('input',e=>{filterText=e.target.value.normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().trim();renderCatalog();});
  el('opening-lab-open').onclick=()=>{const {sans}=validateOpeningLine(pick().moves);openAt(sans.length);};
+ el('opening-lab-copy-selected').onclick=()=>openCopyToLibrary(selected);
  el('opening-lab-refresh').onclick=render;
  el('opening-lab-save-note').onclick=()=>{
   if(!activeIsCorrect())return notify('Abrí primero la variante y seleccioná una posición.','err');
