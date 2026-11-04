@@ -30,9 +30,9 @@ export function validateOpeningLine(line){
 export function initOpeningResearch({state,loadPGN,jump,notify,getLiveSnapshot,showReview}){
  const host=document.querySelector('.analysis-column');
  const panel=document.createElement('section');panel.className='panel opening-lab-panel';panel.id='opening-lab';panel.hidden=true;
- panel.innerHTML=`<div class="opening-lab-title"><div><span class="eyebrow">ESTUDIO INDIVIDUAL · BIBLIOTECA MAESTRA</span><h2>Mi repertorio de aperturas</h2><p>Un espacio independiente por capítulo: tablero, árbol de jugadas, variantes del motor y comentarios propios.</p></div><a href="?view=openings" id="opening-lab-study-link" class="btn outline" target="_blank" rel="noopener noreferrer" draggable="true" title="Abrí este estudio en una pestaña independiente o arrastrá el enlace">↗ Abrir en otra pestaña</a></div>
+ panel.innerHTML=`<div class="opening-lab-title"><div><span class="eyebrow">BIBLIOTECA MAESTRA · LÍNEA ACTIVA</span><h2>Explorar y analizar</h2><p>Seleccioná una línea, recorré sus jugadas en el tablero y guardá las que necesités en un estudio propio.</p></div><a href="?view=openings" id="opening-lab-study-link" class="btn outline" target="_blank" rel="noopener noreferrer" draggable="true" title="Abrí este estudio en una pestaña independiente o arrastrá el enlace">↗ Abrir en otra pestaña</a></div>
  <div class="opening-lab-body">
-  <details class="opening-lab-catalog" open><summary><strong>Explorador de estudios</strong><small id="opening-lab-catalog-count">Cargando capítulos…</small></summary><div class="opening-lab-catalog-body"><label>Buscar apertura, defensa o variante<input type="search" id="opening-lab-search" placeholder="Najdorf, Francesa, 6.Ag5…" /></label><div id="opening-lab-catalog-items" class="opening-lab-catalog-items"></div></div></details>
+  <details class="opening-lab-catalog" open><summary><strong>Explorar aperturas y estudios</strong><small id="opening-lab-catalog-count">Cargando líneas…</small></summary><div class="opening-lab-catalog-body"><label>Buscar familia, línea o defensa<input type="search" id="opening-lab-search" placeholder="Najdorf, Francesa, 6.Ag5…" /></label><p class="opening-lab-muted">Las familias y sus líneas aparecen plegadas. Abrí una para ver sus jugadas, analizarla o incorporarla a un estudio.</p><div id="opening-lab-catalog-items" class="opening-lab-catalog-items"></div></div></details>
   <details class="opening-lab-personal" id="opening-lab-new-study"><summary><strong>＋ Crear estudio personal independiente</strong><small>Desde un archivo PGN o una línea SAN</small></summary><div class="opening-lab-new-body">
    <label>Nombre del estudio<input type="text" id="opening-lab-new-name" maxlength="120" placeholder="Mi repertorio contra la Francesa"></label>
    <label>Familia / apertura<input type="text" id="opening-lab-new-family" maxlength="100" placeholder="Defensa Francesa"></label>
@@ -45,7 +45,7 @@ export function initOpeningResearch({state,loadPGN,jump,notify,getLiveSnapshot,s
   <p class="opening-lab-warning">Investigación experimental: las líneas se validan legalmente, pero sus comentarios y evaluaciones NO son teoría aprobada. Nada se publica ni se comparte automáticamente con alumnos.</p>
   <label class="opening-lab-field">Capítulo actual<select id="opening-lab-choice"></select></label>
   <p id="opening-lab-aim" class="opening-lab-muted"></p>
-  <div class="opening-lab-actions"><button class="btn primary" id="opening-lab-open">Abrir variante en Game Review</button><button class="btn outline" id="opening-lab-export">Exportar PGN anotado</button><button class="btn outline" id="opening-lab-export-family">Exportar familia completa</button></div>
+  <div class="opening-lab-actions opening-lab-main-actions"><button class="btn primary" id="opening-lab-open">Analizar línea en el tablero</button><button class="btn outline" id="opening-lab-copy-selected">＋ Agregar a mis estudios</button><button class="btn outline" id="opening-lab-export">Exportar PGN</button></div>
   <div class="opening-lab-backup"><strong>Respaldo de la investigación</strong><p class="opening-lab-muted">Guardá ramas, comentarios, evaluaciones y estadísticas en un archivo JSON para no perderlas al cambiar de navegador.</p><div class="opening-lab-actions"><button class="btn outline" id="opening-lab-backup-download">Exportar respaldo completo</button><button class="btn outline" id="opening-lab-backup-import">Importar respaldo JSON</button><input type="file" accept=".json,application/json" id="opening-lab-backup-file" hidden></div></div>
   <div id="opening-lab-line" class="opening-lab-moves"></div>
   <section class="opening-lab-branches"><strong>Ramas de la misma posición</strong><p class="opening-lab-muted">Compara alternativas que parten de una posición idéntica. Las evaluaciones solo aparecen si hay una captura de Stockfish guardada para cada rama.</p><div id="opening-lab-branches" class="opening-lab-branch-list"></div></section>
@@ -81,6 +81,7 @@ export function initOpeningResearch({state,loadPGN,jump,notify,getLiveSnapshot,s
  const persist=()=>{try{localStorage.setItem(KEY,JSON.stringify(data));}catch{notify('No se pudo guardar el laboratorio en este navegador. Exportá el PGN para conservarlo.','err');}};
  const entries=()=>[...OPENING_RESEARCH_DRAFTS,...OPENING_RESEARCH_EXPANSION,...data.custom].sort((a,b)=>a.family.localeCompare(b.family,'es')||a.name.localeCompare(b.name,'es'));
  let selected=OPENING_RESEARCH_DRAFTS[0]?.id,visible=false,filterText='',branchPreview=null;
+ const expandedFamilies=new Set(),expandedLines=new Set();
  const requestedId=new URLSearchParams(window.location.search).get('study');
  if(requestedId&&entries().some(x=>x.id===requestedId))selected=requestedId;
  const pick=()=>entries().find(x=>x.id===selected);
@@ -151,26 +152,53 @@ export function initOpeningResearch({state,loadPGN,jump,notify,getLiveSnapshot,s
  function renderCatalog(){
   const list=el('opening-lab-catalog-items');list.replaceChildren();
   const roots=entries().filter(x=>!x.origin?.parent);
-  const items=roots.filter(x=>(x.family+' '+x.name+' '+x.eco).normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().includes(filterText));
-  el('opening-lab-catalog-count').textContent=items.length+'/'+roots.length+' estudios';
-  let currentFamily='',group=null;
-  for(const item of items){
-    if(item.family!==currentFamily){
-      currentFamily=item.family;
-      const details=document.createElement('details');details.className='opening-lab-catalog-family';details.open=true;
-      const summary=mk('summary',currentFamily+' · '+entries().filter(x=>x.family===currentFamily).length,'opening-lab-family-summary');
-      group=mk('div','','opening-lab-family-items');details.append(summary,group);list.append(details);
-    }
-    const card=document.createElement('a');card.className='opening-lab-chapter'+(selected===item.id?' current':'');card.href=studyHref(item.id);card.draggable=true;
-    const title=mk('span',item.name),meta=mk('small',item.eco+' · '+(data.custom.some(x=>x.id===item.id)?'Estudio propio':'Borrador teórico'));
-    card.append(title,meta);
-    card.addEventListener('click',event=>{
-      if(event.button!==0||event.ctrlKey||event.metaKey||event.shiftKey||event.altKey)return;
-      event.preventDefault();switchStudy(item.id,{openLine:true});
-    });
-    group.append(card);
+  const normalize=x=>String(x||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase();
+  const filtered=roots.filter(x=>normalize(x.family+' '+x.name+' '+x.eco).includes(filterText));
+  const groups=new Map();
+  const personal=filtered.filter(x=>data.custom.some(y=>y.id===x.id));
+  const editorial=filtered.filter(x=>!data.custom.some(y=>y.id===x.id));
+  if(personal.length)groups.set('mine',{label:'Mis estudios de aperturas · privados',items:personal});
+  for(const item of editorial){
+   const key='family:'+item.family;
+   if(!groups.has(key))groups.set(key,{label:item.family,items:[]});
+   groups.get(key).items.push(item);
   }
-  if(!items.length)list.append(mk('p','No se encontraron estudios con ese nombre.','opening-lab-muted'));
+  el('opening-lab-catalog-count').textContent=filtered.length+'/'+roots.length+' líneas · '+groups.size+' grupos';
+  for(const [key,group] of groups){
+    const family=document.createElement('details');family.className='opening-lab-catalog-family';
+    family.open=expandedFamilies.has(key)||Boolean(filterText);
+    const summary=mk('summary',group.label+' · '+group.items.length+' línea(s)','opening-lab-family-summary');
+    const section=mk('div','','opening-lab-family-items');
+    family.append(summary,section);
+    for(const item of group.items){
+      const line=document.createElement('details');line.className='opening-lab-catalog-line';
+      line.open=expandedLines.has(item.id);
+      const title=mk('summary','','opening-lab-catalog-line-head');
+      title.append(mk('span',item.name),mk('small',(item.eco||'ECO pendiente')+' · '+(data.custom.some(x=>x.id===item.id)?'Estudio personal':'Borrador editorial')));
+      const body=mk('div','','opening-lab-catalog-line-body');
+      const sans=validateOpeningLine(item.moves).sans;
+      const formatted=sans.map((san,i)=>(i%2===0?(Math.floor(i/2)+1)+'. ':'')+san).join(' ');
+      body.append(mk('p',formatted,'opening-lab-catalog-line-moves'));
+      body.append(mk('p',item.research||'Pendiente de validación con Stockfish y partidas modelo.','opening-lab-muted'));
+      const actions=mk('div','','opening-lab-catalog-line-actions');
+      const analyze=mk('button','♟ Analizar en el tablero','btn outline');analyze.type='button';
+      analyze.onclick=()=>switchStudy(item.id,{openLine:true});
+      const add=mk('button','＋ Agregar a mis estudios','btn primary');add.type='button';
+      add.onclick=()=>openCopyToLibrary(item.id);
+      const separate=document.createElement('a');separate.href=studyHref(item.id);separate.target='_blank';separate.rel='noopener noreferrer';separate.className='btn outline';separate.textContent='↗ Otra pestaña';
+      actions.append(analyze,add,separate);body.append(actions);
+      line.append(title,body);
+      line.addEventListener('toggle',()=>{
+        if(line.open)expandedLines.add(item.id);else expandedLines.delete(item.id);
+      });
+      section.append(line);
+    }
+    family.addEventListener('toggle',()=>{
+      if(family.open)expandedFamilies.add(key);else expandedFamilies.delete(key);
+    });
+    list.append(family);
+  }
+  if(!filtered.length)list.append(mk('p','No se encontraron líneas con ese nombre.','opening-lab-muted'));
  }
  function activeIsCorrect(){return state.game?.headers?.ResearchID===selected;}
  function render(){
