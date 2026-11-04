@@ -46,7 +46,7 @@ export function initOpeningResearch({state,loadPGN,jump,notify,getLiveSnapshot,s
   <label class="opening-lab-field">Capítulo actual<select id="opening-lab-choice"></select></label>
   <p id="opening-lab-aim" class="opening-lab-muted"></p>
   <div class="opening-lab-actions opening-lab-main-actions"><button class="btn primary" id="opening-lab-open">Analizar línea en el tablero</button><button class="btn outline" id="opening-lab-copy-selected">＋ Agregar a mis estudios</button><button class="btn outline" id="opening-lab-export">Exportar PGN</button></div>
-  <div class="opening-lab-backup"><strong>Respaldo de la investigación</strong><p class="opening-lab-muted">Guardá ramas, comentarios, evaluaciones y estadísticas en un archivo JSON para no perderlas al cambiar de navegador.</p><div class="opening-lab-actions"><button class="btn outline" id="opening-lab-backup-download">Exportar respaldo completo</button><button class="btn outline" id="opening-lab-backup-import">Importar respaldo JSON</button><input type="file" accept=".json,application/json" id="opening-lab-backup-file" hidden></div></div>
+  <div class="opening-lab-backup"><strong>Respaldo de la investigación</strong><p class="opening-lab-muted">Guardá ramas, comentarios, evaluaciones y estadísticas en un archivo JSON para no perderlas al cambiar de navegador.</p><div class="opening-lab-actions"><button class="btn outline" id="opening-lab-export-family">Exportar familia PGN</button><button class="btn outline" id="opening-lab-backup-download">Exportar respaldo completo</button><button class="btn outline" id="opening-lab-backup-import">Importar respaldo JSON</button><input type="file" accept=".json,application/json" id="opening-lab-backup-file" hidden></div></div>
   <div id="opening-lab-line" class="opening-lab-moves"></div>
   <section class="opening-lab-branches"><strong>Ramas de la misma posición</strong><p class="opening-lab-muted">Compara alternativas que parten de una posición idéntica. Las evaluaciones solo aparecen si hay una captura de Stockfish guardada para cada rama.</p><div id="opening-lab-branches" class="opening-lab-branch-list"></div></section>
   <p id="opening-lab-position" class="opening-lab-muted">Elegí una línea para comenzar.</p>
@@ -77,6 +77,36 @@ export function initOpeningResearch({state,loadPGN,jump,notify,getLiveSnapshot,s
   <a id="opening-lab-reference" target="_blank" rel="noopener noreferrer">Abrir referencia de clasificación</a>
  </div>`;
  host.append(panel);
+ // Discovery and study analysis are independent surfaces. Technical controls stay folded.
+ const explorer=document.createElement('section');explorer.className='panel opening-lab-explorer';explorer.hidden=true;
+ explorer.innerHTML='<div class="opening-lab-explorer-head"><span class="eyebrow">IB CHESS ACADEMY · EXPLORAR</span><h2>Biblioteca de aperturas</h2><p>Familias plegadas, líneas organizadas y acceso directo a tus estudios.</p></div>';
+ explorer.append(panel.querySelector('.opening-lab-catalog'),panel.querySelector('.opening-lab-personal'));
+ host.insertBefore(explorer,panel);
+ const fold=(selector,title,help)=>{
+  const content=panel.querySelector(selector);if(!content)return;
+  const wrap=document.createElement('details');wrap.className='opening-lab-fold';
+  const summary=mk('summary',title,'opening-lab-fold-title');
+  const description=mk('p',help,'opening-lab-muted');
+  content.replaceWith(wrap);wrap.append(summary,description,content);
+ };
+ fold('.opening-lab-branches','Alternativas y transposiciones','Mostrá solo cuando necesités comparar rutas que parten de la misma posición.');
+ fold('.opening-lab-builder','Crear una variante manual o desde Stockfish','Panel avanzado: pegá jugadas, importá PGN o guardá una PV del motor.');
+ fold('.opening-lab-backup','Herramientas y respaldos','Exportación masiva y copia de seguridad local para proteger tu investigación.');
+ const advanced=document.createElement('details');advanced.className='opening-lab-fold opening-lab-research-fold';
+ const advancedSummary=mk('summary','Verificación, estadísticas y fuentes','opening-lab-fold-title');
+ const advancedInfo=mk('p','Investigación adicional con Stockfish, Lichess Masters y bibliografía. Los resultados no aprueban por sí solos una variante.','opening-lab-muted');
+ const researchBody=mk('div','','opening-lab-research-body');advanced.append(advancedSummary,advancedInfo,researchBody);
+ const queue=el('opening-lab-queue');
+ queue.before(advanced);
+ const advancedNodes=[
+  queue,el('opening-lab-evidence'),el('opening-lab-compare'),
+  el('opening-lab-pv-rank')?.closest('.opening-lab-actions'),
+  el('opening-lab-masters-results')?.closest('.opening-lab-masters'),
+  el('opening-lab-sources')?.closest('.opening-lab-field'),
+  el('opening-lab-save-sources')?.closest('.opening-lab-actions'),
+  el('opening-lab-reference')
+ ];
+ for(const node of advancedNodes)if(node)researchBody.append(node);
  const data=safeLoad();
  const persist=()=>{try{localStorage.setItem(KEY,JSON.stringify(data));}catch{notify('No se pudo guardar el laboratorio en este navegador. Exportá el PGN para conservarlo.','err');}};
  const entries=()=>[...OPENING_RESEARCH_DRAFTS,...OPENING_RESEARCH_EXPANSION,...data.custom].sort((a,b)=>a.family.localeCompare(b.family,'es')||a.name.localeCompare(b.name,'es'));
@@ -554,7 +584,7 @@ export function initOpeningResearch({state,loadPGN,jump,notify,getLiveSnapshot,s
  };
  function open(){
   visible=true;
-  panel.hidden=false;
+  panel.hidden=false;explorer.hidden=false;
   const main=document.querySelector('main.main');
   main.classList.add('opening-study-mode');
   document.querySelector('.layout').hidden=false;
@@ -574,7 +604,7 @@ export function initOpeningResearch({state,loadPGN,jump,notify,getLiveSnapshot,s
  }
  function close(){
   if(!visible)return;
-  visible=false;panel.hidden=true;
+  visible=false;panel.hidden=true;explorer.hidden=true;
   document.querySelector('main.main')?.classList.remove('opening-study-mode');
   document.querySelector('#nav-openings')?.classList.remove('active');
  }
