@@ -1,5 +1,6 @@
 import { cloudAvailable,getCloudSession,emailLogin,cloudLogout,cloudSave,cloudList,cloudOpen,cloudShare,cloudReviewCopy,accountDetails,saveAccountName,shareWithTeacher,myEnrollments } from './cloud.js';
 import {parseStudyContinuation,eligibleStudyRecipients,studyPositionLabel} from './study-workspace-v2.js';
+import {openingStudyDestinations,openingStudyTarget,prepareOpeningChapter,duplicateOpeningChapter} from './opening-library-transfer.js';
 import { initVariationBoard } from './variation-board.js';
 import { Chess } from 'chess.js';
 
@@ -10,6 +11,16 @@ async function transaction(mode,fn){const db=await openDB();return new Promise((
 const getAll=()=>transaction('readonly',s=>s.getAll());
 const put=x=>transaction('readwrite',s=>s.put(x));
 const del=id=>transaction('readwrite',s=>s.delete(id));
+const putAtomic=async items=>{
+ const db=await openDB();
+ return new Promise((resolve,reject)=>{
+  const tx=db.transaction(STORE,'readwrite'),store=tx.objectStore(STORE);
+  for(const entry of items)store.put(entry);
+  tx.oncomplete=()=>{db.close();resolve();};
+  tx.onabort=()=>{db.close();reject(tx.error||Error('No se pudieron guardar las líneas del estudio.'));};
+  tx.onerror=()=>{}; // The transaction abort handler reports the failure once.
+ });
+};
 const el=id=>document.getElementById(id);
 let active=null, selected=null, paint=false, palette='wP', alternate=null, onChange=()=>{}, notify=()=>{}, linePreview=null;
 let timer=null, tree=null,cloudSource=null;
@@ -385,6 +396,35 @@ el('studio-export').onclick=exportStudy;
  tree=initVariationBoard(selected,{render:callbacks.renderPreview,notify,isEditing:()=>paint,save:v=>{ensure();const i=active.variations.findIndex(x=>x.id===v.id);if(i>=0)active.variations[i]=v;else active.variations.push(v);change();renderNotes();}});
  refreshLibrary();renderNotes();
  return {
+async listOpeningStudyDestinations(){
+ const items=await getAll();
+ return openingStudyDestinations(items);
+},
+async addOpeningLineToLibrary({pgn,sourceId='',lineName='',targetId='',newStudyName=''}={}){
+ if(typeof pgn!=='string')throw Error('Seleccioná una línea de apertura válida.');
+ const all=await getAll();
+ let groupId,groupName,prior=[],promote=null,student='Sin alumno';
+ if(targetId){
+  const target=openingStudyTarget(all,targetId);
+  groupId=target.collectionId||crypto.randomUUID();
+  groupName=target.collectionName;
+  prior=target.members;
+  promote=target.promote;
+  student=target.members[0]?.student||student;
+ }else{
+  groupName=String(newStudyName||'').trim();
+  if(groupName.length<3||groupName.length>120)throw Error('El nuevo estudio necesita un nombre de 3 a 120 caracteres.');
+  groupId=crypto.randomUUID();
+ }
+ if(duplicateOpeningChapter(pgn,prior))throw Error('Esta línea ya pertenece al estudio seleccionado. Abrí el capítulo existente para trabajar sobre él.');
+ const chapter=prepareOpeningChapter(pgn,{id:crypto.randomUUID(),collectionId:groupId,collectionName:groupName,name:lineName,student,sourceId});
+ const writes=[chapter];
+ if(promote)writes.push({...promote,collectionId:groupId,collectionName:groupName,updated:new Date().toISOString()});
+ await putAtomic(writes);
+ if(promote&&active?.id===promote.id){active.collectionId=groupId;active.collectionName=groupName;}
+ await refreshLibrary();
+ return {chapterId:chapter.id,collectionId:groupId,collectionName:groupName,lineName:chapter.name,wasCreated:!targetId};
+},
 async previewLibraryPgn(text){
  const rows=inspectLibraryPgnSource(text);
  return {rows,valid:rows.filter(x=>x.valid).length,invalid:rows.filter(x=>!x.valid).length};
