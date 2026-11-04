@@ -242,14 +242,14 @@ export function initLibraryWorkspace({studio,notify,onOpen}){
     analyzeStudy.onclick=async()=>{
       try{
         analyzeStudy.disabled=true;
-        const pgn=await studio.loadCollectionPgn(all.map(x=>x.id));
+        const pgn=await studio.loadCollectionPgn(all.filter(x=>x.chapterType!=='opening').map(x=>x.id));
         if(!window.IB_LOAD_STUDY)throw Error('Módulo de rendimiento no disponible.');
         window.IB_LOAD_STUDY(pgn,all[0].collectionName||'Estudio');
         notify('Estudio cargado. Se inicia el análisis de sus partidas en Rendimiento.');
       }catch(e){notify('No se pudo analizar el estudio: '+e.message,'err');}
       finally{analyzeStudy.disabled=false;}
     };
-    if(all[0].source==='local'&&!openingChapters)heading.append(analyzeStudy);back.append(heading);
+    if(all[0].source==='local'&&openingChapters<all.length)heading.append(analyzeStudy);back.append(heading);
     const display=all.filter(x=>(filter==='all'||x.source===filter)&&(x.title+' '+(x.collectionName||'')).toLocaleLowerCase().includes(q));
     if(!display.length)root.append(make('div','library-empty','No hay partidas coincidentes.'));
     for(const entry of display)root.append(card(entry));
@@ -259,20 +259,22 @@ export function initLibraryWorkspace({studio,notify,onOpen}){
   for(const [key,entries] of groups){
     if(key.startsWith('collection:')){
       const openingChapters=entries.filter(x=>x.chapterType==='opening').length;
+      const gameChapters=entries.filter(x=>x.chapterType!=='opening');
       const unit=openingChapters?' capítulos':' partidas';
       const wrap=make('article','library-card library-folder');
       const head=make('div','library-card-head');head.append(make('strong','',entries[0].collectionName||'Estudio'),make('span','library-source local',entries.length+unit));
       wrap.append(head);
       const status=make('p','library-subtitle','Comprobando análisis guardados…');wrap.append(status);
-      if(openingChapters){
+      if(openingChapters&&!gameChapters.length){
         status.textContent='Estudio de aperturas · '+openingChapters+' línea(s) comentadas · contenido de investigación, no torneos analizados';
-      }else (entries[0].source==='local'?studyReport(entries):Promise.resolve(null)).then(result=>{if(!result){status.textContent='Estudio en la nube · '+entries.length+' partidas';return;}
+      }else (entries[0].source==='local'?studyReport(gameChapters):Promise.resolve(null)).then(result=>{if(!result){status.textContent='Estudio en la nube · '+entries.length+' partidas';return;}
         status.textContent=result.completed===result.total?'✓ Análisis del torneo completado · '+result.completed+'/'+result.total+' partidas':'Análisis · '+result.completed+'/'+result.total+' partidas completadas';
         if(result.quality!==null)status.textContent+=' · Índice técnico '+result.quality.toFixed(1)+'/100';
         if(result.apparent!==null)status.textContent+=' · Elo aparente '+result.apparent+' (heurístico)';
         if(result.played)status.textContent+=' · Resultados B/N/T '+result.results['1-0']+'/'+result.results['0-1']+'/'+result.results['1/2-1/2'];
+        if(openingChapters)status.textContent+=' · '+openingChapters+' línea(s) de apertura separadas del informe';
         const report=make('button','btn outline','Ver informe extendido');
-        report.onclick=async()=>{try{const pgn=await studio.loadCollectionPgn(entries.map(x=>x.id));window.IB_OPEN_REPORT?.(pgn,entries[0].collectionName||'Estudio');}
+        report.onclick=async()=>{try{const pgn=await studio.loadCollectionPgn(gameChapters.map(x=>x.id));window.IB_OPEN_REPORT?.(pgn,entries[0].collectionName||'Estudio');}
          catch(e){notify('No se pudo abrir el informe: '+e.message,'err');}};
         wrap.append(report);
       }).catch(()=>{status.textContent='No se pudo recuperar el resumen del análisis';});
