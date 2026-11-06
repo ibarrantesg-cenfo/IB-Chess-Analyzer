@@ -196,11 +196,14 @@ try{
   try{await saveReviewProgress(game,{evaluations:[...state.evaluations],reports:[...state.reports]},depth);}
   catch(err){console.warn('No se pudo guardar progreso parcial:',err);}
  }
- await new Promise(r=>setTimeout(r,0));}if(state.stop){status('Análisis cancelado al finalizar la última posición.');return false;}if(!state.stop){status('Análisis completado · Stockfish 19');notify('Revisión terminada. Seleccioná una jugada para ver su conclusión.');if(state.reports.length!==game.moves.length||!state.reports.every(r=>Number.isFinite(r?.loss)))throw new Error('Faltan jugadas evaluadas; el análisis no está completo.');
+ await new Promise(r=>setTimeout(r,0));}if(state.stop){status('Análisis cancelado al finalizar la última posición.');return false;}if(!state.stop){if(state.reports.length!==game.moves.length||!state.reports.every(r=>Number.isFinite(r?.loss)))throw new Error('Faltan jugadas evaluadas; el análisis no está completo.');
  const complete={evaluations:[...state.evaluations],reports:[...state.reports]};
  state.analysisCache.set(gameIndex,complete);
  try{const saved=await saveReview(game,complete,depth,'stockfish19');if(!saved)throw Error('Revisión incompleta');if(batch)await clearReviewProgress(game,depth);}
- catch(err){console.warn('No se pudo guardar el análisis completo:',err);notify('Se analizó la partida, pero no se pudo guardar permanentemente: '+err.message,'err');}window.IB_PERFORMANCE?.analysisFinished();return true;}}catch(err){
+ catch(err){console.warn('No se pudo guardar el análisis completo:',err);notify('Se analizó la partida, pero no se pudo guardar permanentemente: '+err.message,'err');}
+ status('Análisis completado · Stockfish 19');
+ if(!batch)notify('Revisión terminada. Seleccioná una jugada para ver su conclusión.');
+ window.IB_PERFORMANCE?.analysisFinished();return true;}}catch(err){
  if(batch&&state.evaluations.length){
   try{await saveReviewProgress(game,{evaluations:[...state.evaluations],reports:[...state.reports]},depth);}
   catch(e){console.warn('No se pudo guardar el avance:',e);}
