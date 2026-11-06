@@ -4,7 +4,7 @@ import { initAcademy } from './academy.js';
 import { accountDetails,onAccountChange,completeApprovedStudentOnboarding,myEnrollments } from './cloud.js';
 import { playChessSound,soundSettings } from './chess-audio.js';
 import { initPreferences } from './preferences.js';
-import { findReview,saveReview } from './review-cache.js';
+import { findReview,saveReview,loadReviewProgress,saveReviewProgress,clearReviewProgress } from './review-cache.js';
 import { Chess } from 'chess.js';
 import { initStudio, inspectLibraryPgnSource } from './studio.js';
 import { initLiveAnalysis } from './live-analysis.js';
@@ -171,7 +171,43 @@ function newEngine(signal=null){
 }
 function evaluation(worker,fen,depth,{moveTimeMs=0,timeoutMs=120000,signal=null}={}){return new Promise((resolve,reject)=>{let latest={cp:null,best:null,pv:[],depth:0},finished=false;const finishError=error=>{if(finished)return;finished=true;clearTimeout(timer);signal?.removeEventListener('abort',abort);reject(error);};const abort=()=>finishError(new Error('Análisis cancelado.'));const timer=setTimeout(()=>finishError(new Error('Stockfish agotó el tiempo para esta posición.')),timeoutMs);if(signal?.aborted){finishError(new Error('Análisis cancelado.'));return;}signal?.addEventListener('abort',abort,{once:true});const turn=fen.split(' ')[1];worker.onmessage=e=>{const line=String(e.data);if(line.startsWith('info ')&&/\bscore (cp|mate) /.test(line)&&(!/\bmultipv\b/.test(line)||/\bmultipv 1\b/.test(line))){let match=line.match(/\bscore (cp|mate) (-?\d+)/);if(match){let val=match[1]==='cp'?Number(match[2]):Math.sign(Number(match[2]))*10000;latest.cp=turn==='w'?val:-val;latest.depth=Number(line.match(/\bdepth (\d+)/)?.[1]||0);latest.pv=line.split(' pv ')[1]?.trim().split(' ')||[];latest.best=latest.pv[0]||null;}}if(line.startsWith('bestmove')){clearTimeout(timer);if(finished)return;finished=true;signal?.removeEventListener('abort',abort);if(!Number.isFinite(latest.cp)){reject(new Error('Stockfish no devolvió una evaluación numérica de esta posición.'));return;}resolve({...latest,best:latest.best||line.split(' ')[1]});}};worker.onerror=e=>finishError(new Error('Stockfish falló durante el análisis: '+(e.message||'worker error')));worker.postMessage('position fen '+fen);worker.postMessage('go depth '+depth+(moveTimeMs?' movetime '+moveTimeMs:''));});}
 function stopAnalysis(){state.stop=true;state.analysisController?.abort();if(state.worker){state.worker.terminate();state.worker=null;}$('#analyze').disabled=false;$('#cancel').disabled=true;}
-async function analyze(options={}){if(state.busy||!state.game)return false;const batch=options?.batch===true;window.IB_LIVE?.pause();state.busy=true;state.stop=false;state.analysisController=new AbortController();$('#game-select').disabled=true;$('#file-input').disabled=true;state.depth=batch?Math.max(8,Math.min(20,Number(options.depth)||14)):Number($('#depth').value);state.mode=batch?'lite':$('#engine-mode').value;$('#analyze').disabled=true;$('#cancel').disabled=false;$('#progress').value=0;state.evaluations=[];state.reports=[];render();let worker;try{status('Cargando Stockfish 19…');worker=await newEngine(state.analysisController.signal);worker.postMessage('ucinewgame');for(let i=0;i<state.positions.length;i++){if(state.stop)break;status(`Analizando posición ${i+1} de ${state.positions.length} · profundidad ${state.depth}`);const result=await evaluation(worker,state.positions[i],state.depth,{moveTimeMs:batch?Number(options.moveTimeMs)||2200:0,timeoutMs:batch?Number(options.timeoutMs)||16000:120000,signal:state.analysisController.signal});if(state.stop)break;state.evaluations[i]=result;if(i>0){const prev=state.evaluations[i-1].cp,next=result.cp,sign=i%2===1?1:-1;const raw=(prev-next)*sign;let loss=Math.max(0,Math.round(raw));state.reports[i-1]={...classifyMove(loss,i),loss};}$('#progress').value=Math.round((i+1)/state.positions.length*100);$('#progress-label').textContent=`${i+1}/${state.positions.length} posiciones`;if(batch&&typeof options.onProgress==='function'&&(i%4===0||i===state.positions.length-1))options.onProgress(i+1,state.positions.length);if(i%2===0||i===state.positions.length-1)render();await new Promise(r=>setTimeout(r,0));}if(state.stop){status('Análisis cancelado al finalizar la última posición.');return false;}if(!state.stop){status('Análisis completado · Stockfish 19');notify('Revisión terminada. Seleccioná una jugada para ver su conclusión.');state.analysisCache.set(state.games.indexOf(state.game),{evaluations:[...state.evaluations],reports:[...state.reports]});saveReview(state.game,{evaluations:[...state.evaluations],reports:[...state.reports]},state.depth,'stockfish19').catch(console.warn);window.IB_PERFORMANCE?.analysisFinished();return true;}}catch(err){status('Error del motor');notify(err.message,'err');console.error(err);return false;}finally{if(worker)worker.terminate();state.worker=null;state.busy=false;state.analysisController=null;$('#game-select').disabled=false;$('#file-input').disabled=false;$('#analyze').disabled=false;$('#cancel').disabled=true;render();window.IB_LIVE?.resume();}}
+async function analyze(options={}){if(state.busy||!state.game)return false;const batch=options?.batch===true;window.IB_LIVE?.pause();state.busy=true;state.stop=false;state.analysisController=new AbortController();$('#game-select').disabled=true;$('#file-input').disabled=true;state.depth=batch?Math.max(8,Math.min(20,Number(options.depth)||14)):Number($('#depth').value);state.mode=batch?'lite':$('#engine-mode').value;$('#analyze').disabled=true;$('#cancel').disabled=false;$('#progress').value=0;state.evaluations=[];state.reports=[];render();let worker,startAt=0;const game=state.game,depth=state.depth,gameIndex=state.games.indexOf(game);
+try{
+ if(batch){
+  try{
+   const checkpoint=await loadReviewProgress(game,depth);
+   if(checkpoint?.evaluations?.length){
+    const restored=checkpoint.evaluations;
+    while(startAt<state.positions.length&&Number.isFinite(restored[startAt]?.cp)&&
+      (startAt===0||Number.isFinite(checkpoint.reports?.[startAt-1]?.loss)))startAt++;
+    if(startAt){
+     state.evaluations=restored.slice(0,startAt);
+     state.reports=(checkpoint.reports||[]).slice(0,Math.max(0,startAt-1));
+     options.onProgress?.(startAt,state.positions.length);
+     status('Reanudando desde '+startAt+'/'+state.positions.length+' posiciones guardadas');
+    }
+   }
+  }catch(err){console.warn('No se pudo cargar progreso anterior:',err);}
+ }
+ if(state.stop||state.analysisController.signal.aborted)return false;
+ if(startAt<state.positions.length){status('Cargando Stockfish 19…');worker=await newEngine(state.analysisController.signal);worker.postMessage('ucinewgame');}
+ for(let i=startAt;i<state.positions.length;i++){if(state.stop)break;status(`Analizando posición ${i+1} de ${state.positions.length} · profundidad ${state.depth}`);const result=await evaluation(worker,state.positions[i],state.depth,{moveTimeMs:batch?Number(options.moveTimeMs)||2200:0,timeoutMs:batch?Number(options.timeoutMs)||16000:120000,signal:state.analysisController.signal});if(state.stop)break;state.evaluations[i]=result;if(i>0){const prev=state.evaluations[i-1].cp,next=result.cp,sign=i%2===1?1:-1;const raw=(prev-next)*sign;let loss=Math.max(0,Math.round(raw));state.reports[i-1]={...classifyMove(loss,i),loss};}$('#progress').value=Math.round((i+1)/state.positions.length*100);$('#progress-label').textContent=`${i+1}/${state.positions.length} posiciones`;if(batch&&typeof options.onProgress==='function'&&(i%4===0||i===state.positions.length-1))options.onProgress(i+1,state.positions.length);if(i%4===0||i===state.positions.length-1)render();
+ if(batch&&((i+1)%6===0||i===state.positions.length-1)){
+  try{await saveReviewProgress(game,{evaluations:[...state.evaluations],reports:[...state.reports]},depth);}
+  catch(err){console.warn('No se pudo guardar progreso parcial:',err);}
+ }
+ await new Promise(r=>setTimeout(r,0));}if(state.stop){status('Análisis cancelado al finalizar la última posición.');return false;}if(!state.stop){status('Análisis completado · Stockfish 19');notify('Revisión terminada. Seleccioná una jugada para ver su conclusión.');if(state.reports.length!==game.moves.length||!state.reports.every(r=>Number.isFinite(r?.loss)))throw new Error('Faltan jugadas evaluadas; el análisis no está completo.');
+ const complete={evaluations:[...state.evaluations],reports:[...state.reports]};
+ state.analysisCache.set(gameIndex,complete);
+ try{const saved=await saveReview(game,complete,depth,'stockfish19');if(!saved)throw Error('Revisión incompleta');if(batch)await clearReviewProgress(game,depth);}
+ catch(err){console.warn('No se pudo guardar el análisis completo:',err);notify('Se analizó la partida, pero no se pudo guardar permanentemente: '+err.message,'err');}window.IB_PERFORMANCE?.analysisFinished();return true;}}catch(err){
+ if(batch&&state.evaluations.length){
+  try{await saveReviewProgress(game,{evaluations:[...state.evaluations],reports:[...state.reports]},depth);}
+  catch(e){console.warn('No se pudo guardar el avance:',e);}
+ }
+ if(!state.stop){status('Error de Stockfish');options.onFailure?.(err.message);notify(err.message,'err');console.error(err);}
+ return false;
+}finally{if(worker)worker.terminate();state.worker=null;state.busy=false;state.analysisController=null;$('#game-select').disabled=false;$('#file-input').disabled=false;$('#analyze').disabled=false;$('#cancel').disabled=true;render();window.IB_LIVE?.resume();}}
 function download(name,body,mime){const a=document.createElement('a'),url=URL.createObjectURL(new Blob([body],{type:mime}));a.href=url;a.download=name;a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);}
 function csv(){if(!state.game)return;let rows=['Ply,Jugador,Jugada,EvaluacionBlancasCP,PerdidaCP,Clasificacion,MejorJugadaUCI,VarianteUCI'];state.game.moves.forEach((m,i)=>{const r=state.reports[i],b=state.evaluations[i];rows.push([i+1,i%2?'Negras':'Blancas',m.san,state.evaluations[i+1]?.cp??'',r?.loss??'',r?.label||'',b?.best||'',(b?.pv||[]).slice(0,10).join(' ')].map(s=>'"'+String(s).replaceAll('"','""')+'"').join(','));});download('IB_Chess_Review.csv','\ufeff'+rows.join('\n'),'text/csv;charset=utf-8');}
 function annotated(){if(!state.game)return;const g=new Chess();g.header(...Object.entries(state.game.headers).flat());for(let i=0;i<state.game.moves.length;i++){g.move(state.game.moves[i].san);const r=state.reports[i];const notes=[r?`${r.label}; pérdida estimada ${r.loss}cp. ${comment(r)} ${reviewInsight(i+1,r)}`:'',window.IB_STUDIO?.getComment(i+1)||'',...(window.IB_STUDIO?.getVariations(i+1)||[]).map(v=>'Variante: '+v)].filter(Boolean);if(notes.length)g.setComment(notes.join(' | '));}download('IB_Chess_Review.pgn',g.pgn(),'application/x-chess-pgn');}
