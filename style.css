@@ -1338,3 +1338,36 @@
   background:#fff;color:#1a5648;border-color:#b4dacc;box-shadow:0 6px 22px #142d3a25;
 }
 @media(prefers-reduced-motion:reduce){.sidebar{transition:none}}
+
+/* Tournament overview: compact expandable game list with truthful completed/pending counts. */
+.perf-games-section{margin:13px 0 17px;border:1px solid #38576a;border-radius:12px;overflow:hidden;background:#112537}
+.perf-games-toggle{width:100%;border:0;background:#183143;color:#dceeea;min-height:53px;padding:12px 14px;display:flex;align-items:center;justify-content:space-between;gap:9px;text-align:left;cursor:pointer}
+.perf-games-toggle strong{font-size:12px;color:#d7f3e8}
+.perf-games-toggle span{font-size:11px;color:#b1d0d0}
+.perf-games-toggle:hover{background:#214250}
+.perf-games-toggle:focus-visible,.perf-games-filters button:focus-visible,.perf-game-select:focus-visible{outline:2px solid #70d3ac;outline-offset:-2px}
+#perf-games-details[hidden]{display:none!important}
+.perf-games-filters{display:flex;gap:8px;flex-wrap:wrap;padding:11px 13px 3px}
+.perf-games-filters button{border:1px solid #426070;border-radius:8px;background:#1b3446;color:#b8d0da;padding:8px 11px;font-size:11px;font-weight:700;cursor:pointer}
+.perf-games-filters button.selected{background:#214d40;border-color:#559c7e;color:#b8f3d4}
+.perf-games-section .perf-study-games{display:grid;gap:6px;margin:0;padding:9px 12px 13px;max-height:420px;overflow-y:auto}
+.perf-games-section .perf-game-select{width:100%;cursor:pointer;font-size:11px;text-align:left;min-height:38px;display:flex;align-items:center;justify-content:space-between;gap:12px;padding:9px 12px}
+.perf-games-section .perf-game-select:hover{background:#244053;border-color:#558776}
+.perf-games-section .perf-game-select>span:first-child{min-width:0;overflow-wrap:anywhere}
+.perf-state-done{color:#86dfbd;white-space:nowrap}
+.perf-state-pending{color:#eac69c;white-space:nowrap}
+.perf-games-empty{color:#9bbcbf;padding:10px;font-size:12px}
+:root[data-theme="light"] .perf-games-section{background:#fff;border-color:#bfd7df}
+:root[data-theme="light"] .perf-games-toggle{background:#edf6f5;color:#234b56}
+:root[data-theme="light"] .perf-games-toggle strong{color:#175445}
+:root[data-theme="light"] .perf-games-toggle span{color:#476a77}
+:root[data-theme="light"] .perf-games-toggle:hover{background:#e0f0e8}
+:root[data-theme="light"] .perf-games-filters button{background:#fff;color:#315b68;border-color:#b6d0d8}
+:root[data-theme="light"] .perf-games-filters button.selected{background:#dbf2e7;color:#12694e;border-color:#95cdb8}
+:root[data-theme="light"] .perf-games-section .perf-study-games{background:#fff}
+:root[data-theme="light"] .perf-games-section .perf-game-select{color:#2f5366;background:#f7fbfc;border-color:#d1e0e5}
+:root[data-theme="light"] .perf-games-section .perf-game-select:hover{background:#e4f4ed;border-color:#9dc9b6}
+:root[data-theme="light"] .perf-state-done{color:#126e50}
+:root[data-theme="light"] .perf-state-pending{color:#93601f}
+:root[data-theme="light"] .perf-games-empty{color:#617b86}
+@media(max-width:600px){.perf-games-toggle{align-items:flex-start;flex-direction:column}.perf-games-section .perf-game-select{align-items:flex-start;flex-direction:column}.perf-games-filters button{flex:1}}
