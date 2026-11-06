@@ -310,7 +310,8 @@ export function initPerformance({state,notify,analyzeGame,cancelGame,jumpGame,ge
     batchFailures.delete(gameItem.index);
     let ok=false,error='';
     try{
-      ok=await analyzeGame({batch:true,depth:preset.depth,moveTimeMs:preset.moveTimeMs,timeoutMs:preset.timeoutMs,onProgress:(position,total)=>progress('Stockfish '+preset.label+' · partida '+(i+1)+'/'+pending.length+' · '+name+' · posición '+position+'/'+total)})===true;
+      ok=await analyzeGame({batch:true,depth:preset.depth,moveTimeMs:preset.moveTimeMs,timeoutMs:preset.timeoutMs,onProgress:(position,total)=>progress('Stockfish '+preset.label+' · partida '+(i+1)+'/'+pending.length+' · '+name+' · posición '+position+'/'+total),
+       onFailure:message=>{error=message;progress('Error en '+name+': '+message);}})===true;
       if(ok&&!validCompleteReport(g,getAnalyses().get(gameItem.index))){
         ok=false;error='Stockfish no evaluó todas las jugadas';
       }
