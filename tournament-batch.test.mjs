@@ -28,7 +28,7 @@ test('tournament batch skips completed games and continues after failure',()=>{
  assert.ok(src.includes('if(validCompleteReport(g,getAnalyses().get(index)))continue'));
  assert.ok(src.includes('await analyzeGame({batch:true'));
  assert.ok(src.includes('results.push({index:gameItem.index,name,ok,error})'));
- assert.ok(src.includes('Podés reanudar o elegir modo Rápido'));
+ assert.ok(src.includes('Podés reanudar en modo Rápido'));
  assert.ok(src.includes('cancelGame?.()'));
 });
 test('individual Game Review is preserved while tournament analysis is time bounded',()=>{
