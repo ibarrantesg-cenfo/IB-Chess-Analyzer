@@ -139,7 +139,7 @@ export function initPerformance({state,notify,analyzeGame,cancelGame,jumpGame,ge
  };
 
  let selectedPlayer='',selectedEvent='',activeTab='tournament',batchCancelled=false,batching=false,eventGamesExpanded=false,eventGamesFilter='pending';
- let lastFailedGames=[];
+ 
  const playerList=()=>{const count=new Map();for(const g of state.games)for(const name of [g.headers?.White,g.headers?.Black])if(name&&name!=='?'){const label=displayName(name);count.set(label,(count.get(label)||0)+1);}return [...count.keys()].sort((a,b)=>count.get(b)-count.get(a)||a.localeCompare(b));};
  function filters(restore=true){
   const previous=selectedPlayer;
@@ -308,7 +308,7 @@ export function initPerformance({state,notify,analyzeGame,cancelGame,jumpGame,ge
     if(state.game!==g){results.push({index:gameItem.index,name,error:'No se pudo seleccionar la partida'});continue;}
     let ok=false,error='';
     try{
-      ok=await analyzeGame({batch:true,depth:preset.depth,moveTimeMs:preset.moveTimeMs,timeoutMs:preset.timeoutMs})===true;
+      ok=await analyzeGame({batch:true,depth:preset.depth,moveTimeMs:preset.moveTimeMs,timeoutMs:preset.timeoutMs,onProgress:(position,total)=>progress('Stockfish '+preset.label+' · partida '+(i+1)+'/'+pending.length+' · '+name+' · posición '+position+'/'+total)})===true;
       if(ok&&!validCompleteReport(g,getAnalyses().get(gameItem.index))){
         ok=false;error='Stockfish no evaluó todas las jugadas';
       }
