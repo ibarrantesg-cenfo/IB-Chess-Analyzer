@@ -21,9 +21,9 @@ test('empty event cannot be advertised as completed analysis',()=>{
 });
 test('batch message requires zero remaining incomplete games',()=>{
  const source=readFileSync(new URL('./performance.js',import.meta.url),'utf8');
- assert.ok(source.includes('finalProgress.pending===0?'));
- assert.ok(source.includes('Análisis incompleto: '));
- assert.ok(source.includes('Análisis cancelado: '));
+ assert.ok(source.includes('finalProgress.pending===0)'));
+ assert.ok(source.includes('Análisis parcial: '));
+ assert.ok(source.includes('Análisis cancelado · '));
  assert.ok(source.includes('eventAnalysisProgress(games,getAnalyses())'));
  assert.ok(!source.includes("'Análisis integral completado: '+games.length+' partidas del evento.'"));
 });
