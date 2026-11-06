@@ -21,7 +21,9 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
-      - run: npm install --no-audit --no-fund
+      - run: npm install --include=optional --no-audit --no-fund
+      # Rollup's Linux binary is an optional dependency; npm sometimes omits it on CI.
+      - run: npm install --no-save --no-audit --no-fund "@rollup/rollup-linux-x64-gnu@$(node -p \"require('./node_modules/rollup/package.json').version\")"
       - run: npm run check
       - run: npm run test
       - run: npm run build
