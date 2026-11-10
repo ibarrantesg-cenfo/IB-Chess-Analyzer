@@ -61,3 +61,32 @@ test('expanded editorial catalog contains diverse, valid and uniquely identified
   if(new Set(sequences).size!==sequences.length)issues.push('Duplicate game sequences');
   assert.deepEqual(issues,[],'Opening research catalog needs editorial repair');
 });
+
+test('2026 model excerpts are distinct, legal and annotated at valid positions',async()=>{
+ const {OPENING_MODELS_2026}=await import('./opening-research-2026.js');
+ const ids=new Set([...OPENING_RESEARCH_DRAFTS,...OPENING_RESEARCH_EXPANSION].map(row=>row.id));
+ for(const row of OPENING_MODELS_2026){
+  assert.equal(ids.has(row.id),false,row.id);
+  ids.add(row.id);
+  const {sans,fens}=validateOpeningLine(row.moves);
+  assert.equal(sans.length,22,row.id);
+  assert.ok(row.model.includes('2026')&&row.reference.startsWith('https://theweekinchess.com/'));
+  assert.ok(Object.keys(row.notes).every(ply=>Number(ply)>0&&Number(ply)<=sans.length));
+  if(row.engine){
+   assert.equal(row.engine.fen,fens[row.engine.ply]);
+   assert.equal(row.engine.alternatives.length,3);
+   for(const {cp,san} of row.engine.alternatives){
+    assert.ok(Number.isFinite(cp));
+    const chess=new Chess(row.engine.fen);
+    san.split(' ').forEach(move=>chess.move(move));
+   }
+  }
+ }
+});
+
+test('local opening search matches name, ECO, model players and either move notation',async()=>{
+ const {matchesOpeningSearch}=await import('./opening-research.js');
+ const row={family:'Defensa Siciliana · Najdorf',name:'Ataque Inglés',eco:'B90',model:'Wei – Nakamura',moves:'e4 c5 Nf3 d6'};
+ for(const query of ['ingles','najdorf b90','Nakamura','1.e4 c5 2.Cf3','1.e4 c5 2.Nf3'])assert.equal(matchesOpeningSearch(row,query),true,query);
+ assert.equal(matchesOpeningSearch(row,'Gambito de Rey'),false);
+});

@@ -1404,3 +1404,11 @@
 .academic-teacher-panel>.academic-disclosure{display:list-item;color:var(--ib-disclosure-text);padding:8px 0;line-height:1.5;font-size:14px}
 .academic-disclosure-action{float:right;margin-left:10px;color:var(--ib-disclosure-accent);font-weight:600}
 @media(max-width:560px){.opening-lab-catalog-line-head{grid-template-columns:minmax(0,1fr)}.perf-batch-settings select{width:100%}}
+
+.opening-local-search{display:grid;gap:7px;margin:12px 0;padding:12px;background:var(--ib-disclosure);border:1px solid var(--ib-disclosure-border);border-radius:9px;color:var(--ib-disclosure-text)}
+.opening-local-search label{font-weight:700}
+.opening-local-search input{width:100%;font:inherit;padding:10px;background:var(--ib-disclosure-inner);color:var(--ib-disclosure-text);border:1px solid var(--ib-disclosure-border);border-radius:6px}
+.opening-local-search :is(small,p){color:var(--ib-disclosure-muted);margin:0}
+.opening-local-search :is(p,div):empty{display:none}
+#opening-local-results{display:grid;gap:6px;max-height:21rem;overflow:auto}
+#opening-local-results button{text-align:left;display:grid;gap:4px;overflow-wrap:anywhere}

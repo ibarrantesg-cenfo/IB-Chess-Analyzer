@@ -1,3 +1,4 @@
+import { OPENING_MODELS_2026 } from './opening-research-2026.js';
 import { Chess } from 'chess.js';
 import { OPENING_RESEARCH_DRAFTS } from './opening-research-data.js';
 import { OPENING_RESEARCH_EXPANSION } from './opening-research-more.js';
@@ -17,6 +18,18 @@ function safeLoad(){
 }
 const mk=(tag,text='',className='')=>{const x=document.createElement(tag);x.textContent=text;if(className)x.className=className;return x;};
 const sanTokens=readSanTokens;
+const normalizeOpeningText=value=>String(value||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().trim();
+const searchMoves=value=>normalizeOpeningText(String(value||'').replace(/\b\d+\s*\.{1,3}\s*/g,'').replace(/[+#!?]/g,'').replace(/0/g,'O')).replace(/\s+/g,' ');
+export function matchesOpeningSearch(entry,query){
+ const terms=normalizeOpeningText(query).split(/\s+/).filter(Boolean);
+ const text=normalizeOpeningText([entry.family,entry.name,entry.eco,entry.model].join(' '));
+ if(terms.every(term=>text.includes(term)))return true;
+ const moves=String(entry.moves||'');
+ const spanish=moves.replace(/\b[KQRBN]/g,piece=>({K:'R',Q:'D',R:'T',B:'A',N:'C'})[piece]);
+ const variation=searchMoves(query);
+ return Boolean(variation)&&(searchMoves(moves).includes(variation)||searchMoves(spanish).includes(variation));
+}
+
 export function validateOpeningLine(line){
  const chess=new Chess(),sans=[],fens=[chess.fen()];
  for(const token of sanTokens(line)){
@@ -81,10 +94,12 @@ export function initOpeningResearch({state,loadPGN,jump,notify,getLiveSnapshot,s
  const explorer=document.createElement('section');explorer.className='panel opening-lab-explorer';explorer.hidden=true;
  explorer.innerHTML='<div class="opening-lab-explorer-head"><span class="eyebrow">IB CHESS ACADEMY · EXPLORAR</span><h2>Biblioteca de aperturas</h2><p>Familias plegadas, líneas organizadas y acceso directo a tus estudios.</p></div>';
  explorer.append(panel.querySelector('.opening-lab-catalog'));
+ const quickSearch=mk('section','','opening-local-search');
+ quickSearch.innerHTML='<label for="opening-local-query">Buscar línea en Biblioteca Maestra</label><input type="search" id="opening-local-query" placeholder="Ej. Najdorf, B93, 6.f4 e5 o Caruana" autocomplete="off"><small>Busca por apertura, código ECO, jugadas o partida modelo en el catálogo incluido.</small><p id="opening-local-status" role="status"></p><div id="opening-local-results"></div>';
  const legacy=document.createElement('details');legacy.className='opening-lab-fold opening-lab-legacy';
  legacy.append(mk('summary','Borradores locales de investigación · herramienta anterior','opening-lab-fold-title'),
   mk('p','Para guardar una línea dentro de Mis estudios, utilizá «Agregar a mis estudios». Los borradores antiguos permanecen accesibles aquí y no se eliminarán.','opening-lab-muted'),
-  panel.querySelector('.opening-lab-personal'));
+  quickSearch,panel.querySelector('.opening-lab-personal'));
  explorer.append(legacy);
  host.insertBefore(explorer,panel);
  const fold=(selector,title,help)=>{
@@ -202,7 +217,8 @@ export function initOpeningResearch({state,loadPGN,jump,notify,getLiveSnapshot,s
   }
  };
  const persist=()=>{try{localStorage.setItem(KEY,JSON.stringify(data));}catch{notify('No se pudo guardar el laboratorio en este navegador. Exportá el PGN para conservarlo.','err');}};
- const entries=()=>[...OPENING_RESEARCH_DRAFTS,...OPENING_RESEARCH_EXPANSION,...data.custom].sort((a,b)=>a.family.localeCompare(b.family,'es')||a.name.localeCompare(b.name,'es'));
+ const catalog=[...OPENING_RESEARCH_DRAFTS,...OPENING_RESEARCH_EXPANSION,...OPENING_MODELS_2026];
+ const entries=()=>[...catalog,...data.custom].sort((a,b)=>a.family.localeCompare(b.family,'es')||a.name.localeCompare(b.name,'es'));
  let selected=OPENING_RESEARCH_DRAFTS[0]?.id,visible=false,filterText='',branchPreview=null;
  const expandedFamilies=new Set(),expandedLines=new Set();
  let catalogFingerprint='';
@@ -281,7 +297,7 @@ export function initOpeningResearch({state,loadPGN,jump,notify,getLiveSnapshot,s
   catalogFingerprint=fingerprint;
   const list=el('opening-lab-catalog-items');list.replaceChildren();
   const normalize=x=>String(x||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase();
-  const filtered=roots.filter(x=>normalize(x.family+' '+x.name+' '+x.eco).includes(filterText));
+  const filtered=roots.filter(x=>matchesOpeningSearch(x,filterText));
   const groups=new Map();
   const personal=filtered.filter(x=>data.custom.some(y=>y.id===x.id));
   const editorial=filtered.filter(x=>!data.custom.some(y=>y.id===x.id));
@@ -317,10 +333,11 @@ export function initOpeningResearch({state,loadPGN,jump,notify,getLiveSnapshot,s
       const line=document.createElement('details');line.className='opening-lab-catalog-line';
       line.open=expandedLines.has(item.id);
       const title=mk('summary','','opening-lab-catalog-line-head');
-      title.append(mk('span',item.name),mk('small',(item.eco||'ECO pendiente')+' · '+(data.custom.some(x=>x.id===item.id)?'Estudio personal':'Borrador editorial')));
+      title.append(mk('span',item.name),mk('small',(item.eco||'ECO pendiente')+' · '+(data.custom.some(x=>x.id===item.id)?'Estudio personal':item.model?'Partida modelo 2026':'Borrador editorial')));
       const body=mk('div','','opening-lab-catalog-line-body');
       const sans=validateOpeningLine(item.moves).sans;
       const formatted=sans.map((san,i)=>(i%2===0?(Math.floor(i/2)+1)+'. ':'')+san).join(' ');
+      if(item.model)body.append(mk('p',item.model,'opening-lab-muted'));
       body.append(mk('p',formatted,'opening-lab-catalog-line-moves'));
       body.append(mk('p',item.research||'Pendiente de validación con Stockfish y partidas modelo.','opening-lab-muted'));
       const actions=mk('div','','opening-lab-catalog-line-actions');
@@ -356,12 +373,13 @@ export function initOpeningResearch({state,loadPGN,jump,notify,getLiveSnapshot,s
   selectedStudyLink.href=studyHref(selected);
   selectedStudyLink.setAttribute('aria-label','Abrir '+draft.name+' en otra pestaña');
   const ownStudy=data.custom.some(x=>x.id===selected);
-  el('opening-lab-study-type').textContent=ownStudy?'Estudio personal privado · editable':'Capítulo de investigación · borrador';
+  el('opening-lab-study-type').textContent=ownStudy?'Estudio personal privado · editable':draft.model?'Partida modelo · '+draft.model:'Capítulo de investigación · borrador';
   el('opening-lab-rename').hidden=!ownStudy;
   el('opening-lab-delete').hidden=!ownStudy;
   el('opening-lab-aim').textContent=(draft.eco||'')+' · Investigación: '+(draft.research||'Revisión editorial pendiente.');
   const reference=el('opening-lab-reference');reference.hidden=!draft.reference;
   if(draft.reference)reference.href=draft.reference;
+  reference.textContent=draft.model?'Ver fuente de la partida modelo':'Abrir referencia de clasificación';
   const {sans,fens}=validateOpeningLine(draft.moves),lineEl=el('opening-lab-line');
   lineEl.replaceChildren();
   sans.forEach((san,i)=>{
@@ -517,6 +535,21 @@ export function initOpeningResearch({state,loadPGN,jump,notify,getLiveSnapshot,s
  };
  el('opening-lab-choice').onchange=e=>{switchStudy(e.target.value,{openLine:true});};
  el('opening-lab-search').addEventListener('input',e=>{filterText=e.target.value.normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().trim();renderCatalog();});
+ el('opening-local-query').addEventListener('input',event=>{
+  const query=event.target.value.trim();
+  const results=el('opening-local-results'),status=el('opening-local-status');
+  results.replaceChildren();
+  if(!query){status.textContent='';return;}
+  const matches=catalog.filter(entry=>matchesOpeningSearch(entry,query));
+  status.textContent=matches.length?matches.length+' líneas encontradas'+(matches.length>20?' · mostrando las primeras 20':''):'No se encontraron líneas.';
+  for(const entry of matches.slice(0,20)){
+   const button=mk('button','','btn outline');
+   button.type='button';
+   button.append(mk('strong',entry.name),mk('small',[entry.family,entry.eco,entry.model].filter(Boolean).join(' · ')));
+   button.onclick=()=>switchStudy(entry.id,{openLine:true});
+   results.append(button);
+  }
+ });
  el('opening-lab-open').onclick=()=>{const {sans}=validateOpeningLine(pick().moves);openAt(sans.length);};
  el('opening-lab-copy-selected').onclick=()=>openCopyToLibrary(selected);
  el('opening-lab-refresh').onclick=render;
