@@ -100,3 +100,32 @@ test('Colle and common alternate names resolve in the bundled catalog',async()=>
  assert.equal(matchesOpeningSearch({family:'Defensa Petrov'},'Petroff'),true);
  assert.equal(matchesOpeningSearch({family:'Ataque Trompowsky'},'Trompowski'),true);
 });
+
+test('the position tree merges shared prefixes and keeps alternate move orders available',async()=>{
+ const {buildOpeningPositionTree}=await import('./opening-position-tree.js');
+ const {OPENING_MODELS_2026}=await import('./opening-research-2026.js');
+ const lines=[...OPENING_RESEARCH_DRAFTS,...OPENING_RESEARCH_EXPANSION,...OPENING_MODELS_2026]
+  .filter(row=>row.family==='Defensa Siciliana · Najdorf')
+  .map(row=>({...row,sans:validateOpeningLine(row.moves).sans}));
+ const tree=buildOpeningPositionTree(lines,'e4 c5 Nf3 d6 d4 cxd4 Nxd4 Nf6 Nc3 a6'.split(' '));
+ assert.equal(tree.root.ply,10);
+ assert.equal(tree.root.san,'a6');
+ const f4=tree.root.children.get('f4');
+ assert.ok(f4.children.has('e5'));
+ const bg5=tree.root.children.get('Bg5');
+ assert.ok(bg5.children.has('e6'));
+ assert.equal(tree.routes.size+tree.alternate.length,lines.length);
+ for(const [id,route] of tree.routes)for(const [ply,node] of route)
+  assert.equal(node.san,lines.find(line=>line.id===id).sans[ply-1]);
+});
+
+test('reference chapters are legal, searchable and have stable unique IDs',async()=>{
+ const {OPENING_REFERENCE_LINES}=await import('./opening-reference-lines.js');
+ const {matchesOpeningSearch}=await import('./opening-research.js');
+ assert.equal(new Set(OPENING_REFERENCE_LINES.map(line=>line.id)).size,OPENING_REFERENCE_LINES.length);
+ for(const line of OPENING_REFERENCE_LINES){
+  assert.ok(validateOpeningLine(line.moves).sans.length>=7,line.id);
+  assert.ok(matchesOpeningSearch(line,line.family),line.id);
+  assert.ok(line.research&&line.reference.startsWith('https://github.com/lichess-org/chess-openings/'));
+ }
+});

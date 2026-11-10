@@ -1412,3 +1412,10 @@
 .opening-local-search :is(p,div):empty{display:none}
 #opening-local-results{display:grid;gap:6px;max-height:21rem;overflow:auto}
 #opening-local-results button{text-align:left;display:grid;gap:4px;overflow-wrap:anywhere}
+
+.opening-position-tree{display:grid;gap:8px;padding:10px;background:var(--ib-disclosure-inner);color:var(--ib-disclosure-text);border:1px solid var(--ib-disclosure-border);border-radius:8px}
+.opening-tree-options{display:flex;flex-wrap:wrap;gap:6px}
+.opening-tree-options:empty{display:none}
+.opening-tree-options button[aria-current="step"]{border-color:var(--ib-disclosure-accent);color:var(--ib-disclosure-accent)}
+.opening-tree-chapters>summary{cursor:pointer;padding:8px;color:var(--ib-disclosure-muted);font-size:13px}
+.opening-tree-chapters[open]>.opening-lab-catalog-line{margin-top:6px}

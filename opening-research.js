@@ -1,3 +1,5 @@
+import { OPENING_REFERENCE_LINES } from './opening-reference-lines.js';
+import { buildOpeningPositionTree } from './opening-position-tree.js';
 import { OPENING_MODELS_2026 } from './opening-research-2026.js';
 import { Chess } from 'chess.js';
 import { OPENING_RESEARCH_DRAFTS } from './opening-research-data.js';
@@ -57,7 +59,7 @@ export function initOpeningResearch({state,loadPGN,jump,notify,getLiveSnapshot,s
  const panel=document.createElement('section');panel.className='panel opening-lab-panel';panel.id='opening-lab';panel.hidden=true;
  panel.innerHTML=`<div class="opening-lab-title"><div><span class="eyebrow">BIBLIOTECA MAESTRA · LÍNEA ACTIVA</span><h2>Explorar y analizar</h2><p>Seleccioná una línea, recorré sus jugadas en el tablero y guardá las que necesités en un estudio propio.</p></div><a href="?view=openings" id="opening-lab-study-link" class="btn outline" target="_blank" rel="noopener noreferrer" draggable="true" title="Abrí este estudio en una pestaña independiente o arrastrá el enlace">↗ Abrir en otra pestaña</a></div>
  <div class="opening-lab-body">
-  <details class="opening-lab-catalog" open><summary><strong>Explorar aperturas y estudios</strong><small id="opening-lab-catalog-count">Cargando líneas…</small></summary><div class="opening-lab-catalog-body"><label>Buscar familia, línea o defensa<input type="search" id="opening-lab-search" placeholder="Colle, Najdorf, Ruy López…" /></label><p class="opening-lab-muted">Las familias y sus líneas aparecen plegadas. Abrí una para ver sus jugadas, analizarla o incorporarla a un estudio.</p><div id="opening-lab-catalog-items" class="opening-lab-catalog-items"></div></div></details>
+  <details class="opening-lab-catalog" open><summary><strong>Explorar aperturas y estudios</strong><small id="opening-lab-catalog-count">Cargando líneas…</small></summary><div class="opening-lab-catalog-body"><label>Buscar familia, línea o defensa<input type="search" id="opening-lab-search" placeholder="Colle, Najdorf, Ruy López…" /></label><p class="opening-lab-muted">Abrí una familia para cargar su posición de entrada. Elegí una jugada para recorrer las variantes en el tablero.</p><div id="opening-lab-catalog-items" class="opening-lab-catalog-items"></div></div></details>
   <details class="opening-lab-personal" id="opening-lab-new-study"><summary><strong>＋ Crear borrador de investigación local</strong><small>Herramienta anterior · no va a Mis estudios</small></summary><div class="opening-lab-new-body">
    <label>Nombre del estudio<input type="text" id="opening-lab-new-name" maxlength="120" placeholder="Mi repertorio contra la Francesa"></label>
    <label>Familia / apertura<input type="text" id="opening-lab-new-family" maxlength="100" placeholder="Defensa Francesa"></label>
@@ -229,11 +231,61 @@ export function initOpeningResearch({state,loadPGN,jump,notify,getLiveSnapshot,s
   }
  };
  const persist=()=>{try{localStorage.setItem(KEY,JSON.stringify(data));}catch{notify('No se pudo guardar el laboratorio en este navegador. Exportá el PGN para conservarlo.','err');}};
- const catalog=[...OPENING_RESEARCH_DRAFTS,...OPENING_RESEARCH_EXPANSION,...OPENING_MODELS_2026];
+ const catalog=[...OPENING_RESEARCH_DRAFTS,...OPENING_RESEARCH_EXPANSION,...OPENING_MODELS_2026,...OPENING_REFERENCE_LINES];
  const entries=()=>[...catalog,...data.custom].sort((a,b)=>a.family.localeCompare(b.family,'es')||a.name.localeCompare(b.name,'es'));
  let selected=OPENING_RESEARCH_DRAFTS[0]?.id,visible=false,filterText='',branchPreview=null;
  const expandedFamilies=new Set(),expandedLines=new Set();
  let catalogFingerprint='';
+ let activeTree=null;
+ const trees=new Map();
+ const najdorfEntry='e4 c5 Nf3 d6 d4 cxd4 Nxd4 Nf6 Nc3 a6'.split(' ');
+ const notation=san=>san.replace(/^[KQRBN]/,piece=>({K:'R',Q:'D',R:'T',B:'A',N:'C'})[piece]);
+ const moveLabel=(san,ply)=>Math.ceil(ply/2)+(ply%2?'. ':'… ')+notation(san);
+ function showTreeNode(tree,node,preferredId){
+  const route=node.routes.find(line=>line.id===preferredId)||node.routes.find(line=>line.id===selected)||node.routes[0];
+  if(!route)return;
+  activeTree=tree;
+  switchStudy(route.id,{openLine:false});
+  openAt(node.ply);
+ }
+ function renderPositionTree(){
+  for(const tree of trees.values()){
+   if(!tree.family.open)continue;
+   const path=tree.routes.get(selected);
+   const node=tree===activeTree&&activeIsCorrect()?path?.get(state.move)||tree.root:tree.root;
+   if(tree.drawn===node)continue;
+   tree.drawn=node;
+   const trail=[];
+   for(let step=node;step;step=step.parent)trail.unshift(step);
+   const breadcrumb=mk('div','','opening-tree-options');
+   for(const step of trail){
+    const link=mk('button',step.parent?moveLabel(step.san,step.ply):'Posición de entrada','btn outline');
+    link.type='button';
+    if(step===node)link.setAttribute('aria-current','step');
+    link.onclick=()=>showTreeNode(tree,step);
+    breadcrumb.append(link);
+   }
+   const options=mk('div','','opening-tree-options');
+   for(const child of node.children.values()){
+    const next=mk('button',moveLabel(child.san,child.ply)+' · '+child.routes.length,'btn outline');
+    next.type='button';
+    next.onclick=()=>{
+     showTreeNode(tree,child);
+     tree.host.querySelector('.opening-tree-options:last-of-type button')?.focus({preventScroll:true});
+    };
+    options.append(next);
+   }
+   const description=node.children.size?(node.ply%2?'Juegan negras':'Juegan blancas')+' · continuaciones del catálogo':'Fin de las continuaciones del catálogo en esta rama';
+   tree.host.replaceChildren(breadcrumb,mk('p',description,'opening-lab-muted'),options);
+   for(const line of node.ends){
+    const link=mk('button',line.name,'btn outline');
+    link.type='button';
+    link.onclick=()=>showTreeNode(tree,node,line.id);
+    tree.host.append(link);
+   }
+  }
+ }
+
  const requestedId=new URLSearchParams(window.location.search).get('study');
  if(requestedId&&entries().some(x=>x.id===requestedId))selected=requestedId;
  const pick=()=>entries().find(x=>x.id===selected);
@@ -307,7 +359,8 @@ export function initOpeningResearch({state,loadPGN,jump,notify,getLiveSnapshot,s
   const fingerprint=filterText+'|'+roots.map(x=>x.id+':'+x.family+':'+x.name+':'+x.eco+':'+x.moves+':'+x.research).join('|');
   if(fingerprint===catalogFingerprint)return;
   catalogFingerprint=fingerprint;
-  const list=el('opening-lab-catalog-items');list.replaceChildren();
+  const previousTreeKey=activeTree?.key;
+  const list=el('opening-lab-catalog-items');list.replaceChildren();trees.clear();activeTree=null;
   const normalize=x=>String(x||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase();
   const filtered=roots.filter(x=>matchesOpeningSearch(x,filterText));
   const groups=new Map();
@@ -337,24 +390,41 @@ export function initOpeningResearch({state,loadPGN,jump,notify,getLiveSnapshot,s
   const shared=catalogSection('Estudios de ambos bandos y borradores');
   for(const [key,group] of groups){
     const family=document.createElement('details');family.className='opening-lab-catalog-family';
-    family.open=expandedFamilies.has(key)||Boolean(filterText);
+    family.open=expandedFamilies.has(key);
     const summary=mk('summary',group.label+' · '+group.items.length+' línea(s)','opening-lab-family-summary');
     const section=mk('div','','opening-lab-family-items');
     family.append(summary,section);
-    for(const item of group.items){
+    const lines=group.items.map(item=>({...item,sans:validateOpeningLine(item.moves).sans}));
+    const entry=group.label==='Defensa Siciliana · Najdorf'&&lines.some(line=>najdorfEntry.every((san,i)=>line.sans[i]===san))?najdorfEntry:undefined;
+    const positionTree=buildOpeningPositionTree(lines,entry);
+    const tree={...positionTree,key,family,host:mk('div','','opening-position-tree')};
+    const chapterList=mk('details','','opening-tree-chapters');
+    chapterList.append(mk('summary','Ver capítulos y partidas modelo'));
+    section.append(tree.host,chapterList);
+    trees.set(key,tree);
+    if(previousTreeKey===key)activeTree=tree;
+    summary.addEventListener('click',()=>{
+     if(family.open)return;
+     showTreeNode(tree,tree.root);
+    });
+    for(const item of lines){
       const line=document.createElement('details');line.className='opening-lab-catalog-line';
       line.open=expandedLines.has(item.id);
       const title=mk('summary','','opening-lab-catalog-line-head');
       title.append(mk('span',item.name),mk('small',(item.eco||'ECO pendiente')+' · '+(data.custom.some(x=>x.id===item.id)?'Estudio personal':item.model?'Partida modelo 2026':'Borrador editorial')));
       const body=mk('div','','opening-lab-catalog-line-body');
-      const sans=validateOpeningLine(item.moves).sans;
+      const sans=item.sans;
       const formatted=sans.map((san,i)=>(i%2===0?(Math.floor(i/2)+1)+'. ':'')+san).join(' ');
       if(item.model)body.append(mk('p',item.model,'opening-lab-muted'));
       body.append(mk('p',formatted,'opening-lab-catalog-line-moves'));
       body.append(mk('p',item.research||'Pendiente de validación con Stockfish y partidas modelo.','opening-lab-muted'));
       const actions=mk('div','','opening-lab-catalog-line-actions');
       const analyze=mk('button','♟ Analizar en el tablero','btn outline');analyze.type='button';
-      analyze.onclick=()=>switchStudy(item.id,{openLine:true});
+      analyze.onclick=()=>{
+       const path=tree.routes.get(item.id);
+       if(path)showTreeNode(tree,tree.root,item.id);
+       else switchStudy(item.id,{openLine:true});
+      };
       const add=mk('button','＋ Agregar a mis estudios','btn primary');add.type='button';
       add.onclick=()=>openCopyToLibrary(item.id);
       const separate=document.createElement('a');separate.href=studyHref(item.id);separate.target='_blank';separate.rel='noopener noreferrer';separate.className='btn outline';separate.textContent='↗ Otra pestaña';
@@ -363,17 +433,20 @@ export function initOpeningResearch({state,loadPGN,jump,notify,getLiveSnapshot,s
       line.addEventListener('toggle',()=>{
         if(line.open)expandedLines.add(item.id);else expandedLines.delete(item.id);
       });
-      section.append(line);
+      chapterList.append(line);
     }
     family.addEventListener('toggle',()=>{
-      if(family.open)expandedFamilies.add(key);else expandedFamilies.delete(key);
+      if(!family.isConnected)return;
+      if(family.open){expandedFamilies.add(key);renderPositionTree();}
+      else expandedFamilies.delete(key);
     });
     const label=normalize(group.label);
-    const target=/^defensa /.test(label)?black:
+    const target=/^(defensa |gambito benko)/.test(label)?black:
      /^(apertura |sistema |ataque |gambito de dama)/.test(label)?white:shared;
     target.append(family);
   }
   for(const body of sideSections.values())if(body.childElementCount)list.append(body.parentElement);
+  renderPositionTree();
   if(!filtered.length)list.append(mk('p','No se encontraron líneas con ese nombre.','opening-lab-muted'));
  }
  function activeIsCorrect(){return state.game?.headers?.ResearchID===selected;}
@@ -381,6 +454,7 @@ export function initOpeningResearch({state,loadPGN,jump,notify,getLiveSnapshot,s
   const draft=pick();if(!draft)return;
   renderChoices();
   renderCatalog();
+  renderPositionTree();
   const selectedStudyLink=el('opening-lab-study-link');
   selectedStudyLink.href=studyHref(selected);
   selectedStudyLink.setAttribute('aria-label','Abrir '+draft.name+' en otra pestaña');
@@ -755,7 +829,7 @@ export function initOpeningResearch({state,loadPGN,jump,notify,getLiveSnapshot,s
   const tools=document.querySelector('.workspace-tools');if(tools)tools.hidden=true;
   const paste=document.querySelector('#paste-pgn-panel');if(paste)paste.hidden=true;
   document.querySelector('.topbar h1').textContent='Biblioteca Maestra · Estudio individual';
-  document.querySelector('.topbar p').textContent='Investigá un capítulo por vez con tu tablero, variantes de Stockfish, fuentes y comentarios propios.';
+  document.querySelector('.topbar p').textContent='Recorré las aperturas por posición y compará las continuaciones en el tablero.';
   document.querySelector('#nav-openings')?.classList.add('active');
   document.querySelector('#nav-review')?.classList.remove('active');
   document.querySelector('#nav-library')?.classList.remove('active');
