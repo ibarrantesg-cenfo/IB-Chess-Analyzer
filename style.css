@@ -1469,3 +1469,12 @@
 @media(max-width:810px){
  :root[data-theme="light"] .opening-study-mode .opening-lab-catalog-items{max-height:none;overflow:visible}
 }
+
+.opening-core-menu{border:1px solid var(--ib-disclosure-border);border-radius:8px;background:var(--ib-disclosure);color:var(--ib-disclosure-text)}
+.opening-core-menu>summary{cursor:pointer;padding:10px 12px;font-size:13px;font-weight:700}
+#opening-core-links{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;padding:0 10px 10px}
+.opening-core-menu:not([open])>#opening-core-links{display:none}
+.opening-core-column{display:grid;gap:5px;align-content:start}
+.opening-core-column>strong{padding:3px 0;color:var(--ib-disclosure-muted);font-size:12px}
+.opening-core-column>.btn{text-align:left;white-space:normal}
+@media(max-width:560px){#opening-core-links{grid-template-columns:1fr}}

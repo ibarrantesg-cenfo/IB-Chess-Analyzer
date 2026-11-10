@@ -88,7 +88,20 @@ const rows=[
  ['najdorf-opocensky-reference','Defensa Siciliana · Najdorf','Opocensky · 6.Ae2 e5 y …Ae7','B92',najdorf+'Be2 e5 Nb3 Be7 O-O O-O','Compará el plan de enroque corto con la expansión del Ataque Inglés y localizá el control de d5.'],
  ['scheveningen-tal','Defensa Siciliana · Scheveningen','Tal · 6.f4 y 8.Df3','B82',scheveningen+'f4 Nc6 Be3 Be7 Qf3','Calculá qué presión crea la dama sobre f7 y qué recursos centrales tiene el segundo jugador antes de enrocar.'],
  ['sveshnikov-novosibirsk','Defensa Siciliana · Sveshnikov','Novosibirsk · 9.Axf6 y 10.Cd5','B33',sveshnikov+'Ndb5 d6 Bg5 a6 Na3 b5 Bxf6 gxf6 Nd5 Bg7','Compará el puesto avanzado d5 y los peones doblados con la iniciativa de las negras tras …f5.'],
- ['taimanov-bastrikov-be2','Defensa Siciliana · Taimanov','Bastrikov · 6.Ae3 a6 7.Ae2','B49',e6Sicilian+'Nc6 Nc3 Qc7 Be3 a6 Be2','Compará el plan con enroque corto con Dd2 y f3 del Ataque Inglés. ¿En qué momento se justifica …b5?']
+ ['taimanov-bastrikov-be2','Defensa Siciliana · Taimanov','Bastrikov · 6.Ae3 a6 7.Ae2','B49',e6Sicilian+'Nc6 Nc3 Qc7 Be3 a6 Be2','Compará el plan con enroque corto con Dd2 y f3 del Ataque Inglés. ¿En qué momento se justifica …b5?'],
+ ['core-queen-accepted','Gambito de Dama','Aceptado · sistema Alekhine con De2','D28','d4 d5 c4 dxc4 Nf3 Nf6 e3 e6 Bxc4 c5 O-O a6 Qe2 b5','Compará recuperar c4 de inmediato con completar primero el desarrollo.'],
+ ['core-orthodox-c5','Defensa Ortodoxa del Gambito de Dama','Rubinstein · 7.Dc2 y …c5','D61','d4 d5 c4 e6 Nc3 Nf6 Bg5 Be7 e3 O-O Nf3 Nbd7 Qc2 c5','Calculá qué piezas se activan cuando las negras rompen en c5.'],
+ ['core-orthodox-c6','Defensa Ortodoxa del Gambito de Dama','Rubinstein · 7.Dc2 y …c6','D61','d4 d5 c4 e6 Nc3 Nf6 Bg5 Be7 e3 O-O Nf3 Nbd7 Qc2 c6','Compará el sostén del peón de d5 con la ruptura inmediata …c5.'],
+ ['core-orthodox-harrwitz','Defensa Ortodoxa del Gambito de Dama','Harrwitz · 5.Af4 y …c6','D37','d4 d5 c4 e6 Nc3 Nf6 Nf3 Be7 Bf4 O-O e3 c6','Compará la presión de Af4 con la clavada de Ag5 y buscá el momento de …c5.'],
+ ['core-kia-keres','Ataque Indio de Rey','Keres · …c6 y …Ag4','A07','Nf3 d5 g3 c6 Bg2 Bg4 O-O Nd7 d4 Ngf6 c4 e6 cxd5 exd5 Nc3 Bd6','Observá cuándo conviene ocupar el centro con d4 y c4.'],
+ ['core-kia-pachman','Ataque Indio de Rey','Pachman · fianchettos y …e5','A07','Nf3 d5 g3 g6 Bg2 Bg7 O-O e5 d3 Ne7','Compará sostener e4 con una ruptura por c4. ¿Qué cambia ante el centro negro de dos peones?'],
+ ['core-four-knights-scotch','Apertura de los Cuatro Caballos','Escocesa · 4.d4 exd4','C47','e4 e5 Nf3 Nc6 Nc3 Nf6 d4 exd4 Nxd4 Bb4 Nxc6 bxc6 Bd3 d5 exd5 O-O O-O','Compará abrir el centro en la cuarta jugada con mantener la tensión mediante Ab5.'],
+ ['core-four-knights-spanish','Apertura de los Cuatro Caballos','Doble Española · 4.Ab5 Ab4','C49','e4 e5 Nf3 Nc6 Nc3 Nf6 Bb5 Bb4 O-O O-O d3 d6 Bg5 Ne7','Estudiá qué cambia cuando los alfiles clavan a los caballos en posiciones simétricas.'],
+ ['core-four-knights-rubinstein','Apertura de los Cuatro Caballos','Rubinstein · 4.Ab5 Cd4','C48','e4 e5 Nf3 Nc6 Nc3 Nf6 Bb5 Nd4 Be2','Calculá qué puede ganar el caballo al saltar a d4 y cómo responde el alfil.'],
+ ['core-scandi-qa5','Defensa Escandinava','Mieses · 3…Da5','B01','e4 d5 exd5 Qxd5 Nc3 Qa5 d4 Nf6','Buscá qué piezas blancas se desarrollan mientras la dama negra se recoloca.'],
+ ['core-scandi-qd6','Defensa Escandinava','Schiller–Pytel · 3…Dd6','B01','e4 d5 exd5 Qxd5 Nc3 Qd6 d4 Nf6 Bc4 c6 Nge2 Bf5 Bf4 Qb4','Compará la exposición de la dama en d6 con la alternativa …Da5.'],
+ ['core-scandi-nf6','Defensa Escandinava','Moderna · 2…Cf6 y …Ag4','B01','e4 d5 exd5 Nf6 d4 Nxd5 Nf3 Bg4','Compará recuperar con el caballo con recuperar de inmediato con la dama.'],
+ ['core-slav-exchange','Defensa Eslava','Cambio · esquema simétrico con Af4','D14','d4 d5 c4 c6 cxd5 cxd5 Nc3 Nf6 Nf3 Nc6 Bf4 Bf5','Buscá cómo romper la simetría y qué pieza puede ocupar la columna c.']
 ];
 export const OPENING_REFERENCE_LINES=rows.map(([id,family,name,eco,moves,research])=>({
  id:'ref-'+id,family,name,eco,moves,research,notes:{},

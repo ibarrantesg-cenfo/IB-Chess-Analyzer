@@ -1,3 +1,4 @@
+import { CORE_OPENING_FAMILIES } from './opening-core-families.js';
 import { OPENING_REFERENCE_LINES } from './opening-reference-lines.js';
 import { buildOpeningPositionTree } from './opening-position-tree.js';
 import { OPENING_MODELS_2026 } from './opening-research-2026.js';
@@ -30,7 +31,10 @@ const openingAliases=[
  ['trompowsky','trompowski trompovsky'],
  ['caro kann','carokann'],
  ['india de rey','kings indian kid'],
- ['nimzoindia','nimzo indian nimzo india']
+ ['nimzoindia','nimzo indian nimzo india'],
+ ['catalana','sistema catalan catalan opening'],
+ ['cuatro caballos','four knights'],
+ ['ataque indio de rey','kings indian attack kia']
 ];
 export function matchesOpeningSearch(entry,query){
  const terms=openingNameWords(query).split(/\s+/).filter(Boolean);
@@ -59,7 +63,7 @@ export function initOpeningResearch({state,loadPGN,jump,notify,getLiveSnapshot,s
  const panel=document.createElement('section');panel.className='panel opening-lab-panel';panel.id='opening-lab';panel.hidden=true;
  panel.innerHTML=`<div class="opening-lab-title"><div><span class="eyebrow">BIBLIOTECA MAESTRA · LÍNEA ACTIVA</span><h2>Explorar y analizar</h2><p>Seleccioná una línea, recorré sus jugadas en el tablero y guardá las que necesités en un estudio propio.</p></div><a href="?view=openings" id="opening-lab-study-link" class="btn outline" target="_blank" rel="noopener noreferrer" draggable="true" title="Abrí este estudio en una pestaña independiente o arrastrá el enlace">↗ Abrir en otra pestaña</a></div>
  <div class="opening-lab-body">
-  <details class="opening-lab-catalog" open><summary><strong>Explorar aperturas y estudios</strong><small id="opening-lab-catalog-count">Cargando líneas…</small></summary><div class="opening-lab-catalog-body"><label>Buscar familia, línea o defensa<input type="search" id="opening-lab-search" placeholder="Colle, Najdorf, Ruy López…" /></label><p class="opening-lab-muted">Abrí una familia para cargar su posición de entrada. Elegí una jugada para recorrer las variantes en el tablero.</p><div id="opening-lab-catalog-items" class="opening-lab-catalog-items"></div></div></details>
+  <details class="opening-lab-catalog" open><summary><strong>Explorar aperturas y estudios</strong><small id="opening-lab-catalog-count">Cargando líneas…</small></summary><div class="opening-lab-catalog-body"><label>Buscar familia, línea o defensa<input type="search" id="opening-lab-search" placeholder="Colle, Najdorf, Ruy López…" /></label><p class="opening-lab-muted">Abrí una familia para cargar su posición de entrada. Elegí una jugada para recorrer las variantes en el tablero.</p><details class="opening-core-menu" id="opening-core-menu"><summary>20 familias base · 10 con blancas y 10 con negras</summary><div id="opening-core-links"></div></details><div id="opening-lab-catalog-items" class="opening-lab-catalog-items"></div></div></details>
   <details class="opening-lab-personal" id="opening-lab-new-study"><summary><strong>＋ Crear borrador de investigación local</strong><small>Herramienta anterior · no va a Mis estudios</small></summary><div class="opening-lab-new-body">
    <label>Nombre del estudio<input type="text" id="opening-lab-new-name" maxlength="120" placeholder="Mi repertorio contra la Francesa"></label>
    <label>Familia / apertura<input type="text" id="opening-lab-new-family" maxlength="100" placeholder="Defensa Francesa"></label>
@@ -354,6 +358,10 @@ export function initOpeningResearch({state,loadPGN,jump,notify,getLiveSnapshot,s
   if(!entries().some(x=>x.id===selected))selected=entries()[0]?.id;
   select.value=selected||'';
  }
+ function editorialSicilians(lines){
+  const ids=new Set(catalog.map(item=>item.id));
+  return lines.filter(item=>ids.has(item.id)&&/^e4 c5(?: |$)/.test(item.moves));
+ }
  function renderCatalog(){
   const roots=entries().filter(x=>!x.origin?.parent);
   // Rebuilding 39+ DOM cards on every board move collapses expanded lines.
@@ -365,6 +373,8 @@ export function initOpeningResearch({state,loadPGN,jump,notify,getLiveSnapshot,s
   const normalize=x=>String(x||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase();
   const filtered=roots.filter(x=>matchesOpeningSearch(x,filterText));
   const groups=new Map();
+  const sicilians=editorialSicilians(filtered);
+  if(sicilians.length)groups.set('family:Defensa Siciliana',{label:'Defensa Siciliana',items:sicilians});
   const personal=filtered.filter(x=>data.custom.some(y=>y.id===x.id));
   const editorial=filtered.filter(x=>!data.custom.some(y=>y.id===x.id));
   if(personal.length)groups.set('mine',{label:'Borradores locales antiguos · solo este navegador',items:personal});
@@ -396,7 +406,8 @@ export function initOpeningResearch({state,loadPGN,jump,notify,getLiveSnapshot,s
     const section=mk('div','','opening-lab-family-items');
     family.append(summary,section);
     const lines=group.items.map(item=>({...item,sans:validateOpeningLine(item.moves).sans}));
-    const entry=group.label==='Defensa Siciliana · Najdorf'&&lines.some(line=>najdorfEntry.every((san,i)=>line.sans[i]===san))?najdorfEntry:undefined;
+    const preferredEntry=group.label==='Defensa Siciliana · Najdorf'?najdorfEntry:CORE_OPENING_FAMILIES[group.label]?.split(' ');
+    const entry=preferredEntry&&lines.some(line=>preferredEntry.every((san,i)=>line.sans[i]===san))?preferredEntry:undefined;
     const positionTree=buildOpeningPositionTree(lines,entry);
     const tree={...positionTree,key,family,host:mk('div','','opening-position-tree')};
     const chapterList=mk('details','','opening-tree-chapters');
@@ -447,6 +458,29 @@ export function initOpeningResearch({state,loadPGN,jump,notify,getLiveSnapshot,s
     target.append(family);
   }
   for(const body of sideSections.values())if(body.childElementCount)list.append(body.parentElement);
+  const coreMenu=el('opening-core-menu');
+  coreMenu.hidden=Boolean(filterText);
+  const coreLinks=el('opening-core-links');
+  coreLinks.replaceChildren();
+  if(!filterText){
+   const columns=[mk('div','','opening-core-column'),mk('div','','opening-core-column')];
+   columns[0].append(mk('strong','Con blancas'));
+   columns[1].append(mk('strong','Con negras'));
+   for(const name of Object.keys(CORE_OPENING_FAMILIES)){
+    const tree=trees.get('family:'+name);
+    if(!tree)continue;
+    const button=mk('button',name,'btn outline');
+    button.type='button';
+    button.onclick=()=>{
+     tree.family.closest('.opening-catalog-side').open=true;
+     tree.family.open=true;
+     showTreeNode(tree,tree.root);
+     tree.family.querySelector('summary').focus();
+    };
+    columns[name.startsWith('Defensa ')?1:0].append(button);
+   }
+   coreLinks.append(...columns);
+  }
   renderPositionTree();
   if(!filtered.length)list.append(mk('p','No se encontraron líneas con ese nombre.','opening-lab-muted'));
  }

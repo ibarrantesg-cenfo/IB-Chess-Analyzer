@@ -129,3 +129,18 @@ test('reference chapters are legal, searchable and have stable unique IDs',async
   assert.ok(line.research&&line.reference.startsWith('https://github.com/lichess-org/chess-openings/'));
  }
 });
+
+test('the academy baseline has 10 White and 10 Black families with playable entry positions',async()=>{
+ const {CORE_OPENING_FAMILIES}=await import('./opening-core-families.js');
+ const {OPENING_REFERENCE_LINES}=await import('./opening-reference-lines.js');
+ const {OPENING_MODELS_2026}=await import('./opening-research-2026.js');
+ const catalog=[...OPENING_RESEARCH_DRAFTS,...OPENING_RESEARCH_EXPANSION,...OPENING_REFERENCE_LINES,...OPENING_MODELS_2026];
+ const families=Object.entries(CORE_OPENING_FAMILIES);
+ assert.equal(families.length,20);
+ assert.equal(families.filter(([name])=>name.startsWith('Defensa ')).length,10);
+ for(const [name,entry] of families){
+  const lines=catalog.filter(row=>name==='Defensa Siciliana'?row.moves.startsWith('e4 c5 '):row.family===name);
+  assert.ok(lines.length>=2,name);
+  assert.ok(lines.some(row=>row.moves.startsWith(entry+' ')),name+' has no continuation from its requested entry');
+ }
+});
