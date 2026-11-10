@@ -269,6 +269,7 @@ export function initOpeningResearch({state,loadPGN,jump,notify,getLiveSnapshot,s
    for(const child of node.children.values()){
     const next=mk('button',moveLabel(child.san,child.ply)+' · '+child.routes.length,'btn outline');
     next.type='button';
+    next.setAttribute('aria-label',moveLabel(child.san,child.ply)+' · '+child.routes.length+(child.routes.length===1?' capítulo':' capítulos'));
     next.onclick=()=>{
      showTreeNode(tree,child);
      tree.host.querySelector('.opening-tree-options:last-of-type button')?.focus({preventScroll:true});
@@ -391,7 +392,7 @@ export function initOpeningResearch({state,loadPGN,jump,notify,getLiveSnapshot,s
   for(const [key,group] of groups){
     const family=document.createElement('details');family.className='opening-lab-catalog-family';
     family.open=expandedFamilies.has(key);
-    const summary=mk('summary',group.label+' · '+group.items.length+' línea(s)','opening-lab-family-summary');
+    const summary=mk('summary',group.label+' · '+group.items.length+(group.items.length===1?' línea':' líneas'),'opening-lab-family-summary');
     const section=mk('div','','opening-lab-family-items');
     family.append(summary,section);
     const lines=group.items.map(item=>({...item,sans:validateOpeningLine(item.moves).sans}));

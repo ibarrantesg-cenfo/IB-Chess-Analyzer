@@ -22,6 +22,8 @@ const vienna='e4 e5 Nc3 Nf6 f4 d5 fxe5 Nxe4 ';
 const alapin='e4 c5 c3 ';
 const reti='Nf3 d5 c4 ';
 const londonIndian='d4 Nf6 Nf3 g6 Bf4 Bg7 e3 d6 ';
+const semiSlav='d4 d5 c4 c6 Nf3 Nf6 Nc3 e6 ';
+const najdorf='e4 c5 Nf3 d6 d4 cxd4 Nxd4 Nf6 Nc3 a6 ';
 const database='https://github.com/lichess-org/chess-openings/blob/master/';
 
 const rows=[
@@ -75,7 +77,18 @@ const rows=[
  ['white-vienna-paulsen','Apertura Vienesa','Gambito Vienés · ataque Paulsen con Df3','C29',vienna+'Qf3','Calculá cómo presionar f7 y si la dama puede sufrir ataques con ganancia de tiempo.'],
  ['white-vienna-breyer','Apertura Vienesa','Gambito Vienés · variante Breyer con Cf3','C29',vienna+'Nf3 Be7','Compará desarrollar el caballo con sacar la dama. ¿Cómo recuperan las blancas el control central?'],
  ['white-reti-blumenfeld','Apertura Réti','Contra 2…d4 · Blumenfeld invertido','A09',reti+'d4 e3 c5 b4','Estudiá cómo el avance b4 cuestiona el soporte del peón negro de d4.'],
- ['white-reti-angloslav','Apertura Réti','Contra 2…c6 · Anglo-Eslava con b3 y Ab2','A12',reti+'c6 b3 Bf5 Bb2','Decidí entre sostener la tensión y transponer a una estructura de peón de dama.']
+ ['white-reti-angloslav','Apertura Réti','Contra 2…c6 · Anglo-Eslava con b3 y Ab2','A12',reti+'c6 b3 Bf5 Bb2','Decidí entre sostener la tensión y transponer a una estructura de peón de dama.'],
+ ['semi-slav-moscow','Defensa Semieslava','Moscú · 5.Ag5 h6 y cambio en f6','D43',semiSlav+'Bg5 h6 Bxf6 Qxf6','Compará la pareja de alfiles negra con el control central blanco. ¿Cuándo conviene jugar e4?'],
+ ['semi-slav-botvinnik','Defensa Semieslava','Botvinnik · 5…dxc4 y 6.e4','D44',semiSlav+'Bg5 dxc4 e4 b5 e5 h6 Bh4 g5 Nxg5','Detenete antes de Cxg5 y calculá las capturas en ambos flancos. El centro blanco y el rey negro son los objetivos de la secuencia.'],
+ ['semi-slav-meran','Defensa Semieslava','Merano · …b5 y …c5','D48',semiSlav+'e3 Nbd7 Bd3 dxc4 Bxc4 b5 Bd3 a6 e4 c5 d5','Contrastá el centro blanco con el contrajuego negro por el flanco de dama. Calculá qué cambia al avanzar d5.'],
+ ['dragon-soltis','Defensa Siciliana · Dragón','Soltis · freno con 12…h5','B79',dragon+'Be3 Bg7 f3 O-O Qd2 Nc6 Bc4 Bd7 O-O-O Qa5 h4 Rfc8 Bb3 h5','Compará el bloqueo de h5 con la presión negra en c3. Antes de abrir la columna h, calculá los recursos en el flanco de dama.'],
+ ['acc-dragon-gurgenidze','Defensa Siciliana · Dragón acelerado','Maróczy · Gurgenidze con …Cxd4','B36',accelerated+'c4 Nf6 Nc3 Nxd4 Qxd4 d6','Compará cambiar un par de caballos con mantener la tensión. ¿Qué casillas permiten a las negras reagruparse?'],
+ ['kan-gipslis','Defensa Siciliana · Kan','Gipslis · 5.Ad3 y …g6','B42',e6Sicilian+'a6 Bd3 Nf6 O-O d6 c4 g6','Compará el bloqueo de d5 con las variantes de …Ab4. Revisá dónde conviene desarrollar el caballo de b8.'],
+ ['najdorf-adams-reference','Defensa Siciliana · Najdorf','Ataque Adams · 6.h3','B90',najdorf+'h3','Estudiá qué habilita g4 y cuándo las negras pueden responder a la expansión con una ruptura central.'],
+ ['najdorf-opocensky-reference','Defensa Siciliana · Najdorf','Opocensky · 6.Ae2 e5 y …Ae7','B92',najdorf+'Be2 e5 Nb3 Be7 O-O O-O','Compará el plan de enroque corto con la expansión del Ataque Inglés y localizá el control de d5.'],
+ ['scheveningen-tal','Defensa Siciliana · Scheveningen','Tal · 6.f4 y 8.Df3','B82',scheveningen+'f4 Nc6 Be3 Be7 Qf3','Calculá qué presión crea la dama sobre f7 y qué recursos centrales tiene el segundo jugador antes de enrocar.'],
+ ['sveshnikov-novosibirsk','Defensa Siciliana · Sveshnikov','Novosibirsk · 9.Axf6 y 10.Cd5','B33',sveshnikov+'Ndb5 d6 Bg5 a6 Na3 b5 Bxf6 gxf6 Nd5 Bg7','Compará el puesto avanzado d5 y los peones doblados con la iniciativa de las negras tras …f5.'],
+ ['taimanov-bastrikov-be2','Defensa Siciliana · Taimanov','Bastrikov · 6.Ae3 a6 7.Ae2','B49',e6Sicilian+'Nc6 Nc3 Qc7 Be3 a6 Be2','Compará el plan con enroque corto con Dd2 y f3 del Ataque Inglés. ¿En qué momento se justifica …b5?']
 ];
 export const OPENING_REFERENCE_LINES=rows.map(([id,family,name,eco,moves,research])=>({
  id:'ref-'+id,family,name,eco,moves,research,notes:{},
