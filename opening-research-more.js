@@ -23,6 +23,7 @@ const family={
  catalan:'Apertura Catalana',
  english:'Apertura Inglesa',
  london:'Sistema Londres',
+ colle:'Sistema Colle',
  tromp:'Ataque Trompowsky'
 };
 const url={
@@ -40,6 +41,7 @@ const url={
  catalan:'https://lichess.org/opening/Catalan_Opening',
  english:'https://lichess.org/opening/English_Opening',
  london:'https://lichess.org/opening/London_System',
+ colle:'https://github.com/lichess-org/chess-openings/blob/master/d.tsv',
  tromp:'https://lichess.org/opening/Trompowsky_Attack'
 };
 const make=(id,key,name,moves,eco,notes,research)=>({id,family:family[key],eco,name,moves,notes,research,reference:url[key]});
@@ -209,6 +211,18 @@ export const OPENING_RESEARCH_EXPANSION=[
   6:'...c5 interroga directamente el centro d4.',
   10:'...Db6 ataca b2 y d4; las blancas proponen el cambio de damas o tensión en b.'
  },'Comprobar si la dama en b6 puede ganar tiempos y cuándo la estructura es desfavorable.'),
+ make('colle-traditional','colle','Colle clásico · c3 y ruptura e4','d4 d5 Nf3 Nf6 e3 e6 Bd3 c5 c3 Nc6 Nbd2 Bd6 O-O O-O','D05',{
+  9:'c3 sostiene d4 y prepara el desarrollo del caballo por d2.',
+  11:'Cbd2 apoya e4. Antes de avanzar, contá los atacantes y defensores de esa casilla.'
+ },'Compará el momento de e4 con el plan de mantener la tensión en d4.'),
+ make('colle-zukertort','colle','Colle–Zukertort · b3 y Ab2','d4 d5 Nf3 Nf6 e3 e6 b3 c5 Bb2 Nc6 Bd3 Bd6 O-O O-O','D05',{
+  7:'b3 prepara Ab2. Las blancas podrán ejercer presión por la diagonal larga cuando se despeje d4.',
+  11:'Ad3 apunta a h7. Para atacar, evaluá también la defensa del centro frente a …c5.'
+ },'Compará este plan con el Colle clásico con c3: ¿qué alfil gana actividad y qué peón requiere atención?'),
+ make('colle-anti','colle','Anti-Colle · salida temprana con ...Af5','d4 d5 Nf3 Nf6 e3 Bf5 c4 e6 Nc3 c6 Bd3 Bxd3 Qxd3','D04',{
+  6:'…Af5 desarrolla el alfil por fuera de la futura cadena de peones.',
+  7:'c4 propone otro plan: presionar d5 de inmediato en vez de preparar e4 con c3.'
+ },'Compará la presión central tras c4 con el desarrollo típico de la línea clásica.'),
  make('tromp-early','tromp','Trompowsky · ...Ce4 y ...Da5+','d4 Nf6 Bg5 Ne4 Bf4 c5 f3 Qa5+ c3 Nf6','A45',{
   3:'Ag5 plantea cambiar el alfil por el caballo antes de ...d5.',
   4:'...Ce4 evita la clavada y cuestiona la posición del alfil.',

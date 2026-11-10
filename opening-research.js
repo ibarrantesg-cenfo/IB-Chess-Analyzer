@@ -20,9 +20,21 @@ const mk=(tag,text='',className='')=>{const x=document.createElement(tag);x.text
 const sanTokens=readSanTokens;
 const normalizeOpeningText=value=>String(value||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().trim();
 const searchMoves=value=>normalizeOpeningText(String(value||'').replace(/\b\d+\s*\.{1,3}\s*/g,'').replace(/[+#!?]/g,'').replace(/0/g,'O')).replace(/\s+/g,' ');
+const openingNameWords=value=>normalizeOpeningText(value).replace(/[^a-z0-9]+/g,' ').trim();
+const openingAliases=[
+ ['espanola','ruy lopez spanish'],
+ ['petrov','petroff rusa russian'],
+ ['londres','london'],
+ ['trompowsky','trompowski trompovsky'],
+ ['caro kann','carokann'],
+ ['india de rey','kings indian kid'],
+ ['nimzoindia','nimzo indian nimzo india']
+];
 export function matchesOpeningSearch(entry,query){
- const terms=normalizeOpeningText(query).split(/\s+/).filter(Boolean);
- const text=normalizeOpeningText([entry.family,entry.name,entry.eco,entry.model].join(' '));
+ const terms=openingNameWords(query).split(/\s+/).filter(Boolean);
+ const name=openingNameWords([entry.family,entry.name,entry.eco,entry.model].join(' '));
+ const aliases=openingAliases.filter(([label])=>name.includes(label)).map(([,alias])=>alias);
+ const text=[name,...aliases].join(' ');
  if(terms.every(term=>text.includes(term)))return true;
  const moves=String(entry.moves||'');
  const spanish=moves.replace(/\b[KQRBN]/g,piece=>({K:'R',Q:'D',R:'T',B:'A',N:'C'})[piece]);
@@ -45,7 +57,7 @@ export function initOpeningResearch({state,loadPGN,jump,notify,getLiveSnapshot,s
  const panel=document.createElement('section');panel.className='panel opening-lab-panel';panel.id='opening-lab';panel.hidden=true;
  panel.innerHTML=`<div class="opening-lab-title"><div><span class="eyebrow">BIBLIOTECA MAESTRA · LÍNEA ACTIVA</span><h2>Explorar y analizar</h2><p>Seleccioná una línea, recorré sus jugadas en el tablero y guardá las que necesités en un estudio propio.</p></div><a href="?view=openings" id="opening-lab-study-link" class="btn outline" target="_blank" rel="noopener noreferrer" draggable="true" title="Abrí este estudio en una pestaña independiente o arrastrá el enlace">↗ Abrir en otra pestaña</a></div>
  <div class="opening-lab-body">
-  <details class="opening-lab-catalog" open><summary><strong>Explorar aperturas y estudios</strong><small id="opening-lab-catalog-count">Cargando líneas…</small></summary><div class="opening-lab-catalog-body"><label>Buscar familia, línea o defensa<input type="search" id="opening-lab-search" placeholder="Najdorf, Francesa, 6.Ag5…" /></label><p class="opening-lab-muted">Las familias y sus líneas aparecen plegadas. Abrí una para ver sus jugadas, analizarla o incorporarla a un estudio.</p><div id="opening-lab-catalog-items" class="opening-lab-catalog-items"></div></div></details>
+  <details class="opening-lab-catalog" open><summary><strong>Explorar aperturas y estudios</strong><small id="opening-lab-catalog-count">Cargando líneas…</small></summary><div class="opening-lab-catalog-body"><label>Buscar familia, línea o defensa<input type="search" id="opening-lab-search" placeholder="Colle, Najdorf, Ruy López…" /></label><p class="opening-lab-muted">Las familias y sus líneas aparecen plegadas. Abrí una para ver sus jugadas, analizarla o incorporarla a un estudio.</p><div id="opening-lab-catalog-items" class="opening-lab-catalog-items"></div></div></details>
   <details class="opening-lab-personal" id="opening-lab-new-study"><summary><strong>＋ Crear borrador de investigación local</strong><small>Herramienta anterior · no va a Mis estudios</small></summary><div class="opening-lab-new-body">
    <label>Nombre del estudio<input type="text" id="opening-lab-new-name" maxlength="120" placeholder="Mi repertorio contra la Francesa"></label>
    <label>Familia / apertura<input type="text" id="opening-lab-new-family" maxlength="100" placeholder="Defensa Francesa"></label>
@@ -95,7 +107,7 @@ export function initOpeningResearch({state,loadPGN,jump,notify,getLiveSnapshot,s
  explorer.innerHTML='<div class="opening-lab-explorer-head"><span class="eyebrow">IB CHESS ACADEMY · EXPLORAR</span><h2>Biblioteca de aperturas</h2><p>Familias plegadas, líneas organizadas y acceso directo a tus estudios.</p></div>';
  explorer.append(panel.querySelector('.opening-lab-catalog'));
  const quickSearch=mk('section','','opening-local-search');
- quickSearch.innerHTML='<label for="opening-local-query">Buscar línea en Biblioteca Maestra</label><input type="search" id="opening-local-query" placeholder="Ej. Najdorf, B93, 6.f4 e5 o Caruana" autocomplete="off"><small>Busca por apertura, código ECO, jugadas o partida modelo en el catálogo incluido.</small><p id="opening-local-status" role="status"></p><div id="opening-local-results"></div>';
+ quickSearch.innerHTML='<label for="opening-local-query">Buscar línea en Biblioteca Maestra</label><input type="search" id="opening-local-query" placeholder="Ej. Colle, Petroff, B93 o Caruana" autocomplete="off"><small>Buscá por nombre de apertura, variante, jugador, código ECO o jugadas.</small><p id="opening-local-status" role="status"></p><div id="opening-local-results"></div>';
  const legacy=document.createElement('details');legacy.className='opening-lab-fold opening-lab-legacy';
  legacy.append(mk('summary','Borradores locales de investigación · herramienta anterior','opening-lab-fold-title'),
   mk('p','Para guardar una línea dentro de Mis estudios, utilizá «Agregar a mis estudios». Los borradores antiguos permanecen accesibles aquí y no se eliminarán.','opening-lab-muted'),

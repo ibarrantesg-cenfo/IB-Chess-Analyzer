@@ -90,3 +90,13 @@ test('local opening search matches name, ECO, model players and either move nota
  for(const query of ['ingles','najdorf b90','Nakamura','1.e4 c5 2.Cf3','1.e4 c5 2.Nf3'])assert.equal(matchesOpeningSearch(row,query),true,query);
  assert.equal(matchesOpeningSearch(row,'Gambito de Rey'),false);
 });
+
+test('Colle and common alternate names resolve in the bundled catalog',async()=>{
+ const {matchesOpeningSearch}=await import('./opening-research.js');
+ const colle=OPENING_RESEARCH_EXPANSION.filter(entry=>matchesOpeningSearch(entry,'colle'));
+ assert.deepEqual(colle.map(entry=>entry.id),['colle-traditional','colle-zukertort','colle-anti']);
+ assert.equal(matchesOpeningSearch(colle[1],'COLLE-Zukertort'),true);
+ assert.equal(matchesOpeningSearch({family:'Apertura Española'},'Ruy López'),true);
+ assert.equal(matchesOpeningSearch({family:'Defensa Petrov'},'Petroff'),true);
+ assert.equal(matchesOpeningSearch({family:'Ataque Trompowsky'},'Trompowski'),true);
+});
