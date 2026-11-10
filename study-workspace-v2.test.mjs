@@ -1,3 +1,4 @@
+import { groupLocalStudies } from './study-picker.js';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
@@ -62,4 +63,16 @@ test('studio UI offers one-click board variations and human-friendly share selec
  assert.ok(studio.includes('await cloudShare(active.id,selectedId)'));
  assert.ok(board.includes('const startAt=ply=>'));
  assert.ok(board.includes('return {open,startAt,'));
+});
+
+test('study picker groups games by stable collection ID without merging namesakes',()=>{
+ const groups=groupLocalStudies([
+  {id:'1',collectionId:'a',collectionName:'Torneo',name:'Ronda 1'},
+  {id:'2',collectionId:'b',collectionName:'Torneo',name:'Ronda 2'},
+  {id:'3',collectionId:'a',collectionName:'Torneo',name:'Ronda 3'},
+  {id:'4',name:'Suelta'}
+ ]);
+ assert.deepEqual(groups.map(group=>[group.title,group.games.map(game=>game.id)]),[
+  ['Torneo',['1','3']],['Torneo',['2']],['Suelta',['4']]
+ ]);
 });

@@ -292,6 +292,21 @@ export function initOpeningResearch({state,loadPGN,jump,notify,getLiveSnapshot,s
    groups.get(key).items.push(item);
   }
   el('opening-lab-catalog-count').textContent=filtered.length+'/'+roots.length+' líneas · '+groups.size+' grupos';
+  const sideSections=new Map();
+  function catalogSection(side){
+   if(sideSections.has(side))return sideSections.get(side);
+   const disclosure=mk('details','','opening-catalog-side');
+   disclosure.append(mk('summary',side));
+   const body=mk('div','','opening-catalog-side-items');
+   disclosure.append(body);
+   disclosure.open=expandedFamilies.has(side)||Boolean(filterText);
+   disclosure.addEventListener('toggle',()=>{if(disclosure.open)expandedFamilies.add(side);else expandedFamilies.delete(side);});
+   sideSections.set(side,body);
+   return body;
+  }
+  const white=catalogSection('Líneas para blancas');
+  const black=catalogSection('Líneas para negras');
+  const shared=catalogSection('Estudios de ambos bandos y borradores');
   for(const [key,group] of groups){
     const family=document.createElement('details');family.className='opening-lab-catalog-family';
     family.open=expandedFamilies.has(key)||Boolean(filterText);
@@ -324,8 +339,12 @@ export function initOpeningResearch({state,loadPGN,jump,notify,getLiveSnapshot,s
     family.addEventListener('toggle',()=>{
       if(family.open)expandedFamilies.add(key);else expandedFamilies.delete(key);
     });
-    list.append(family);
+    const label=normalize(group.label);
+    const target=/^defensa /.test(label)?black:
+     /^(apertura |sistema |ataque |gambito de dama)/.test(label)?white:shared;
+    target.append(family);
   }
+  for(const body of sideSections.values())if(body.childElementCount)list.append(body.parentElement);
   if(!filtered.length)list.append(mk('p','No se encontraron líneas con ese nombre.','opening-lab-muted'));
  }
  function activeIsCorrect(){return state.game?.headers?.ResearchID===selected;}

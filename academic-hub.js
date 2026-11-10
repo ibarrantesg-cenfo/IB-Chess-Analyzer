@@ -227,9 +227,18 @@ function technicalSummary(game){
  try{const parsed=validatePGN(game.pgn);const m=gameMetrics(parsed,reports);const fmt=s=>m[s].complete?m[s].quality.toFixed(1)+'%':m[s].count?m[s].quality.toFixed(1)+'% parcial':'—';return 'Precisión del alumno ('+(game.student_side==='b'?'negras':'blancas')+'): '+fmt(game.student_side==='b'?'b':'w');}catch{return 'Informe técnico pendiente';}
 }
 export function appendTeacherAcademicTools(card,student,notify){
- const details=make('details','','academic-teacher-panel');details.append(make('summary','Ficha deportiva · Partidas, torneos y tareas'));
+ const details=make('details','','academic-teacher-panel');
+ const heading=make('summary','','academic-disclosure');
+ const action=make('span','Expandir','academic-disclosure-action');
+ action.setAttribute('aria-hidden','true');
+ heading.append(make('strong','Ficha deportiva · Partidas, torneos y tareas'),action);
+ details.append(heading);
  const content=make('div','','academic-teacher-content');details.append(content);card.append(details);
- details.addEventListener('toggle',()=>{if(details.open)load();});
+ let requested=false;
+ details.addEventListener('toggle',()=>{
+  action.textContent=details.open?'Contraer':'Expandir';
+  if(details.open&&!requested){requested=true;load();}
+ });
  async function load(){
   content.replaceChildren(make('p','Cargando ficha del alumno...'));
   try{
@@ -302,6 +311,7 @@ export function appendTeacherAcademicTools(card,student,notify){
     t.append(make('p',task.instructions),make('small','Límite: '+(task.due_at||'sin fecha')));
     if(sub){t.append(make('p','Respuesta: '+sub.notes));if(sub.submitted_pgn)t.append(button('Abrir PGN entregado',()=>window.IB_LOAD_ACADEMIC_GAME?.(sub.submitted_pgn,task.title)));const fb=field('Devolución al estudiante','textarea',sub.feedback||'');t.append(fb.wrap,button('Guardar corrección',async()=>{try{await reviewAcademicSubmission(task.id,student.student_id,fb.input.value);notify('Corrección enviada.');await load();}catch(e){notify(e.message,'err');}},'btn primary'));}taskList.append(t);
    }if(!tasks.length)taskList.append(make('p','Todavía no hay tareas.'));content.append(taskList);
-  }catch(e){content.replaceChildren(make('p','No se pudo abrir la ficha. '+e.message,'academic-error'));}
+  }catch(e){requested=false;content.replaceChildren(make('p','No se pudo abrir la ficha. '+e.message,'academic-error'));}
  }
+ return details;
 }

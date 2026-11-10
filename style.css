@@ -1379,3 +1379,28 @@
 .toolbar .upload{position:relative}
 .toolbar .upload input{position:absolute;inset:0;width:100%;height:100%;opacity:0;cursor:pointer}
 .toolbar .upload:focus-within{outline:2px solid currentColor;outline-offset:3px}
+
+/* Shared surfaces and disclosure controls for studies, openings and Academy. */
+:root{--ib-disclosure:#162439;--ib-disclosure-inner:#101c2e;--ib-disclosure-border:#3c526b;--ib-disclosure-text:#edf4ff;--ib-disclosure-muted:#b2c3da;--ib-disclosure-accent:#83dfbd}
+:root[data-theme="light"]{--ib-disclosure:#f3f7fb;--ib-disclosure-inner:#fff;--ib-disclosure-border:#a6bacb;--ib-disclosure-text:#182a3e;--ib-disclosure-muted:#435d74;--ib-disclosure-accent:#08634c}
+:is(.study-picker,.study-picker-list details,.opening-catalog-side,.live-side-group){min-width:0;background:var(--ib-disclosure);color:var(--ib-disclosure-text);border:1px solid var(--ib-disclosure-border);border-radius:9px}
+:is(.study-picker,.study-picker-list details,.opening-catalog-side,.live-side-group)>summary{cursor:pointer;padding:10px 12px;min-height:42px;font-size:14px;font-weight:650;line-height:1.45;overflow-wrap:anywhere}
+:is(.study-picker,.study-picker-list details,.opening-catalog-side,.live-side-group)>summary::marker{color:var(--ib-disclosure-accent)}
+:is(.study-picker-list,.opening-catalog-side-items,.study-picker-games){display:grid;gap:7px;padding:8px 10px 10px}
+.studio-panel .studio-grid{align-items:start}
+.study-picker-list{max-height:25rem;overflow:auto;grid-auto-rows:max-content}
+.study-picker-games button{background:var(--ib-disclosure-inner);color:var(--ib-disclosure-text);border:1px solid var(--ib-disclosure-border);border-radius:6px;text-align:left;cursor:pointer;padding:9px 11px;overflow-wrap:anywhere}
+:is(.study-picker-games button,summary):focus-visible{outline:2px solid var(--ib-disclosure-accent);outline-offset:-2px}
+#perf-game-picker{margin-bottom:12px}
+#perf-individual[hidden],.performance-source[hidden],.perf-info[hidden]{display:none!important}
+.opening-lab-catalog-items{grid-auto-rows:max-content;align-content:start}
+.opening-lab-catalog-family>summary{justify-content:flex-start;min-height:44px;line-height:1.45;font-size:14px;overflow-wrap:anywhere}
+.opening-lab-catalog-line-head{min-height:44px;overflow-wrap:anywhere}
+.live-side-group>.live-line{margin:0 9px 7px}
+:is(.opening-lab-catalog-family,.opening-lab-catalog-line,.opening-catalog-side,.study-picker,.study-picker-list details,.academic-teacher-panel,.live-side-group,.live-line-accordion):not([open])>:not(summary){display:none!important}
+.perf-batch-settings{display:flex;gap:8px 14px;align-items:center;flex-wrap:wrap;margin:16px 0 12px;font-size:14px;color:var(--ib-disclosure-text)}
+.perf-batch-settings select{font:inherit;max-width:100%;padding:9px 10px;border:1px solid var(--ib-disclosure-border);border-radius:7px;background:var(--ib-disclosure-inner);color:var(--ib-disclosure-text)}
+.perf-batch-settings small{flex-basis:100%;font-size:13px;line-height:1.5;color:var(--ib-disclosure-muted)}
+.academic-teacher-panel>.academic-disclosure{display:list-item;color:var(--ib-disclosure-text);padding:8px 0;line-height:1.5;font-size:14px}
+.academic-disclosure-action{float:right;margin-left:10px;color:var(--ib-disclosure-accent);font-weight:600}
+@media(max-width:560px){.opening-lab-catalog-line-head{grid-template-columns:minmax(0,1fr)}.perf-batch-settings select{width:100%}}

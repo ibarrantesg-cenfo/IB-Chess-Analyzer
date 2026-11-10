@@ -1,4 +1,5 @@
-import { findReview } from './review-cache.js';
+import { appendStudyGroup,groupLocalStudies } from './study-picker.js';
+import { findReview,loadReview } from './review-cache.js';
 import { batchOptions,batchResults,validCompleteReport } from './tournament-batch.js';
 import { calibrationSamples,enginePerformance,apparentPerformance } from './engine-performance.js';
 // IB Chess Analyzer — descriptive per-game metrics and opponent-adjusted tournament performance.
@@ -94,7 +95,7 @@ export function tournamentStats(games,name,event,analyses){
   const quality=qualityRows.length?qualityRows.reduce((sum,r)=>sum+r.technical.quality,0)/qualityRows.length:null;
   return {rows,rated:rated.length,scored:scored.length,points,performance,fide,allWon:rated.length&&rated.every(r=>r.result===1),allLost:rated.length&&rated.every(r=>r.result===0),quality,analyzed:qualityRows.length};
 }
-export function initPerformance({state,notify,analyzeGame,cancelGame,jumpGame,getAnalyses}){
+export function initPerformance({state,notify,parsePGN,analyzeGame,cancelGame,jumpGame,getAnalyses}){
  const page=document.querySelector('main.main');
  const layout=page.querySelector('.layout'),toolbar=page.querySelector('.toolbar'),tools=page.querySelector('.workspace-tools');
  const screen=document.createElement('section');screen.className='performance-workspace';screen.hidden=true;
@@ -106,7 +107,11 @@ export function initPerformance({state,notify,analyzeGame,cancelGame,jumpGame,ge
  box.innerHTML=`
   <div class="panel-heading"><div><div class="eyebrow">ESTADÍSTICAS · IB CHESS ACADEMY</div><h2>Rendimiento y torneos</h2></div><span class="small-pill">BETA</span></div>
   <div class="perf-tabs"><button data-perf-tab="game">Partida individual</button><button data-perf-tab="tournament" class="active">Torneo</button></div>
-  <div id="perf-game" hidden></div>
+  <section id="perf-individual" hidden>
+   <details class="study-picker" id="perf-game-picker"><summary>Elegir estudio y partida</summary><div id="perf-game-studies" class="study-picker-list"></div></details>
+   <p id="perf-game-status" class="perf-info" role="status" hidden></p>
+   <div id="perf-game"></div>
+  </section>
   <div id="perf-tournament">
     <div class="perf-filters"><label>Evento del estudio<select id="perf-event"></select></label><label hidden>Jugador<select id="perf-player"></select></label></div>
     <div id="perf-complete-banner"></div><div id="perf-study-overview"></div><div id="perf-summary" hidden></div>
@@ -117,7 +122,44 @@ export function initPerformance({state,notify,analyzeGame,cancelGame,jumpGame,ge
   <p class="perf-disclaimer">El Elo aparente es una transformación heurística del índice técnico de Stockfish, sin calibración estadística ni equivalencia con rating oficial. El performance de torneo aplica la tabla Ra + dp de FIDE al Elo indicado en el PGN. Para ser un rendimiento FIDE verificable, los ratings, las partidas efectivamente jugadas y el ritmo deben proceder de datos oficiales.</p>`;
  screen.append(box);
  const $=id=>document.getElementById(id);
- let studyOptions=new Map();
+ let studyOptions=new Map(),individualSelection=null,selectionRequest=0;
+ function renderGamePicker(data){
+  const root=$('perf-game-studies');
+  root.replaceChildren();
+  const title=game=>[game.headers.White||'Blancas',game.headers.Black||'Negras'].join(' – ');
+  async function select(game,label){
+   const request=++selectionRequest;
+   const status=$('perf-game-status');
+   status.hidden=false;status.textContent='Cargando informe…';
+   try{
+    const currentIndex=state.games.indexOf(game);
+    let saved=currentIndex>=0?getAnalyses().get(currentIndex):null;
+    if(!saved&&game!==state.game){
+     saved=await findReview(game);
+     for(const depth of [30,14,12])if(!saved)saved=await loadReview(game,depth);
+    }
+    if(request!==selectionRequest)return;
+    individualSelection={game,reports:saved?.reports||[],current:currentIndex>=0};
+    status.textContent=label;
+    $('perf-game-picker').open=false;
+    renderGame();
+   }catch(error){if(request===selectionRequest)status.textContent='No se pudo abrir el informe: '+error.message;}
+  }
+  if(state.games.length)appendStudyGroup(root,{
+   title:(state.games[0]?.headers.Event||'PGN cargado')+' · En sesión',count:state.games.length,load:()=>state.games.map(game=>({title:title(game),game})),
+   onSelect:({game})=>select(game,'PGN cargado · '+title(game))
+  });
+  for(const group of groupLocalStudies(data.locals))appendStudyGroup(root,{
+   title:group.title,count:group.games.length,load:()=>group.games.flatMap(item=>parsePGN(item.pgn).map(game=>({title:title(game),game}))),
+   onSelect:({game})=>select(game,group.title+' · '+title(game))
+  });
+  for(const study of data.remote)appendStudyGroup(root,{
+   title:(study.title||'Estudio')+' · Nube',
+   load:async()=>parsePGN(await window.IB_STUDIO.getLibraryPgn('cloud',study.id)).map(game=>({title:title(game),game})),
+   onSelect:({game})=>select(game,(study.title||'Estudio')+' · '+title(game))
+  });
+ }
+
  async function refreshStudies(){
   const data=await window.IB_STUDIO?.listLibraryItems();if(!data)return;
   studyOptions=new Map();const groups=new Map();
@@ -127,6 +169,7 @@ export function initPerformance({state,notify,analyzeGame,cancelGame,jumpGame,ge
   const select=$('performance-study'),previous=select.value;select.replaceChildren();const intro=document.createElement('option');intro.value='';intro.textContent='Seleccioná un estudio…';select.append(intro);
   for(const [id,item] of studyOptions){const opt=document.createElement('option');opt.value=id;opt.textContent=item.label;select.append(opt);}
   if(studyOptions.has(previous))select.value=previous;
+  renderGamePicker(data);
   if(data.error)$('performance-source-status').textContent='Nube: '+data.error;
  }
  $('performance-reload').onclick=()=>refreshStudies().catch(e=>notify(e.message,'err'));
@@ -160,8 +203,11 @@ export function initPerformance({state,notify,analyzeGame,cancelGame,jumpGame,ge
   return '<div class="perf-color"><strong>'+label+'</strong><div class="perf-metrics"><span><b>'+metric.quality.toFixed(1)+'</b><small>Índice técnico /100</small></span><span><b>'+metric.avg.toFixed(1)+'</b><small>Pérdida media CP</small></span><span><b>'+metric.count+'/'+metric.totalMoves+'</b><small>Jugadas evaluadas</small></span></div><div class="perf-errors">Imprecisiones '+(metric.counts.inaccuracy||0)+' · Errores '+(metric.counts.mistake||0)+' · Graves '+(metric.counts.blunder||0)+'</div><div class="perf-phases">'+metric.phases.map(p=>'<span>'+p.label+': <b>'+(p.avg===null?'—':p.avg.toFixed(0)+' cp')+'</b></span>').join('')+'</div></div>';
  }
  function renderGame(){
-  const current=state.game;if(!current)return;
-  const ix=state.games.indexOf(current),m=gameMetrics(current,getAnalyses().get(ix)||state.reports);
+  const current=individualSelection?.game||state.game;if(!current)return;
+  const ix=state.games.indexOf(current);
+  const reports=individualSelection&&!individualSelection.current?individualSelection.reports:
+   getAnalyses().get(ix)||(current===state.game?state.reports:[]);
+  const m=gameMetrics(current,reports);
   const reference=calibrationSamples(state.games,getAnalyses());
   const ew=enginePerformance(m.w.complete?m.w.quality:null,reference,{excludeIndex:ix,excludePlayer:String(current.headers.White||'').toLowerCase()});
   const eb=enginePerformance(m.b.complete?m.b.quality:null,reference,{excludeIndex:ix,excludePlayer:String(current.headers.Black||'').toLowerCase()});
@@ -265,7 +311,9 @@ export function initPerformance({state,notify,analyzeGame,cancelGame,jumpGame,ge
    button.setAttribute('aria-pressed',String(selected));
    if(button.dataset.perfTab==='tournament')button.hidden=state.games.length<2;
   }
-  $('perf-game').hidden=tab!=='game';
+  $('perf-individual').hidden=tab!=='game';
+  screen.querySelector('.performance-source').hidden=tab==='game';
+  $('performance-source-status').hidden=tab==='game';
   $('perf-tournament').hidden=tab!=='tournament';
   render();
  }
@@ -355,7 +403,7 @@ export function initPerformance({state,notify,analyzeGame,cancelGame,jumpGame,ge
  $('perf-analyze-all').onclick=analyzeEntireEvent;
 
  filters(false);selectTab(state.games.length>1?'tournament':'game');
- return {render,gameChanged(){if(state.games!==lastGames){lastGames=state.games;batchFailures.clear();filters(false);selectTab(state.games.length>1?'tournament':'game');}else render();},analysisFinished:render,
+ return {render,gameChanged(){if(state.games!==lastGames){lastGames=state.games;selectionRequest++;individualSelection=null;$('perf-game-status').hidden=true;if(!screen.hidden)refreshStudies().catch(e=>notify(e.message,'err'));batchFailures.clear();filters(false);selectTab(state.games.length>1?'tournament':'game');}else render();},analysisFinished:render,
  show(){screen.hidden=false;layout.hidden=true;toolbar.hidden=true;tools.hidden=true;document.querySelector('#nav-reports')?.classList.add('active');document.querySelector('.topbar h1').textContent='Rendimiento';refreshStudies().catch(e=>notify(e.message,'err'));window.scrollTo(0,0);filters(false);selectTab(state.games.length>1?'tournament':'game');},
  hide(){screen.hidden=true;document.querySelector('#nav-reports')?.classList.remove('active');},
 

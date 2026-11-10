@@ -314,7 +314,7 @@ window.IB_OPENING_LAB=initOpeningResearch({
  getLiveSnapshot:()=>window.IB_LIVE?.snapshot(),
  showReview:()=>{}
 });
-window.IB_PERFORMANCE=initPerformance({state,notify,analyzeGame:analyze,cancelGame:stopAnalysis,jumpGame:i=>{if(state.busy)return;chooseGame(i);},getAnalyses:()=>state.analysisCache});
+window.IB_PERFORMANCE=initPerformance({state,notify,parsePGN,analyzeGame:analyze,cancelGame:stopAnalysis,jumpGame:i=>{if(state.busy)return;chooseGame(i);},getAnalyses:()=>state.analysisCache});
 
 window.IB_OPEN_REPORT=async(pgn,source)=>{if(!loadText(pgn,source))return;document.querySelector('#nav-reports').click();for(let i=0;i<state.games.length;i++){try{const saved=await findReview(state.games[i]);if(saved)state.analysisCache.set(i,saved);}catch(e){console.warn(e);}}window.IB_PERFORMANCE?.analysisFinished();};
 window.IB_LOAD_STUDY=(pgn,source)=>{if(!loadText(pgn,source))return;document.querySelector('#nav-reports').click();window.IB_PERFORMANCE?.analyzeCurrentStudy?.();};

@@ -14,8 +14,10 @@ test('PV alternatives are accessible, expandable summaries instead of nested scr
  assert.ok(styles.includes('max-height:none;'));
  assert.ok(styles.includes('overflow:visible;'));
 });
-test('principal line stays visible while other alternatives start collapsed',()=>{
- assert.ok(source.includes('const expandedRanks=new Set([1])'));
+test('lines start collapsed under the side-to-move disclosure',()=>{
+ assert.ok(source.includes('const expandedRanks=new Set()'));
+ assert.ok(source.includes('let liveGroupOpen=false'));
+ assert.ok(source.includes("'Líneas para blancas':'Líneas para negras'"));
  assert.ok(source.includes("n===1?'Principal':'Alternativa'"));
  assert.ok(source.includes('body.append(variation,explanation,actions)'));
 });

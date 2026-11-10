@@ -23,7 +23,8 @@ export function initLiveAnalysis({getFen,getEngineUrl,notify,onSaveVariation,onP
   let worker=null,ready=false,busy=false,activeFen=null,queuedFen=null,enabled=true,loading=false,sequence=0,debounce=null,paused=false;
   let lines=new Map(),bestDepth=0,failures=0,playback=null;
   // The principal variation starts expanded; alternatives can be opened independently.
-  const expandedRanks=new Set([1]);
+  const expandedRanks=new Set();
+  let liveGroupOpen=false;
   const compactScore=(kind,value,fen)=>{
     const white=fen.split(' ')[1]==='w';
     const sign=white?1:-1;
@@ -125,9 +126,24 @@ export function initLiveAnalysis({getFen,getEngineUrl,notify,onSaveVariation,onP
     }
     const ordered=[...lines.entries()].sort((a,b)=>a[0]-b[0]);
     const host=$('live-lines');
+    const focusedRank=host.contains(document.activeElement)?document.activeElement.closest('details')?.dataset.rank:null;
+    for(const card of host.querySelectorAll('details[data-rank]')){
+      const rank=Number(card.dataset.rank);
+      if(card.open)expandedRanks.add(rank);else expandedRanks.delete(rank);
+    }
+    if(host.firstElementChild?.matches('details'))liveGroupOpen=host.firstElementChild.open;
+    const groupFocused=document.activeElement===host.firstElementChild?.firstElementChild;
     host.replaceChildren();
+    const group=document.createElement('details');group.className='live-side-group';
+    const side=document.createElement('summary');
+    side.textContent=new Chess(activeFen).turn()==='w'?'Líneas para blancas':'Líneas para negras';
+    group.append(side);
+    group.open=liveGroupOpen;
+    group.addEventListener('toggle',()=>{if(group.isConnected)liveGroupOpen=group.open;});
+    host.append(group);
     for(const [n,item] of ordered){
       const card=document.createElement('details');card.className='live-line live-line-accordion';
+      card.dataset.rank=String(n);
       card.open=expandedRanks.has(n);
       const header=document.createElement('summary');header.className='live-line-head';
       header.setAttribute('aria-label','Variante Stockfish '+n+', evaluación '+item.score+', profundidad '+item.depth);
@@ -161,9 +177,11 @@ export function initLiveAnalysis({getFen,getEngineUrl,notify,onSaveVariation,onP
       actions.append(replay,save);
       body.append(variation,explanation,actions);card.append(body);
       // The engine updates continuously: preserve which lines the user opened.
-      card.addEventListener('toggle',()=>{if(card.open)expandedRanks.add(n);else expandedRanks.delete(n);});
-      host.append(card);
+      card.addEventListener('toggle',()=>{if(!card.isConnected)return;if(card.open)expandedRanks.add(n);else expandedRanks.delete(n);});
+      group.append(card);
+      if(focusedRank===String(n))header.focus({preventScroll:true});
     }
+    if(groupFocused)side.focus({preventScroll:true});
     $('live-explanation').textContent='Evaluaciones orientativas desde las blancas. Tocá una línea para mostrar u ocultar las jugadas y sus planes; Stockfish puede cambiar de opinión al profundizar.';
   }
   function configure(){

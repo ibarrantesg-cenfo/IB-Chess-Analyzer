@@ -67,12 +67,21 @@ export function initAcademy({notify,onBack}){
    for(const [value,label] of [[total,'Alumnos'],[activeCount,'Activos'],[pending,'Pendientes']]){const b=document.createElement('div');b.className='academy-stat';const n=document.createElement('strong');n.textContent=value;const t=document.createElement('span');t.textContent=label;b.append(n,t);$('academy-stats').append(b);}
    const tracking=$('academy-tracking-students');tracking.replaceChildren();
    if(!items.length){const empty=document.createElement('p');empty.textContent='Los alumnos vinculados aparecerán aquí.';tracking.append(empty);}
+   const shortcuts=new Map();
    for(const item of items){
     const b=document.createElement('button');b.type='button';b.className='academy-tracking-student';
     const name=document.createElement('strong');name.textContent=item.name||'Alumno sin nombre';
     const status=document.createElement('small');status.textContent=item.state==='active'?'Cuenta activa · Abrir seguimiento':'Cuenta '+item.state+' · Ver historial';
-    b.append(name,status);b.onclick=()=>{const target=document.querySelector('[data-academic-student="'+CSS.escape(item.student_id)+'"]');if(target){target.scrollIntoView({behavior:'smooth',block:'center'});const details=target.querySelector('.academic-teacher-panel');if(details)details.open=true;}};
-    tracking.append(b);
+    b.append(name,status);
+    b.setAttribute('aria-expanded','false');
+    b.onclick=()=>{
+     const target=$('academy-roster').querySelector('[data-academic-student="'+CSS.escape(item.student_id)+'"]');
+     const details=target?.querySelector('.academic-teacher-panel');
+     if(!details)return;
+     details.open=!details.open;
+     if(details.open)details.querySelector('summary').scrollIntoView({behavior:'smooth',block:'nearest'});
+    };
+    shortcuts.set(item.student_id,b);tracking.append(b);
    }
    $('academy-roster').replaceChildren();
    if(!items.length){const p=document.createElement('p');p.textContent='Todavía no hay alumnos vinculados. Compartí el enlace de registro para recibir solicitudes.';$('academy-roster').append(p);}
@@ -87,7 +96,10 @@ export function initAcademy({notify,onBack}){
     for(const [label,input] of [['Acceso',status],['Plan',plan],['Vencimiento',expiry]]){const wrapper=document.createElement('label');wrapper.textContent=label;wrapper.append(input);fields.append(wrapper);}
     const save=document.createElement('button');save.className='btn primary';save.textContent='Guardar cambios';
     save.onclick=async()=>{save.disabled=true;try{await setStudentEnrollment(item.id,status.value,plan.value,expiry.value?new Date(expiry.value+'T23:59:59Z').toISOString():null);notify('Alumno actualizado.');await refresh();}catch(e){notify(e.message,'err');}finally{save.disabled=false;}};
-    card.dataset.academicStudent=item.student_id;card.append(heading,fields,save);appendTeacherAcademicTools(card,item,notify);$('academy-roster').append(card);
+    card.dataset.academicStudent=item.student_id;card.append(heading,fields,save);const details=appendTeacherAcademicTools(card,item,notify);
+    const shortcut=shortcuts.get(item.student_id);
+    details.addEventListener('toggle',()=>shortcut?.setAttribute('aria-expanded',String(details.open)));
+    $('academy-roster').append(card);
    }
   }catch(e){$('academy-notice').textContent='No se pudo cargar la academia: '+e.message;}
  };
