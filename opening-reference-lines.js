@@ -15,6 +15,13 @@ const benko='d4 Nf6 c4 c5 d5 b5 ';
 const dutch='d4 f5 g3 Nf6 Bg2 g6 Nf3 Bg7 O-O O-O c4 d6 Nc3 ';
 const spanish='e4 e5 Nf3 Nc6 Bb5 a6 Ba4 Nf6 O-O Be7 Re1 b5 Bb3 O-O ';
 const pirc='e4 d6 d4 Nf6 Nc3 g6 ';
+const italian='e4 e5 Nf3 Nc6 Bc4 Bc5 ';
+const scotch='e4 e5 Nf3 Nc6 d4 exd4 ';
+const catalan='d4 Nf6 c4 e6 g3 d5 Bg2 ';
+const vienna='e4 e5 Nc3 Nf6 f4 d5 fxe5 Nxe4 ';
+const alapin='e4 c5 c3 ';
+const reti='Nf3 d5 c4 ';
+const londonIndian='d4 Nf6 Nf3 g6 Bf4 Bg7 e3 d6 ';
 const database='https://github.com/lichess-org/chess-openings/blob/master/';
 
 const rows=[
@@ -48,7 +55,27 @@ const rows=[
  ['pirc-austrian','Defensa Pirc','Ataque Austríaco · 5…O-O 6.e5','B09',pirc+'f4 Bg7 Nf3 O-O e5 Nfd7 h4','Compará la ventaja espacial blanca con los recursos negros para atacar el centro.'],
  ['pirc-austrian-c5','Defensa Pirc','Ataque Austríaco · 5…c5','B09',pirc+'f4 Bg7 Nf3 c5','Buscá qué cambia si las negras atacan d4 antes de enrocar.'],
  ['benoni-taimanov','Defensa Benoni','Benoni Moderna · ataque Taimanov','A67','d4 Nf6 c4 c5 d5 e6 Nc3 exd5 cxd5 d6 e4 g6 f4 Bg7 Bb5+','Compará la mayoría negra del flanco de dama con el centro de peones blanco.'],
- ['english-four-knights','Apertura Inglesa','Cuatro Caballos · 4.e4','A28','c4 e5 Nc3 Nf6 Nf3 Nc6 e4','Compará el control de d5 con el de la Inglesa simétrica y pensá qué pieza disputará esa casilla.']
+ ['english-four-knights','Apertura Inglesa','Cuatro Caballos · 4.e4','A28','c4 e5 Nc3 Nf6 Nf3 Nc6 e4','Compará el control de d5 con el de la Inglesa simétrica y pensá qué pieza disputará esa casilla.'],
+ ['white-london-steinitz','Sistema Londres','Londres acelerado · aceptar el contragambito Steinitz','D00','d4 d5 Bf4 c5 dxc5','Evaluá si el peón de c5 se puede conservar sin retrasar el desarrollo del flanco de rey.'],
+ ['white-london-indian-bd3','Sistema Londres','Contra …g6 · desarrollo con Ad3','A48',londonIndian+'Bd3','Compará la presión hacia h7 con el control de e4. ¿Qué cambia si las negras rompen con …c5?'],
+ ['white-london-indian-be2','Sistema Londres','Contra …g6 · desarrollo con Ae2','A48',londonIndian+'Be2 O-O','Compará la seguridad del rey y el momento de c4 o c3 con el esquema de Ad3.'],
+ ['white-colle-gruenfeld','Sistema Colle','Contra …g6 · formación Grünfeld','D04','d4 d5 Nf3 Nf6 e3 g6 Bd3 Bg7','Decidí si preparar e4 o presionar d5 con c4 cuando el alfil negro está en g7.'],
+ ['white-tromp-edge','Ataque Trompowsky','Variante del borde · 3.Ah4 y centro con e4','A45','d4 Nf6 Bg5 Ne4 Bh4 d5 f3 Nf6 Nc3 Bf5 e4','Calculá si el avance e4 gana espacio sin dejar piezas sueltas tras las capturas centrales.'],
+ ['white-tromp-b6','Ataque Trompowsky','Peón envenenado · 2…c5 y …Db6','A45','d4 Nf6 Bg5 c5 d5 Qb6 Nc3','Compará la iniciativa por desarrollo con el coste de ceder b2.'],
+ ['white-catalan-qa4','Apertura Catalana','Catalana abierta · recuperar con Da4+','E03',catalan+'dxc4 Qa4+ Nbd7 Qxc4 a6 Qc2','Compará recuperar rápido el peón de c4 con desarrollar primero el caballo por f3.'],
+ ['white-catalan-modern','Apertura Catalana','Catalana abierta · 5.Cf3 Cc6','E04',catalan+'dxc4 Nf3 Nc6 Qa4 Bb4+','Estudiá cómo responder al jaque y en qué momento conviene intentar recuperar c4.'],
+ ['white-catalan-b3','Apertura Catalana','Catalana cerrada · Dc2 y b3','E08',catalan+'Be7 Nf3 O-O O-O Nbd7 Qc2 c6 b3 b6','Buscá dónde colocar el alfil de c1 y qué ruptura abre la diagonal de g2.'],
+ ['white-italian-canal','Apertura Italiana','Pianissimo · variante Canal con Ag5','C50',italian+'d3 Nf6 Nc3 d6 Bg5','Compará la clavada en f6 con el plan de c3 y d4. ¿Qué alfil conviene conservar?'],
+ ['white-italian-evans-accepted','Apertura Italiana','Gambito Evans aceptado · centro con d4','C52',italian+'b4 Bxb4 c3 Ba5 O-O d6 d4 Bg4','Calculá qué tiempos de desarrollo gana el sacrificio de b4 y cómo cambia la posición si las negras devuelven material.'],
+ ['white-italian-evans-declined','Apertura Italiana','Gambito Evans rehusado · variante Cordel','C51',italian+'b4 Bb6 Bb2','Compará el desarrollo de Ab2 con el plan de c3 del Evans aceptado.'],
+ ['white-scotch-mieses','Apertura Escocesa','Mieses · 5.Cxc6 y 6.e5','C45',scotch+'Nxd4 Nf6 Nxc6 bxc6 e5','Localizá la presión blanca sobre el caballo de f6 y el contrajuego negro contra e5.'],
+ ['white-scotch-gambit','Apertura Escocesa','Gambito Escocés · 4.Ac4 y 5.e5','C44',scotch+'Bc4 Nf6 e5','Antes de avanzar e5, revisá los recursos de jaque y si el alfil de c4 queda expuesto.'],
+ ['white-alapin-stoltz','Apertura Alapin','Contra 2…Cf6 · ataque Stoltz','B22',alapin+'Nf6 e5 Nd5 Nf3 Nc6 Bc4 Nb6 Bb3','Compará el espacio que da e5 con el tiempo que cuesta retirar el alfil de c4.'],
+ ['white-alapin-barmen','Apertura Alapin','Contra 2…d5 · Barmen con cambio central','B22',alapin+'d5 exd5 Qxd5 d4 cxd4 cxd4 Nc6 Nf3 Bg4','Identificá el peón aislado en d4 y qué piezas blancas pueden aprovechar las columnas abiertas.'],
+ ['white-vienna-paulsen','Apertura Vienesa','Gambito Vienés · ataque Paulsen con Df3','C29',vienna+'Qf3','Calculá cómo presionar f7 y si la dama puede sufrir ataques con ganancia de tiempo.'],
+ ['white-vienna-breyer','Apertura Vienesa','Gambito Vienés · variante Breyer con Cf3','C29',vienna+'Nf3 Be7','Compará desarrollar el caballo con sacar la dama. ¿Cómo recuperan las blancas el control central?'],
+ ['white-reti-blumenfeld','Apertura Réti','Contra 2…d4 · Blumenfeld invertido','A09',reti+'d4 e3 c5 b4','Estudiá cómo el avance b4 cuestiona el soporte del peón negro de d4.'],
+ ['white-reti-angloslav','Apertura Réti','Contra 2…c6 · Anglo-Eslava con b3 y Ab2','A12',reti+'c6 b3 Bf5 Bb2','Decidí entre sostener la tensión y transponer a una estructura de peón de dama.']
 ];
 export const OPENING_REFERENCE_LINES=rows.map(([id,family,name,eco,moves,research])=>({
  id:'ref-'+id,family,name,eco,moves,research,notes:{},

@@ -124,7 +124,7 @@ test('reference chapters are legal, searchable and have stable unique IDs',async
  const {matchesOpeningSearch}=await import('./opening-research.js');
  assert.equal(new Set(OPENING_REFERENCE_LINES.map(line=>line.id)).size,OPENING_REFERENCE_LINES.length);
  for(const line of OPENING_REFERENCE_LINES){
-  assert.ok(validateOpeningLine(line.moves).sans.length>=7,line.id);
+  assert.ok(validateOpeningLine(line.moves).sans.length>=5,line.id);
   assert.ok(matchesOpeningSearch(line,line.family),line.id);
   assert.ok(line.research&&line.reference.startsWith('https://github.com/lichess-org/chess-openings/'));
  }

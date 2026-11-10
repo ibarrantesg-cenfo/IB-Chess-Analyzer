@@ -69,3 +69,7 @@ El catálogo público reúne 87 capítulos. A los 56 capítulos anteriores se su
 Priorizar familias con pocas opciones y nodos que terminan justo antes de una decisión crítica. Por cada incorporación, guardar ECO, secuencia, fuente, objetivo didáctico y una pregunta que se pueda comprobar en el tablero. Separar la clasificación, el ejemplo competitivo y la evaluación de motor. Para sostener una afirmación de novedad teórica, contrastar la posición exacta con partidas anteriores y registrar fecha, cobertura de la base y primera aparición dentro de esa muestra.
 
 Fuentes de clasificación y agenda editorial: [Lichess chess-openings](https://github.com/lichess-org/chess-openings) y [Opening Encyclopaedia 2026, índice público](https://books1.chessbase.com/en/opening-encyclopaedia-2026-5). Para práctica reciente: [Candidatos 2026](https://theweekinchess.com/chessnews/events/fide-candidates-tournaments-2026) y [Olimpiada 2026](https://theweekinchess.com/chessnews/events/46th-world-chess-olympiad-2026).
+
+### Ampliación para blancas
+
+El catálogo pasó de 87 a 107 capítulos con 20 referencias para blancas. Las comparaciones principales son Londres contra …c5 o …g6, Colle contra un fianchetto, Trompowsky contra …Ce4 o …c5, Catalana abierta y cerrada, Evans aceptado y rehusado, Escocesa de Mieses y Gambito Escocés, Alapin contra …d5 o …Cf6, Vienesa con Df3 o Cf3 y Réti contra …d4 o …c6. Los 20 pares ECO–secuencia se contrastaron con el catálogo CC0 de Lichess. Las preguntas de estudio son originales.
