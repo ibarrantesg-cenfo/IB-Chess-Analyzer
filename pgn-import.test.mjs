@@ -36,3 +36,19 @@ test('recover mainline when exported annotations have malformed nested braces',(
  assert.equal(rows[0].valid,true);
  assert.equal(rows[0].moves,4);
 });
+
+test('retain nested PGN variations in the saved source and after reopening',()=>{
+ const pgn='[Event "Estudio"]\n\n1. e4 (1. d4 d5 (1... Nf6)) e5 {Centro} 2. Nf3 *';
+ const [row]=inspectLibraryPgnSource(pgn);
+ assert.equal(row.valid,true);
+ assert.equal(row.pgn,pgn);
+ assert.equal(inspectLibraryPgnSource(row.pgn)[0].moves,3);
+});
+
+test('report the invalid game in a mixed batch',()=>{
+ const pgn='[Event "Válida"]\n\n1. e4 e5 *\n\n[Event "Inválida"]\n\n1. e5 *';
+ const [valid,invalid]=inspectLibraryPgnSource(pgn);
+ assert.equal(valid.valid,true);
+ assert.equal(invalid.valid,false);
+ assert.equal(invalid.index,2);
+});

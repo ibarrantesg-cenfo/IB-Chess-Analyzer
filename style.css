@@ -1371,3 +1371,11 @@
 :root[data-theme="light"] .perf-state-pending{color:#93601f}
 :root[data-theme="light"] .perf-games-empty{color:#617b86}
 @media(max-width:600px){.perf-games-toggle{align-items:flex-start;flex-direction:column}.perf-games-section .perf-game-select{align-items:flex-start;flex-direction:column}.perf-games-filters button{flex:1}}
+
+.review-guide{flex:1 0 100%;display:flex;align-items:center;flex-wrap:wrap;gap:8px 14px;padding:10px 0 0;border-top:1px solid currentColor}
+.review-guide p{flex:1 1 240px;margin:0;font-size:.9rem}
+.review-guide a{color:inherit;text-underline-offset:3px}
+.review-guide a[hidden],.perf-tabs button[hidden]{display:none}
+.toolbar .upload{position:relative}
+.toolbar .upload input{position:absolute;inset:0;width:100%;height:100%;opacity:0;cursor:pointer}
+.toolbar .upload:focus-within{outline:2px solid currentColor;outline-offset:3px}

@@ -151,7 +151,7 @@ export function inspectLibraryPgnSource(source){
  return parts.map((pgn,index)=>{
   try{const {game,annotationsRemoved}=parseLibraryPgnSegment(pgn);const moves=game.history();
    const headers=game.header();
-   return {index:index+1,valid:true,annotationsRemoved,headers,moves:moves.length,pgn:game.pgn(),name:[headers.White||'Blancas',headers.Black||'Negras'].join(' – ')};
+   return {index:index+1,valid:true,annotationsRemoved,headers,moves:moves.length,pgn:annotationsRemoved?game.pgn():pgn,name:[headers.White||'Blancas',headers.Black||'Negras'].join(' – ')};
   }catch(error){return {index:index+1,valid:false,error:String(error.message||'PGN no válido').slice(0,220)};}
  });
 }
@@ -238,7 +238,19 @@ export function initStudio(state,callbacks){selected=state;onChange=callbacks.re
  el('studio-close-note').onclick=closeStudyTools;
  document.addEventListener('keydown',e=>{if(e.key==='Escape'&&!shareDialog.open)closeStudyTools();});
  el('studio-variants').onclick=e=>{const remove=e.target.closest('[data-delete-line]');if(remove){active.variations=active.variations.filter(v=>v.id!==remove.dataset.deleteLine);change();renderNotes();return;}const play=e.target.closest('[data-line]');if(play){const v=active.variations.find(x=>x.id===play.dataset.line);if(v)tree?.open(v);}};
- el('studio-save').onclick=async()=>{ensure().student=el('studio-student').value.trim()||'Sin alumno';change();await put(active);await refreshLibrary();notify('Estudio guardado en este navegador.');};
+ async function saveCurrent(){
+  try{
+   const item=ensure();
+   item.student=el('studio-student').value.trim()||'Sin alumno';
+   item.updated=new Date().toISOString();
+   await put(item);
+   await refreshLibrary();
+   if(active===item)el('studio-save-status').textContent='Guardado localmente';
+   notify('Estudio guardado en este navegador.');
+   return true;
+  }catch(error){notify('No se pudo guardar: '+error.message,'err');return false;}
+ }
+ el('studio-save').onclick=saveCurrent;
  el('studio-search').addEventListener('input',refreshLibrary);
  el('studio-results').addEventListener('click',async e=>{const id=e.target.closest('[data-open-study]')?.dataset.openStudy;if(!id)return;const item=await transaction('readonly',db=>db.get(id));if(!item)return;callbacks.loadPGN(item.pgn,'biblioteca');active=item;cloudSource=null;el('studio-student').value=item.student;renderNotes();el('studio-library').value=id;});
  el('studio-backup-all').onclick=async()=>{try{const rows=await getAll();if(!rows.length)return notify('Aún no hay estudios para exportar.');const contents={format:'ib-chess-library',version:1,exportedAt:new Date().toISOString(),studies:rows};const blob=new Blob([JSON.stringify(contents,null,2)],{type:'application/json'}),url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download='IB_Chess_Biblioteca_'+new Date().toISOString().slice(0,10)+'.json';a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);notify(rows.length+' estudios incluidos en la copia.');}catch(e){notify('Error al exportar la biblioteca: '+e.message,'err');}};
@@ -571,5 +583,5 @@ const entry={id:crypto.randomUUID(),ply,san:legalSans,fen:c.fen()};
 if(!active.variations.some(v=>v.ply===ply&&v.san.join(' ')===entry.san.join(' ')))active.variations.push(entry);
 if(summary)active.comments[ply]=[active.comments[ply],summary].filter(Boolean).join('\n');
 change();renderNotes();return true;
-}catch(e){notify('No se pudo guardar la variante: '+e.message,'err');return false;}},openTools(){el('studio-comment-panel').hidden=false;el('studio-comment-panel').classList.remove('contextual');renderNotes();panel.scrollIntoView({behavior:'smooth',block:'start'});},isVariationActive(){return Boolean(tree?.isActive());},stepVariation(delta){return tree?.step(delta)||false;},seekVariation(last){return tree?.seek(last)||false;},getComment(ply){return active?.comments?.[ply]||'';},getVariations(ply){return (active?.variations||[]).filter(v=>v.ply===ply).map(v=>v.san.join(' '));},gameChanged(){active=null;cloudSource=null;paint=false;tree?.clear();el('studio-paint').checked=false;renderNotes();},selectionChanged(){tree?.restoreMain();if(el('studio-note')!==document.activeElement)renderNotes();el('studio-fen').value=selected.previewFen||selected.positions[selected.move]||'';el('studio-turn').value=(selected.previewFen||selected.positions[selected.move]||' w ').split(' ')[1];}}
+}catch(e){notify('No se pudo guardar la variante: '+e.message,'err');return false;}},saveCurrent,openTools(){el('studio-comment-panel').hidden=false;el('studio-comment-panel').classList.remove('contextual');renderNotes();panel.scrollIntoView({behavior:'smooth',block:'start'});},isVariationActive(){return Boolean(tree?.isActive());},stepVariation(delta){return tree?.step(delta)||false;},seekVariation(last){return tree?.seek(last)||false;},getComment(ply){return active?.comments?.[ply]||'';},getVariations(ply){return (active?.variations||[]).filter(v=>v.ply===ply).map(v=>v.san.join(' '));},gameChanged(){active=null;cloudSource=null;paint=false;tree?.clear();el('studio-paint').checked=false;renderNotes();},selectionChanged(){tree?.restoreMain();if(el('studio-note')!==document.activeElement)renderNotes();el('studio-fen').value=selected.previewFen||selected.positions[selected.move]||'';el('studio-turn').value=(selected.previewFen||selected.positions[selected.move]||' w ').split(' ')[1];}}
 }

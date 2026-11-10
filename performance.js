@@ -98,14 +98,14 @@ export function initPerformance({state,notify,analyzeGame,cancelGame,jumpGame,ge
  const page=document.querySelector('main.main');
  const layout=page.querySelector('.layout'),toolbar=page.querySelector('.toolbar'),tools=page.querySelector('.workspace-tools');
  const screen=document.createElement('section');screen.className='performance-workspace';screen.hidden=true;
- screen.innerHTML='<header class="library-header"><div><div class="eyebrow">IB CHESS ACADEMY · RENDIMIENTO</div><h2>Rendimiento de eventos</h2><p>Seleccioná un estudio completo, comprobá los datos PGN y analizá sus partidas con Stockfish.</p></div></header><div class="performance-source"><label>Estudio de la biblioteca <select id="performance-study"><option value="">Elegí un estudio…</option></select></label><button type="button" class="btn outline" id="performance-reload">Actualizar estudios</button><button type="button" class="btn primary" id="performance-load">Cargar estudio</button></div><p id="performance-source-status" class="perf-info">Los estudios locales se cargan completos. Los estudios de una sola partida también están disponibles.</p>';
+ screen.innerHTML='<header class="library-header"><div><div class="eyebrow">IB CHESS ACADEMY · RENDIMIENTO</div><h2>Rendimiento de partidas y eventos</h2><p>Seleccioná un estudio completo, comprobá los datos PGN y analizá sus partidas con Stockfish.</p></div></header><div class="performance-source"><label>Estudio de la biblioteca <select id="performance-study"><option value="">Elegí un estudio…</option></select></label><button type="button" class="btn outline" id="performance-reload">Actualizar estudios</button><button type="button" class="btn primary" id="performance-load">Cargar estudio</button></div><p id="performance-source-status" class="perf-info">Los estudios locales se cargan completos. Los estudios de una sola partida también están disponibles.</p>';
  page.insertBefore(screen,page.querySelector('footer'));
  const left=screen;
  const box=document.createElement('div');
  box.className='panel performance-panel';
  box.innerHTML=`
   <div class="panel-heading"><div><div class="eyebrow">ESTADÍSTICAS · IB CHESS ACADEMY</div><h2>Rendimiento y torneos</h2></div><span class="small-pill">BETA</span></div>
-  <div class="perf-tabs" hidden><button data-perf-tab="game">Esta partida</button><button data-perf-tab="tournament" class="active">Torneo</button></div>
+  <div class="perf-tabs"><button data-perf-tab="game">Partida individual</button><button data-perf-tab="tournament" class="active">Torneo</button></div>
   <div id="perf-game" hidden></div>
   <div id="perf-tournament">
     <div class="perf-filters"><label>Evento del estudio<select id="perf-event"></select></label><label hidden>Jugador<select id="perf-player"></select></label></div>
@@ -256,8 +256,20 @@ export function initPerformance({state,notify,analyzeGame,cancelGame,jumpGame,ge
   $('perf-summary').insertAdjacentHTML('beforeend','<div class="perf-info"><strong>Balance técnico del evento</strong><p>'+esc(conclusion)+'</p><p>Partidas evaluadas: '+analyzed.length+'/'+t.rows.length+' · Pérdida media: '+(avgLoss===null?'—':avgLoss.toFixed(1)+' cp')+' · Imprecisiones: '+errorTotals.inaccuracy+' · Errores: '+errorTotals.mistake+' · Graves: '+errorTotals.blunder+'</p></div>'+(headerWarnings.length?'<div class="perf-info"><strong>Datos PGN a verificar</strong><p>'+headerWarnings.map(esc).join(' · ')+'</p></div>':''));
   $('perf-rows').innerHTML=t.rows.length?t.rows.map(r=>'<button class="perf-game-row" data-open-game="'+r.index+'"><span>R'+esc(r.round)+' · '+esc(r.opponent)+'</span><span>'+(r.elo??'s/Elo')+' · '+(r.result===null?'Sin resultado':r.result)+' pt · '+(r.technical.complete?r.technical.quality.toFixed(1)+'/100':'sin analizar')+'</span></button>').join(''):'<p>Este evento no contiene partidas de ese jugador.</p>';
  }
- function render(){renderTournament();}
- box.querySelector('.perf-tabs').onclick=e=>{const b=e.target.closest('[data-perf-tab]');if(!b)return;activeTab=b.dataset.perfTab;box.querySelectorAll('[data-perf-tab]').forEach(x=>x.classList.toggle('active',x===b));$('perf-game').hidden=activeTab!=='game';$('perf-tournament').hidden=activeTab!=='tournament';render();};
+ function render(){if(activeTab==='game')renderGame();else renderTournament();}
+ function selectTab(tab){
+  activeTab=tab;
+  for(const button of box.querySelectorAll('[data-perf-tab]')){
+   const selected=button.dataset.perfTab===tab;
+   button.classList.toggle('active',selected);
+   button.setAttribute('aria-pressed',String(selected));
+   if(button.dataset.perfTab==='tournament')button.hidden=state.games.length<2;
+  }
+  $('perf-game').hidden=tab!=='game';
+  $('perf-tournament').hidden=tab!=='tournament';
+  render();
+ }
+ box.querySelector('.perf-tabs').onclick=e=>{const button=e.target.closest('[data-perf-tab]');if(button)selectTab(button.dataset.perfTab);};
  $('perf-player').onchange=e=>{selectedPlayer=e.target.value;selectedEvent='';renderTournament();};
  $('perf-event').onchange=e=>{selectedEvent=e.target.value;eventGamesExpanded=false;eventGamesFilter='pending';renderTournament();};
  $('perf-rows').onclick=e=>{const b=e.target.closest('[data-open-game]');if(b)jumpGame(Number(b.dataset.openGame));};
@@ -342,15 +354,15 @@ export function initPerformance({state,notify,analyzeGame,cancelGame,jumpGame,ge
  $('perf-analyze-all').textContent='Analizar todas las partidas del evento';
  $('perf-analyze-all').onclick=analyzeEntireEvent;
 
- filters(false);render();
- return {render,gameChanged(){if(state.games!==lastGames){lastGames=state.games;batchFailures.clear();}render();},analysisFinished:render,
- show(){screen.hidden=false;layout.hidden=true;toolbar.hidden=true;tools.hidden=true;document.querySelector('#nav-reports')?.classList.add('active');document.querySelector('.topbar h1').textContent='Rendimiento';refreshStudies().catch(e=>notify(e.message,'err'));window.scrollTo(0,0);this.selectTournament();},
+ filters(false);selectTab(state.games.length>1?'tournament':'game');
+ return {render,gameChanged(){if(state.games!==lastGames){lastGames=state.games;batchFailures.clear();filters(false);selectTab(state.games.length>1?'tournament':'game');}else render();},analysisFinished:render,
+ show(){screen.hidden=false;layout.hidden=true;toolbar.hidden=true;tools.hidden=true;document.querySelector('#nav-reports')?.classList.add('active');document.querySelector('.topbar h1').textContent='Rendimiento';refreshStudies().catch(e=>notify(e.message,'err'));window.scrollTo(0,0);filters(false);selectTab(state.games.length>1?'tournament':'game');},
  hide(){screen.hidden=true;document.querySelector('#nav-reports')?.classList.remove('active');},
- selectTournament(){activeTab='tournament';box.querySelectorAll('[data-perf-tab]').forEach(x=>x.classList.toggle('active',x.dataset.perfTab==='tournament'));$('perf-game').hidden=true;$('perf-tournament').hidden=false;filters(false);renderTournament();},
+
  async analyzeCurrentStudy(){
-  this.selectTournament();
   if(batching)return;
-  const event=selectedEvent,player=selectedPlayer;
+  if(state.games.length===1){selectTab('game');return analyzeGame();}
+  filters(false);selectTab('tournament');
   if(!state.games.length)return notify('Primero cargá un estudio con partidas.','err');
   await analyzeEntireEvent();
  }
