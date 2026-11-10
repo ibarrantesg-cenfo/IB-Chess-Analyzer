@@ -19,8 +19,9 @@ export function initSidebarLayout(){
  for(const link of links){
   const label=link.querySelector('span')?.textContent?.trim()||link.textContent.trim();
   link.setAttribute('aria-label',label);
-  link.setAttribute('data-tooltip',label);
-  link.title=label+' · Ctrl + clic para nueva pestaña';
+  const tooltip=[label,link.dataset.description].filter(Boolean).join(' · ');
+  link.setAttribute('data-tooltip',tooltip);
+  link.title=tooltip+' · Ctrl + clic para nueva pestaña';
  }
  function apply(){
   const mobile=media.matches;

@@ -396,7 +396,7 @@
 .library-preview-square.light{background:#d9e5de;color:#132434}
 .library-preview-square.dark{background:#73978d;color:#132434}
 .library-preview-controls{display:flex;gap:8px;justify-content:center;flex-wrap:wrap}
-.performance-workspace #perf-game,.performance-workspace #perf-summary,.performance-workspace #perf-rows,.performance-workspace .perf-tabs{display:none!important}
+.performance-workspace #perf-game[hidden],.performance-workspace #perf-summary,.performance-workspace #perf-rows{display:none!important}
 
 .library-header-editor{display:grid;grid-template-columns:1fr 1fr;gap:9px}
 .library-header-editor label{display:flex;flex-direction:column;gap:4px;font-size:11px;color:#a4c9c0}
