@@ -18,6 +18,8 @@ import { initOpeningResearch } from './opening-research.js';
 import { ROUTES,sectionHref,sectionFromSearch,normalLinkClick } from './navigation-routes.js';
 import { initSidebarLayout } from './sidebar-layout.js';
 import './style.css';
+import './theme-contrast.css';
+import {initInterfaceIcons} from './interface-icons.js';
 
 const $ = (s) => document.querySelector(s);
 const state = {games:[], game:null, move:0, positions:[], evaluations:[], reports:[], worker:null, busy:false, stop:false, depth:18, mode:'lite', orientation:(localStorage.getItem('ib-board-orientation')==='black'?'black':'white'), lines:[], engineReady:false,analysisCache:new Map()};
@@ -51,8 +53,8 @@ function bestSan(fen,uci){if(!uci||!fen||uci==='(none)')return '—';try{const c
 function lineSan(fen,pv){if(!fen||!Array.isArray(pv)||!pv.length)return '—';try{const c=new Chess(fen),steps=[];for(let i=0;i<Math.min(12,pv.length);i++){const u=pv[i],before=c.fen(),n=c.move({from:u.slice(0,2),to:u.slice(2,4),promotion:u[4]||'q'});const full=before.split(' ')[5],turn=before.split(' ')[1];steps.push((turn==='w'?full+'. ':i===0?full+'... ':'')+n.san);}return steps.join(' ');}catch{return pv.slice(0,9).join(' ');}}
 function pieceMarkup(p){
  const piece=p.color.toLowerCase()+p.type.toUpperCase();
- const fallback=`<span class="piece piece-fallback ${p.color==='w'?'white-piece':'black-piece'}">${glyphs[p.color+p.type]}</span>`;
- const set=window.IB_APPEARANCE?.getPieceSet();
+ const fallback=`<span class="piece piece-fallback ${p.color==='w'?'white-piece':'black-piece'}">${glyphs['b'+p.type]}</span>`;
+ const set=window.IB_APPEARANCE?.getPieceSet()||(!window.IB_APPEARANCE?'cburnett':null);
  if(!set)return fallback;
  const path=import.meta.env.BASE_URL+'pieces/'+set+'/'+piece+'.svg';
  return `<span class="piece-image-wrap"><img class="piece-image" src="${path}" alt="${piece}" draggable="false" onerror="this.parentElement.classList.add('image-failed')"/>${fallback}</span>`;
@@ -137,7 +139,7 @@ const counts={};state.reports.forEach(x=>{if(x)counts[x.label]=(counts[x.label]|
    return `<article class="game-side-card"><div class="game-side-heading"><span>${color}</span><strong title="${esc(name)}">${esc(name)}</strong></div><div class="game-side-kpis"><div><small>Precisión estimada</small><strong>${value}</strong></div><div title="${esc(eloNote)}"><small>Performance estimado · jugadas</small><strong>${eloLabel}</strong></div><div><small>Rendimiento técnico</small><strong class="game-side-level">${level}</strong></div><div><small>Pérdida media (ACPL)</small><strong>${acpl}</strong></div></div><div class="game-side-progress" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="${Math.round(progress)}" aria-label="Índice técnico de ${color}"><i style="width:${progress}%"></i></div><div class="game-side-counts">${countItems.map(([symbol,label,type])=>`<span title="${label}"><b>${symbol}</b><strong>${m.counts[type]||0}</strong><small>${label}</small></span>`).join('')}</div><p class="game-side-complete">${completeness}</p></article>`;
  }).join('');
 }
-function drawChart(){const canvas=$('#chart'),rect=canvas.getBoundingClientRect(),dpr=devicePixelRatio||1;canvas.width=Math.max(200,rect.width)*dpr;canvas.height=105*dpr;const ctx=canvas.getContext('2d');ctx.scale(dpr,dpr);const w=canvas.width/dpr,h=canvas.height/dpr;ctx.clearRect(0,0,w,h);ctx.fillStyle='#111c2c';ctx.fillRect(0,0,w,h);ctx.strokeStyle='#344359';ctx.lineWidth=1;ctx.beginPath();ctx.moveTo(0,h/2);ctx.lineTo(w,h/2);ctx.stroke();const n=state.positions.length;const pts=state.evaluations.map((e,i)=>e?{x: i/Math.max(1,n-1)*w,y: h/2-Math.tanh(e.cp/430)*(h/2-9)}:null);let started=false;ctx.strokeStyle='#67d3b4';ctx.lineWidth=2;ctx.beginPath();pts.forEach(pt=>{if(!pt){started=false;return;}if(!started){ctx.moveTo(pt.x,pt.y);started=true}else ctx.lineTo(pt.x,pt.y)});ctx.stroke();let x=state.move/Math.max(1,n-1)*w;ctx.strokeStyle='#f0bd68';ctx.beginPath();ctx.moveTo(x,0);ctx.lineTo(x,h);ctx.stroke();}
+function drawChart(){const canvas=$('#chart'),rect=canvas.getBoundingClientRect(),dpr=devicePixelRatio||1;canvas.width=Math.max(200,rect.width)*dpr;canvas.height=105*dpr;const ctx=canvas.getContext('2d');ctx.scale(dpr,dpr);const w=canvas.width/dpr,h=canvas.height/dpr;ctx.clearRect(0,0,w,h);const colors=getComputedStyle(document.documentElement);ctx.fillStyle=colors.getPropertyValue('--ui-chart-bg').trim()||'#111c2c';ctx.fillRect(0,0,w,h);ctx.strokeStyle=colors.getPropertyValue('--ui-chart-grid').trim()||'#344359';ctx.lineWidth=1;ctx.beginPath();ctx.moveTo(0,h/2);ctx.lineTo(w,h/2);ctx.stroke();const n=state.positions.length;const pts=state.evaluations.map((e,i)=>e?{x: i/Math.max(1,n-1)*w,y: h/2-Math.tanh(e.cp/430)*(h/2-9)}:null);let started=false;ctx.strokeStyle=colors.getPropertyValue('--ui-accent').trim()||'#67d3b4';ctx.lineWidth=2;ctx.beginPath();pts.forEach(pt=>{if(!pt){started=false;return;}if(!started){ctx.moveTo(pt.x,pt.y);started=true}else ctx.lineTo(pt.x,pt.y)});ctx.stroke();let x=state.move/Math.max(1,n-1)*w;ctx.strokeStyle=colors.getPropertyValue('--ui-chart-cursor').trim()||'#f0bd68';ctx.beginPath();ctx.moveTo(x,0);ctx.lineTo(x,h);ctx.stroke();}
 function notify(msg,kind='ok'){$('#toast').textContent=msg;$('#toast').className=`toast ${kind} visible`;setTimeout(()=>$('#toast').classList.remove('visible'),4800);}
 function status(msg){$('#engine-status').textContent=msg;}
 function enginePath(){return `${import.meta.env.BASE_URL}engine/stockfish-19-${state.mode==='full'?'single':'lite-single'}.js`;}
@@ -396,3 +398,6 @@ function activateLocationSection(){
 window.addEventListener('popstate',activateLocationSection);
 onAccountChange(updateAccountNavigation);
 updateAccountNavigation().then(activateLocationSection).catch(error=>console.warn('No se pudo abrir la sección solicitada:',error));
+
+initInterfaceIcons();
+window.addEventListener('ib-theme-change',drawChart);

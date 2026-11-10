@@ -1,0 +1,88 @@
+/* Shared semantic colors for both themes. Board/piece colors remain independent. */
+:root {
+ color-scheme:dark;
+ --ui-bg:#0c1422;--ui-surface:#142235;--ui-raised:#1c3044;--ui-field:#0d1b2b;
+ --ui-ink:#edf4fc;--ui-muted:#b3c5d7;--ui-edge:#6b8299;
+ --ui-accent:#8be6c1;--ui-active:#224d40;--ui-on-active:#e9fff4;
+ --ui-primary:#87dfbb;--ui-on-primary:#102c24;--ui-danger:#ffb7b9;
+ --ui-warning-bg:#382e1c;--ui-warning:#ffe0a0;--ui-warning-edge:#ad8d45;
+ --ui-error-bg:#472632;--ui-error:#ffd3d8;--ui-success-bg:#153c32;--ui-success:#bbf4db;
+ --ui-disabled-bg:#273747;--ui-disabled-ink:#bdc9d6;
+ --ui-chart-bg:#101c2c;--ui-chart-grid:#71849b;--ui-chart-cursor:#ffd080;
+ --board-light-ink:#14202b;--board-dark-ink:#14202b;
+}
+:root[data-theme="light"] {
+ color-scheme:light;
+ --ui-bg:#edf2f7;--ui-surface:#ffffff;--ui-raised:#eaf0f5;--ui-field:#ffffff;
+ --ui-ink:#182d42;--ui-muted:#435c72;--ui-edge:#71899f;
+ --ui-accent:#086348;--ui-active:#dbeee5;--ui-on-active:#104d39;
+ --ui-primary:#116b50;--ui-on-primary:#ffffff;--ui-danger:#a02538;
+ --ui-warning-bg:#fff3d9;--ui-warning:#674710;--ui-warning-edge:#9b7734;
+ --ui-error-bg:#ffe7eb;--ui-error:#8c2133;--ui-success-bg:#e3f3ea;--ui-success:#15583e;
+ --ui-disabled-bg:#e1e7ed;--ui-disabled-ink:#4c6073;
+ --ui-chart-bg:#f1f5f9;--ui-chart-grid:#71849b;--ui-chart-cursor:#955400;
+}
+:root[data-theme] body { background:var(--ui-bg);color:var(--ui-ink); }
+:root[data-theme] :is(.main,.sidebar) {color:var(--ui-ink);}
+:root[data-theme] .main {background:var(--ui-bg);}
+:root[data-theme] :is(.panel,.sidebar,.prefs-dialog,.prefs-block,.library-card,.library-folder,.library-toolbar,.library-stat,.library-preview-modal) {background:var(--ui-surface);color:var(--ui-ink);border-color:var(--ui-edge);}
+:root[data-theme] :is(.topbar,.sidebar,.panel,.prefs-dialog,.library-workspace,.performance-workspace,.academic-hub,.academy-analytics-screen) :is(h1,h2,h3,h4) {color:var(--ui-ink);}
+:root[data-theme] :is(.panel,.sidebar,.prefs-dialog,.library-workspace,.performance-workspace,.academic-hub,.academy-analytics-screen,.topbar) :is(p,small,label) {color:var(--ui-muted);}
+:root[data-theme] :is(.eyebrow,.section-caption,.sidebar-tab-tip,.sidebar-bottom,.player-tag,.player small,.main footer,.controls span,.move-no,.mini-label,.stats span,.engine-footer,.studio-disclaimer,.variation-hint,.perf-info,.perf-pending,.perf-errors,.perf-empty,.perf-disclaimer,.perf-phases,.academic-field,.academy-muted,.academic-performance-note,.academy-analytics-notice,.academy-analytics-empty) {color:var(--ui-muted);}
+:root[data-theme] :is(.workspace-tools label,#studio-save-status,#studio-library-summary,#cloud-library-count,#v-progress,.studio-subtitle,.library-card-date,.library-subtitle,.library-empty,.game-side-heading,.game-side-complete) {color:var(--ui-muted);}
+:root[data-theme] :is(.board-compact-eval,.player-metrics,.game-side-card,.perf-color,.perf-engine,.perf-engine-pair>div,.perf-tournament-grid,.perf-result,.perf-study-games,.perf-game-row,.perf-info,.live-analysis-card,.teacher-account,.teacher-share,.teacher-inbox,.teacher-submission,.studio-library-tools,.studio-variant,.studio-diagram,.appearance-options,.library-game-details,.library-folder-heading,.library-organize,.perf-openings,.academic-performance-tile,.academic-feedback,.academy-tracking,.academy-tracking-student,.academy-analytics-mini>div) {
+ background:var(--ui-raised);color:var(--ui-ink);border-color:var(--ui-edge);
+}
+:root[data-theme] :is(.academic-panel,.academic-teacher-panel,.academic-event,.academic-task,.academy-history,.academy-stat,.academy-student,.academy-analytics-chart,.academy-analytics-filters,.academy-analytics-people,.academy-analytics-events,.academy-analytics-student,.academy-analytics-event,.academy-analytics-kpi,.paste-pgn-panel,.library-paste-box) {background:var(--ui-surface);color:var(--ui-ink);border-color:var(--ui-edge);}
+:root[data-theme] :is(.library-workspace .library-paste-box,.library-workspace .library-paste-preview,.library-workspace .library-paste-preview-row) {background:var(--ui-raised);color:var(--ui-ink);border-color:var(--ui-edge);}
+:root[data-theme] :is(.game-side-heading strong,.game-side-kpis strong,.game-side-counts strong,.chart-performance-heading strong,.studio-cloud summary,.studio-editor summary,.teacher-account>strong,.teacher-inbox>strong,.library-stat strong,.academy-tracking-heading h3,.academy-analytics-mini strong,.library-workspace .library-paste-heading strong,.library-workspace .library-paste-box>summary,.library-workspace .library-paste-preview>strong) {color:var(--ui-ink);}
+:root[data-theme] :is(.game-side-counts b,.game-side-kpis>div:first-child strong,.board-compact-eval strong,.chart-panel strong,.perf-metrics b,.perf-report-grid strong,.perf-tournament-grid b,.perf-tournament-grid strong,.perf-engine-pair b,.perf-result strong,.academic-performance-tile strong,.academy-stat strong,.academy-analytics-kpi strong,.pv,.engine-dot,.live-score) {color:var(--ui-accent);}
+:root[data-theme] :is(.studio-cloud,.studio-editor,.appearance-options,.teacher-share,.teacher-account) :is(summary,label,p,small) {color:var(--ui-muted);}
+:root[data-theme] :is(.academic-panel,.academic-teacher-panel,.academic-event,.academic-task,.academy-history)>summary {color:var(--ui-ink);}
+:root[data-theme] :is(.academy-tracking-student small,.academy-analytics-event>summary span,.academy-analytics-game>span,.academy-analytics-mini small,.perf-result,.perf-phases b,.perf-game-row span:last-child,.board-panel .player-accuracy,.board-panel .player-counts span,.studio-result small) {color:var(--ui-muted);}
+:root[data-theme] .game-side-heading>span {color:var(--ui-muted);}
+/* Native controls use the same color-scheme as the surface, including date icons. */
+:root[data-theme] :is(input:not([type=checkbox],[type=radio],[type=range],[type=color],[type=file],[type=button],[type=submit]),select,textarea) {
+ background:var(--ui-field);color:var(--ui-ink);border-color:var(--ui-edge);caret-color:var(--ui-ink);
+}
+:root[data-theme] :is(select option,select optgroup) {background:var(--ui-field);color:var(--ui-ink);}
+:root[data-theme] :is(input,textarea)::placeholder {color:var(--ui-muted);opacity:1;}
+:root[data-theme] input:is([type=checkbox],[type=radio],[type=range]) {accent-color:var(--ui-accent);}
+:root[data-theme] input::file-selector-button {background:var(--ui-raised);color:var(--ui-ink);border:1px solid var(--ui-edge);border-radius:5px;padding:6px 9px;}
+:root[data-theme] :is(.btn.outline,.btn.subtle,.controls button,.player-edit,.small-pill,.version,.appearance-menu summary) {background:var(--ui-raised);color:var(--ui-ink);border-color:var(--ui-edge);}
+:root[data-theme] :is(.btn.primary,.upload) {background:var(--ui-primary);color:var(--ui-on-primary);}
+:root[data-theme] :is(.btn.outline,.btn.subtle,.controls button,.player-edit):hover:not(:disabled) {background:var(--ui-active);color:var(--ui-on-active);}
+:root[data-theme] :is(button,.btn):disabled,:root[data-theme] #library-paste-import:disabled {opacity:1;background:var(--ui-disabled-bg);color:var(--ui-disabled-ink);border:1px dashed var(--ui-edge);cursor:not-allowed;box-shadow:none;}
+:root[data-theme] :is(button,input,select,textarea,summary,a):focus-visible {outline:3px solid var(--ui-accent);outline-offset:3px;}
+:root[data-theme] :is(.nav,.move) {color:var(--ui-muted);}
+:root[data-theme] :is(.nav.active,.move.selected) {background:var(--ui-active);color:var(--ui-on-active);}
+:root[data-theme] :is(.nav:hover,.move:hover) {background:var(--ui-active);color:var(--ui-on-active);}
+:root[data-theme] :is(.mark.blunder,.mark.mistake) {color:var(--ui-danger);}
+:root[data-theme] .mark.best {color:var(--ui-accent);}
+:root[data-theme] .mark.inaccuracy {color:var(--ui-chart-cursor);}
+:root[data-theme] :is(.hint,.library-empty) {background:var(--ui-raised);border-color:var(--ui-edge);color:var(--ui-muted);}
+:root[data-theme] :is(.opening-lab-warning,.academic-alert,.library-warning) {background:var(--ui-warning-bg);color:var(--ui-warning);border-color:var(--ui-warning-edge);}
+:root[data-theme] .library-workspace .library-paste-note {background:var(--ui-raised);color:var(--ui-ink);border-color:var(--ui-edge);}
+:root[data-theme] .library-workspace .library-paste-note[data-type="error"],:root[data-theme] .toast.err {background:var(--ui-error-bg);color:var(--ui-error);}
+:root[data-theme] .library-workspace .library-paste-note[data-type="success"],:root[data-theme] .toast {background:var(--ui-success-bg);color:var(--ui-success);}
+:root[data-theme] :is(.academic-error,.opening-lab-error) {color:var(--ui-danger)!important;}
+:root[data-theme] .academy-analytics-chart :is(polyline,circle) {stroke:var(--ui-accent);}
+:root[data-theme] .academy-analytics-chart circle {fill:var(--ui-accent);}
+:root[data-theme] .academy-analytics-chart text {fill:var(--ui-muted);}
+.ui-icon {display:inline-block;width:19px;height:19px;flex:none;vertical-align:middle;pointer-events:none;}
+.nav>.ui-icon {width:21px;height:21px;}
+.controls button {display:inline-flex;align-items:center;justify-content:center;}
+.player-edit .ui-icon {width:13px;height:13px;}
+:root[data-theme] .player .avatar {background:#c4d0dc;color:#14202b;border:1px solid #6a7c8e;}
+.chess-avatar img {display:block;object-fit:contain;filter:none;}
+#studio-palette button[data-piece]:not([data-piece="empty"]) {background:#c4d0dc;border-color:#647990;}
+#studio-palette button img {display:block;margin:auto;filter:none;pointer-events:none;}
+#studio-palette button.picked {outline:3px solid var(--ui-accent);outline-offset:1px;}
+/* Coordinates follow each chosen square color, even for custom palettes. */
+#board .square.light .coord {color:var(--board-light-ink);background:var(--board-light);}
+#board .square.dark .coord {color:var(--board-dark-ink);background:var(--board-dark);}
+#board .coord {padding:1px 2px;border-radius:2px;text-shadow:none;z-index:3;}
+#board .piece-image {filter:drop-shadow(0 0 1px #fff) drop-shadow(0 1px 1px #14202b);}
+#board .piece {font-variant-emoji:text;}
+#board[data-piece-style="flat"] .white-piece {color:#fff;-webkit-text-stroke:1px #14202b;}
+#board[data-piece-style="flat"] .black-piece {color:#14202b;-webkit-text-stroke:1px #fff;}

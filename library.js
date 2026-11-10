@@ -55,7 +55,7 @@ export function initLibraryWorkspace({studio,notify,onOpen}){
            if(piece){
              const glyph=document.createElement('span');
              glyph.className='library-preview-glyph piece '+(piece.color==='w'?'white-piece':'black-piece');
-             glyph.textContent=glyphs[piece.color+piece.type]||'?';
+             glyph.textContent=glyphs['b'+piece.type]||'?';
              cell.appendChild(glyph);
              if(selectedSet){
                const code=piece.color+piece.type.toUpperCase(),key=selectedSet+'/'+code;

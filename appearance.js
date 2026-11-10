@@ -1,3 +1,4 @@
+import {coordinateInk,pieceSetForStyle} from './color-contrast.js';
 // Personalized display settings. No external images, scripts or network requests.
 const schemes={
   jade:{name:'Jade original',light:'#c2d1cb',dark:'#678c86'},
@@ -14,7 +15,6 @@ const schemes={
   sand:{name:'Arena cálida',light:'#f8efd7',dark:'#b99e75'}
 };
 const styles=new Set(['classic','flat','outline','bold','chessnut','fantasy','spatial','celtic','rhosgfx','kiwen-suwi','totoy','papercut','cburnett','merida']);
-const graphicSets=new Set(['chessnut','fantasy','spatial','celtic','rhosgfx','kiwen-suwi','totoy','papercut']);
 const storage='ib-chess-board-appearance-v1';
 const colorOk=c=>/^#[0-9a-f]{6}$/i.test(c);
 export function initBoardAppearance({refreshPieces}={}){
@@ -46,11 +46,11 @@ export function initBoardAppearance({refreshPieces}={}){
     const root=$('appearance-preview');root.replaceChildren();
     for(const piece of ['wK','wQ','wR','wB','wN','wP','bK','bQ','bR','bB','bN','bP']){
       const slot=document.createElement('span');slot.className='appearance-preview-piece';
-      if(graphicSets.has(settings.pieces)){
-        const img=document.createElement('img');img.alt=piece;img.src=import.meta.env.BASE_URL+'pieces/'+settings.pieces+'/'+piece+'.svg';slot.append(img);
+      const set=pieceSetForStyle(settings.pieces);
+      if(set){
+        const img=document.createElement('img');img.alt=piece;img.src=import.meta.env.BASE_URL+'pieces/'+set+'/'+piece+'.svg';slot.append(img);
       }else{
-        const glyph={K:'♔',Q:'♕',R:'♖',B:'♗',N:'♘',P:'♙'}[piece[1]];
-        slot.textContent=piece[0]==='w'?glyph:{K:'♚',Q:'♛',R:'♜',B:'♝',N:'♞',P:'♟'}[piece[1]];
+        slot.textContent={K:'♚',Q:'♛',R:'♜',B:'♝',N:'♞',P:'♟'}[piece[1]];
         slot.classList.add('preview-'+settings.pieces,piece[0]==='w'?'preview-white':'preview-black');
       }
       root.append(slot);
@@ -60,6 +60,8 @@ export function initBoardAppearance({refreshPieces}={}){
     const root=document.documentElement;
     root.style.setProperty('--board-light',settings.light);
     root.style.setProperty('--board-dark',settings.dark);
+    root.style.setProperty('--board-light-ink',coordinateInk(settings.light));
+    root.style.setProperty('--board-dark-ink',coordinateInk(settings.dark));
     const board=document.getElementById('board');
     if(board){board.dataset.pieceStyle=settings.pieces;board.classList.toggle('hide-coordinates',!settings.coordinates);}
     $('appearance-scheme').value=settings.scheme;
@@ -83,5 +85,5 @@ export function initBoardAppearance({refreshPieces}={}){
   $('appearance-reset').onclick=()=>{settings={...defaults};apply();refreshPieces?.();};
   // The board container remains stable while its squares are re-rendered.
   apply();
-  return {apply,getPieceSet:()=>graphicSets.has(settings.pieces)?settings.pieces:null};
+  return {apply,getPieceSet:()=>pieceSetForStyle(settings.pieces)};
 }
