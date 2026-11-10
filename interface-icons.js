@@ -1,5 +1,10 @@
 // Stable SVG controls inherit the surrounding theme instead of OS emoji colors.
 const paths={
+ refresh:'M20 7v6h-6M4 17v-6h6M6 6a8 8 0 0 1 14 7M18 18a8 8 0 0 1-14-7',
+ upload:'M12 16V3m-5 5 5-5 5 5M4 15v6h16v-6',download:'M12 3v13m-5-5 5 5 5-5M4 17v4h16v-4',
+ plus:'M12 4v16M4 12h16',close:'m5 5 14 14M19 5 5 19',
+ cloud:'M6 18a4 4 0 0 1-1-8 7 7 0 0 1 13-2 5 5 0 0 1 0 10Z',share:'M12 16V3m-5 5 5-5 5 5M4 12v9h16v-9',
+ paste:'M9 4H5v17h14V4h-4M9 2h6v5H9Z',spark:'m12 3 3 6 6 3-6 3-3 6-3-6-6-3 6-3Z',
  first:'M5 5v14M19 5l-9 7 9 7Z',back:'m15 5-9 7 9 7Z',next:'m9 5 9 7-9 7Z',last:'M19 5v14M5 5l9 7-9 7Z',
  flip:'M7 4v16m-3-3 3 3 3-3M17 20V4m-3 3 3-3 3 3',
  review:'M9 3h6v4l3 3v3H6v-3l3-3ZM6 17h12M5 21h14M8 13v4m8-4v4',
@@ -33,6 +38,21 @@ export function initInterfaceIcons(){
   const img=document.createElement('img');img.src=import.meta.env.BASE_URL+'pieces/cburnett/'+(black?'bK':'wK')+'.svg';img.alt='';img.width=28;img.height=28;
   el.replaceChildren(img);el.classList.add('chess-avatar');
  }
+ const actionSelector='button,.btn,.upload,summary,summary strong';
+ const glyphIcons={'♟':'review','↻':'refresh','↥':'upload','↗':'external','↓':'download','⇅':'flip','⏮':'first','◀':'back','▶':'next','⏭':'last','✎':'edit','✦':'spark','▤':'library','⌁':'paste','☁':'cloud','⇧':'share','＋':'plus'};
+ const decorate=el=>{
+  if(!el.matches?.(actionSelector))return;
+  const text=[...el.childNodes].find(n=>n.nodeType===3&&n.textContent.trim());if(!text)return;
+  const glyph=text.textContent.trimStart()[0],name=glyphIcons[glyph];if(!name)return;
+  if(!el.getAttribute('aria-label')&&!text.textContent.trim().slice(1).trim())el.setAttribute('aria-label',el.title||name);
+  text.textContent=text.textContent.replace(glyph,'').trimStart();el.insertBefore(icon(name),text);
+ };
+ document.querySelectorAll(actionSelector).forEach(decorate);
+ // Newly rendered study actions get the same treatment, without replacing controls/handlers.
+ const observer=new MutationObserver(records=>{
+  for(const record of records){decorate(record.target);for(const node of record.addedNodes){if(node.nodeType!==1)continue;decorate(node);node.querySelectorAll(actionSelector).forEach(decorate);}}
+ });
+ observer.observe(document.body,{childList:true,subtree:true});
  // Explicit color identity in the board editor, independent of the UI theme.
  for(const el of document.querySelectorAll('#studio-palette [data-piece]')){
   const code=el.dataset.piece;if(code==='empty')continue;

@@ -86,3 +86,12 @@
 #board .piece {font-variant-emoji:text;}
 #board[data-piece-style="flat"] .white-piece {color:#fff;-webkit-text-stroke:1px #14202b;}
 #board[data-piece-style="flat"] .black-piece {color:#14202b;-webkit-text-stroke:1px #fff;}
+:root[data-theme] .topbar .eyebrow span {color:var(--ui-muted);}
+/* Keep import actions on screen instead of squeezing them beside a full-width guide. */
+.main {min-width:0;}
+.toolbar {flex-wrap:wrap;}
+.toolbar>.btn,.toolbar>.upload {flex-shrink:0;}
+.toolbar>.label-inline {flex:1 1 240px;min-width:160px;max-width:360px;}
+.toolbar .label-inline select {min-width:0;max-width:100%;}
+.toolbar>.review-guide {min-width:0;flex-basis:100%;}
+#board .board-arrows path {stroke:#172331;stroke-width:3;paint-order:stroke fill;filter:drop-shadow(0 0 1px #fff);}
