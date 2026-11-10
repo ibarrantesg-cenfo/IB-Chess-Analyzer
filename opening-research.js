@@ -1,3 +1,4 @@
+import { openingPlans, planReferenceArrows } from './opening-plans.js';
 import { CORE_OPENING_FAMILIES } from './opening-core-families.js';
 import { OPENING_REFERENCE_LINES } from './opening-reference-lines.js';
 import { buildOpeningPositionTree } from './opening-position-tree.js';
@@ -80,6 +81,13 @@ export function initOpeningResearch({state,loadPGN,jump,notify,getLiveSnapshot,s
   <div class="opening-lab-backup"><strong>Respaldo de la investigación</strong><p class="opening-lab-muted">Guardá ramas, comentarios, evaluaciones y estadísticas en un archivo JSON para no perderlas al cambiar de navegador.</p><div class="opening-lab-actions"><button class="btn outline" id="opening-lab-export-family">Exportar familia PGN</button><button class="btn outline" id="opening-lab-backup-download">Exportar respaldo completo</button><button class="btn outline" id="opening-lab-backup-import">Importar respaldo JSON</button><input type="file" accept=".json,application/json" id="opening-lab-backup-file" hidden></div></div>
   <div id="opening-lab-line" class="opening-lab-moves"></div>
   <section class="opening-lab-branches"><strong>Ramas de la misma posición</strong><p class="opening-lab-muted">Compara alternativas que parten de una posición idéntica. Las evaluaciones solo aparecen si hay una captura de Stockfish guardada para cada rama.</p><div id="opening-lab-branches" class="opening-lab-branch-list"></div></section>
+  <section id="opening-lab-plans" class="opening-position-plans" hidden aria-label="Planes de la apertura">
+   <h3>Planes para continuar</h3><p class="opening-lab-muted">Ideas orientativas de la familia. Elegí el plan según la estructura, la seguridad de los reyes y las amenazas de esta posición.</p>
+   <div class="opening-plan-columns"><div><strong><span class="plan-dot plan-blue" aria-hidden="true"></span> Blancas · azul</strong><p id="opening-plan-white"></p></div><div><strong><span class="plan-dot plan-red" aria-hidden="true"></span> Negras · rojo</strong><p id="opening-plan-black"></p></div></div>
+   <label class="opening-plan-toggle"><input type="checkbox" id="opening-plan-arrows" checked> Mostrar flechas de referencia</label>
+   <p id="opening-plan-arrow-note" class="opening-lab-muted"></p>
+  </section>
+  <p class="opening-arrow-help">Dibujá con clic derecho y arrastrá: dorado. Mantené Ctrl para azul o Ctrl + Alt para rojo. Repetí el trazo del mismo color para borrarlo; un clic izquierdo limpia tus marcas.</p>
   <p id="opening-lab-position" class="opening-lab-muted">Elegí una línea para comenzar.</p>
   <section id="opening-lab-queue" class="opening-lab-queue"><div class="opening-lab-queue-head"><strong>Agenda de posiciones críticas</strong><span id="opening-lab-queue-progress"></span></div><p class="opening-lab-muted">Revisá comentarios con evidencia histórica, motor y referencias editoriales. Ningún indicador equivale a aprobación.</p><div class="opening-lab-actions"><button class="btn outline" id="opening-lab-next">Ir a la siguiente posición pendiente</button></div><div id="opening-lab-queue-note" class="opening-lab-muted"></div></section>
   <label class="opening-lab-field">Comentario editorial de la posición<textarea id="opening-lab-note" rows="4" placeholder="Qué cambia en la evaluación, qué amenaza el rival, planes con justificación..."></textarea></label>
@@ -341,6 +349,8 @@ export function initOpeningResearch({state,loadPGN,jump,notify,getLiveSnapshot,s
       notes.push('ESTADISTICA HISTORICA LICHESS MASTERS: '+n+' partidas; blancas '+m.white+', tablas '+m.draws+', negras '+m.black+'. Frecuencia no implica calidad objetiva.');
     }
     if(ply===sans.length){
+      const plan=openingPlans(draft);
+      notes.push('PLANES ORIENTATIVOS DE LA FAMILIA. Blancas: '+plan.white+' Negras: '+plan.black);
       const bibliography=data.sources[draft.id];
       if(bibliography)notes.push('REFERENCIAS EDITORIALES PENDIENTES DE REVISION: '+bibliography.replace(/\s+/g,' ').slice(0,1600));
     }
@@ -509,6 +519,17 @@ export function initOpeningResearch({state,loadPGN,jump,notify,getLiveSnapshot,s
    chip.onclick=()=>openAt(i+1);lineEl.append(chip);
   });
   const ply=Math.min(currentPly(),sans.length),key=selected+'|'+ply;
+  const finalPosition=visible&&activeIsCorrect()&&!state.previewFen&&currentPly()===sans.length&&state.positions?.[state.move]===fens[sans.length];
+  el('opening-lab-plans').hidden=!finalPosition;
+  const plan=openingPlans(draft);
+  el('opening-plan-white').textContent=plan.white;
+  el('opening-plan-black').textContent=plan.black;
+  const referenceArrows=finalPosition?planReferenceArrows(fens[sans.length],plan):[];
+  el('opening-plan-arrow-note').textContent=referenceArrows.length?
+   'Referencias: '+referenceArrows.map(a=>(a.side==='w'?'blancas ':'negras ')+a.from+' → '+a.to).join(' · ')+'. Son alternativas para cada bando, no una secuencia ni una recomendación de Stockfish. Respetá el turno del tablero.':
+   'No se muestra una ruptura de referencia para esta posición. Revisá los planes escritos y mejorá las piezas antes de avanzar.';
+  window.IB_ARROWS?.setReferenceArrows(finalPosition&&el('opening-plan-arrows').checked?referenceArrows:[],fens[ply]);
+
   const lastLabel=ply?(Math.floor((ply-1)/2)+1)+(ply%2===0?'... ':'. ')+sans[ply-1]:'posición inicial';
   el('opening-lab-branch-base').textContent='Posición elegida: '+lastLabel+' · media jugada '+ply+' · '+(ply%2===0?'juegan blancas':'juegan negras')+'. La rama empieza AQUÍ.';
   const treeRoot=studyRootId(entries(),selected);
@@ -671,6 +692,7 @@ export function initOpeningResearch({state,loadPGN,jump,notify,getLiveSnapshot,s
    results.append(button);
   }
  });
+ el('opening-plan-arrows').onchange=()=>render();
  el('opening-lab-open').onclick=()=>{const {sans}=validateOpeningLine(pick().moves);openAt(sans.length);};
  el('opening-lab-copy-selected').onclick=()=>openCopyToLibrary(selected);
  el('opening-lab-refresh').onclick=render;
@@ -877,6 +899,7 @@ export function initOpeningResearch({state,loadPGN,jump,notify,getLiveSnapshot,s
  function close(){
   if(!visible)return;
   visible=false;panel.hidden=true;explorer.hidden=true;
+  window.IB_ARROWS?.setReferenceArrows([]);
   document.querySelector('main.main')?.classList.remove('opening-study-mode');
   document.querySelector('#nav-openings')?.classList.remove('active');
  }

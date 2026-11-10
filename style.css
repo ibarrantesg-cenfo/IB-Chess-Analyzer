@@ -1478,3 +1478,16 @@
 .opening-core-column>strong{padding:3px 0;color:var(--ib-disclosure-muted);font-size:12px}
 .opening-core-column>.btn{text-align:left;white-space:normal}
 @media(max-width:560px){#opening-core-links{grid-template-columns:1fr}}
+
+/* Opening plans share the theme's disclosure palette. Arrow colors match the board. */
+.opening-position-plans { margin:16px 0; padding:18px; border:1px solid var(--ib-disclosure-border,#36566b); border-radius:14px; background:var(--ib-disclosure,#142b39); color:var(--ib-disclosure-text,#e2edf6); }
+.opening-position-plans h3 { margin:0 0 8px; font-size:1.1rem; }
+.opening-plan-columns { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:14px; margin:14px 0; }
+.opening-plan-columns > div { min-width:0; padding:14px; border:1px solid var(--ib-disclosure-border,#36566b); border-radius:10px; background:var(--ib-disclosure-inner,#10202e); }
+.opening-plan-columns p { line-height:1.6; margin:8px 0 0; }
+.plan-dot { display:inline-block; width:11px; height:11px; margin-right:5px; border-radius:50%; border:1px solid currentColor; }
+.plan-blue { background:#2584ed; }.plan-red { background:#e54242; }
+.opening-plan-toggle { display:flex; align-items:center; gap:9px; cursor:pointer; }
+.opening-plan-toggle input { width:18px; height:18px; margin:0; accent-color:var(--ib-disclosure-accent,#78d7b8); }
+.opening-arrow-help { font-size:.85rem; line-height:1.6; color:var(--ib-disclosure-muted,#a4bcd0); }
+@media(max-width:650px){ .opening-plan-columns { grid-template-columns:1fr; } }

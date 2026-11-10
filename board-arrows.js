@@ -1,10 +1,14 @@
 // Smooth chessboard annotations: right-drag arrows, right-click square marks.
 // SVG overlay is isolated from PGN, piece movements and Stockfish.
+export const ARROW_COLORS={gold:"#f2b72a",blue:"#2584ed",red:"#e54242"};
+export function arrowColor(event){return event.ctrlKey?(event.altKey?ARROW_COLORS.red:ARROW_COLORS.blue):ARROW_COLORS.gold;}
 export function initBoardArrows({getFen,getOrientation,isEditing}){
   const board=document.getElementById('board');
   if(!board)return null;
+  board.title='Flechas: clic derecho y arrastrar. Ctrl: azul · Ctrl + Alt: rojo · sin teclas: dorado.';
   const NS='http://www.w3.org/2000/svg';
   const arrows=new Map(),marks=new Set();
+  let references=[],referenceFen="",drawColor=ARROW_COLORS.gold;
   let start=null,lastPosition='',pointerId=null,endSquare=null,previewPoint=null,frame=0;
   const svg=(tag,attrs={},parent)=>{
     const node=document.createElementNS(NS,tag);
@@ -13,7 +17,7 @@ export function initBoardArrows({getFen,getOrientation,isEditing}){
     return node;
   };
   const overlay=svg('svg',{class:'board-arrows',viewBox:'0 0 800 800','aria-hidden':'true',preserveAspectRatio:'none'});
-  const staticLayer=svg('g',{},overlay),previewLayer=svg('g',{},overlay);
+  const referenceLayer=svg('g',{'data-layer':'references'},overlay),staticLayer=svg('g',{'data-layer':'manual'},overlay),previewLayer=svg('g',{},overlay);
   const pos=s=>{
     if(!/^[a-h][1-8]$/.test(s||''))return null;
     const file=s.charCodeAt(0)-97,rank=Number(s[1])-1;
@@ -56,24 +60,29 @@ export function initBoardArrows({getFen,getOrientation,isEditing}){
     const p=points.map(([x,y])=>x.toFixed(1)+','+y.toFixed(1));
     return 'M'+p[0]+' L'+p.slice(1).join(' L')+' Z';
   }
-  const addArrow=(parent,a,b,opacity=0.9)=>{
+  const addArrow=(parent,a,b,opacity=0.9,color=ARROW_COLORS.gold)=>{
     const d=arrowPath(a,b);
-    if(d)svg('path',{d,fill:'#f2b72a',opacity,'stroke-linejoin':'round'},parent);
+    if(d)svg('path',{d,fill:color,opacity,'stroke-linejoin':'round'},parent);
   };
   const paintStatic=()=>{
     staticLayer.replaceChildren();
+    referenceLayer.replaceChildren();
+    if(referenceFen===getFen())for(const line of references){
+      const a=pos(line.from),b=pos(line.to);
+      if(a&&b)addArrow(referenceLayer,a,b,.8,line.color);
+    }
     for(const square of marks){
       const p=pos(square);if(p)svg('rect',{x:p.x-49,y:p.y-49,width:98,height:98,rx:4,fill:'#e56d4c',opacity:.52},staticLayer);
     }
     for(const line of arrows.values()){
       const a=pos(line.from),b=pos(line.to);
-      if(a&&b)addArrow(staticLayer,a,b);
+      if(a&&b)addArrow(staticLayer,a,b,.9,line.color);
     }
   };
   const paintPreview=()=>{
     frame=0;previewLayer.replaceChildren();
     if(start&&previewPoint){
-      const a=pos(start);if(a)addArrow(previewLayer,a,previewPoint,.78);
+      const a=pos(start);if(a)addArrow(previewLayer,a,previewPoint,.78,drawColor);
     }
   };
   const requestPreview=()=>{if(!frame)frame=requestAnimationFrame(paintPreview);};
@@ -90,14 +99,14 @@ export function initBoardArrows({getFen,getOrientation,isEditing}){
   board.addEventListener('pointerdown',e=>{
     if(e.button!==2||isEditing?.())return;
     const sq=squareOf(e);if(!sq)return;
-    e.preventDefault();start=sq;endSquare=sq;pointerId=e.pointerId;
+    e.preventDefault();drawColor=arrowColor(e);start=sq;endSquare=sq;pointerId=e.pointerId;
     previewPoint=null;
     try{board.setPointerCapture(pointerId);}catch{}
   });
   board.addEventListener('pointermove',e=>{
     if(!start||e.pointerId!==pointerId)return;
     const point=pointOf(e);if(!point)return;
-    endSquare=squareOf(e);
+    endSquare=squareOf(e);drawColor=arrowColor(e);
     previewPoint=point;requestPreview();
   });
   const finish=e=>{
@@ -107,8 +116,8 @@ export function initBoardArrows({getFen,getOrientation,isEditing}){
     if(target===start){
       if(marks.has(start))marks.delete(start);else marks.add(start);
     }else{
-      const key=start+target;
-      if(arrows.has(key))arrows.delete(key);else arrows.set(key,{from:start,to:target});
+      const key=start+target+drawColor;
+      if(arrows.has(key))arrows.delete(key);else arrows.set(key,{from:start,to:target,color:drawColor});
     }
     start=null;endSquare=null;
     try{board.releasePointerCapture(pointerId);}catch{}
@@ -127,5 +136,9 @@ export function initBoardArrows({getFen,getOrientation,isEditing}){
   });
   observer.observe(board,{childList:true});
   positionChanged();
-  return {clear,positionChanged};
+  return {clear,positionChanged,setReferenceArrows(lines=[],fen=getFen()){
+    positionChanged();
+    references=lines.filter(line=>pos(line.from)&&pos(line.to)&&Object.values(ARROW_COLORS).includes(line.color));
+    referenceFen=fen;ensureOverlay();paintStatic();
+  }};
 }

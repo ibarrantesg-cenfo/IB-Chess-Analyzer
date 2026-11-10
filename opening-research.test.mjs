@@ -144,3 +144,35 @@ test('the academy baseline has 10 White and 10 Black families with playable entr
   assert.ok(lines.some(row=>row.moves.startsWith(entry+' ')),name+' has no continuation from its requested entry');
  }
 });
+
+// Regression coverage for plans and the independently colored annotation layer.
+import { OPENING_REFERENCE_LINES } from './opening-reference-lines.js';
+import { OPENING_MODELS_2026 } from './opening-research-2026.js';
+import { openingPlans,planReferenceArrows } from './opening-plans.js';
+import { arrowColor,ARROW_COLORS } from './board-arrows.js';
+test('all catalog families have plans and reference arrows from legal noncapturing moves',()=>{
+ const all=[...OPENING_RESEARCH_DRAFTS,...OPENING_RESEARCH_EXPANSION,...OPENING_REFERENCE_LINES,...OPENING_MODELS_2026];
+ let illustrated=0;
+ for(const draft of all){
+  const plan=openingPlans(draft),fen=validateOpeningLine(draft.moves).fens.at(-1);
+  assert.equal(plan.scope,'family',draft.family);
+  assert.ok(plan.white.length>80&&plan.black.length>80,draft.id);
+  const arrows=planReferenceArrows(fen,plan);
+  if(arrows.length)illustrated++;
+  for(const a of arrows){
+   const fields=fen.split(' ');if(fields[1]!==a.side){fields[1]=a.side;fields[3]='-';}
+   const chess=new Chess(fields.join(' '));
+   assert.equal(chess.isCheck(),false);
+   const move=chess.move({from:a.from,to:a.to});
+   assert.equal(move.color,a.side);assert.equal(move.captured,undefined);
+   assert.equal(a.color,a.side==='w'?ARROW_COLORS.blue:ARROW_COLORS.red);
+  }
+ }
+ assert.ok(illustrated>all.length*.7,'most final positions have a relevant pawn break to illustrate');
+});
+test('modifier colors keep normal arrows gold and distinguish Ctrl from Ctrl+Alt',()=>{
+ assert.equal(arrowColor({}),ARROW_COLORS.gold);
+ assert.equal(arrowColor({altKey:true}),ARROW_COLORS.gold);
+ assert.equal(arrowColor({ctrlKey:true}),ARROW_COLORS.blue);
+ assert.equal(arrowColor({ctrlKey:true,altKey:true}),ARROW_COLORS.red);
+});
