@@ -1,4 +1,4 @@
-import {sectionHref} from './navigation-routes.js';
+import {sectionHref,normalLinkClick} from './navigation-routes.js';
 import { openingPlans, planReferenceArrows } from './opening-plans.js';
 import { CORE_OPENING_FAMILIES } from './opening-core-families.js';
 import { OPENING_REFERENCE_LINES } from './opening-reference-lines.js';
@@ -78,16 +78,19 @@ export function initOpeningResearch({state,loadPGN,jump,notify,getLiveSnapshot})
   <p class="opening-lab-warning">Investigación experimental: las líneas se validan legalmente, pero sus comentarios y evaluaciones NO son teoría aprobada. Nada se publica ni se comparte automáticamente con alumnos.</p>
   <label class="opening-lab-field opening-lab-picker">Saltar directamente a otra línea<select id="opening-lab-choice"></select></label>
   <p id="opening-lab-aim" class="opening-lab-muted"></p>
-  <div class="opening-lab-actions opening-lab-main-actions"><button class="btn primary" id="opening-lab-open">Analizar línea en el tablero</button><button class="btn outline" id="opening-lab-copy-selected">＋ Agregar a mis estudios</button><button class="btn outline" id="opening-lab-export">Exportar PGN</button></div>
+  <div class="opening-lab-actions opening-lab-main-actions"><a class="btn primary" id="opening-lab-open" title="Ctrl + clic abre el estudio en otra pestaña">Analizar línea en el tablero</a><button class="btn outline" id="opening-lab-copy-selected">＋ Agregar a mis estudios</button><button class="btn outline" id="opening-lab-export">Exportar PGN</button></div>
   <div class="opening-lab-backup"><strong>Respaldo de la investigación</strong><p class="opening-lab-muted">Guardá ramas, comentarios, evaluaciones y estadísticas en un archivo JSON para no perderlas al cambiar de navegador.</p><div class="opening-lab-actions"><button class="btn outline" id="opening-lab-export-family">Exportar familia PGN</button><button class="btn outline" id="opening-lab-backup-download">Exportar respaldo completo</button><button class="btn outline" id="opening-lab-backup-import">Importar respaldo JSON</button><input type="file" accept=".json,application/json" id="opening-lab-backup-file" hidden></div></div>
   <div id="opening-lab-line" class="opening-lab-moves"></div>
   <section class="opening-lab-branches"><strong>Ramas de la misma posición</strong><p class="opening-lab-muted">Compara alternativas que parten de una posición idéntica. Las evaluaciones solo aparecen si hay una captura de Stockfish guardada para cada rama.</p><div id="opening-lab-branches" class="opening-lab-branch-list"></div></section>
   <section id="opening-lab-plans" class="opening-position-plans" hidden aria-label="Planes de la apertura">
-   <h3>Planes para continuar</h3><p class="opening-lab-muted">Ideas orientativas de la familia. Elegí el plan según la estructura, la seguridad de los reyes y las amenazas de esta posición.</p>
+   <h3>Planes para continuar</h3>
+   <label class="opening-plan-toggle"><input type="checkbox" id="opening-plan-arrows" checked> Mostrar flechas de referencia y su explicación</label>
+   <div id="opening-plan-explanation">
+   <p class="opening-lab-muted">Ideas orientativas de la familia. Elegí el plan según la estructura, la seguridad de los reyes y las amenazas de esta posición.</p>
    <div class="opening-plan-columns"><div><strong><span class="plan-dot plan-blue" aria-hidden="true"></span> Blancas · azul</strong><p id="opening-plan-white"></p></div><div><strong><span class="plan-dot plan-red" aria-hidden="true"></span> Negras · rojo</strong><p id="opening-plan-black"></p></div></div>
-   <label class="opening-plan-toggle"><input type="checkbox" id="opening-plan-arrows" checked> Mostrar flechas de referencia</label>
    <ul id="opening-plan-arrow-list" class="opening-arrow-legend" hidden></ul>
    <p id="opening-plan-arrow-note" class="opening-lab-muted"></p>
+   </div>
   </section>
   <p class="opening-arrow-help">Dibujá con clic derecho y arrastrá: dorado. Mantené Ctrl para azul o Ctrl + Alt para rojo. Repetí el trazo del mismo color para borrarlo; un clic izquierdo limpia tus marcas.</p>
   <p id="opening-lab-position" class="opening-lab-muted">Elegí una línea para comenzar.</p>
@@ -121,6 +124,12 @@ export function initOpeningResearch({state,loadPGN,jump,notify,getLiveSnapshot})
  const focusPanel=mk('section','','panel opening-focus-panel');
  focusPanel.hidden=true;
  focusPanel.innerHTML=`<h2>Posición de estudio</h2><p id="opening-focus-position"></p>`;
+ const variantsPanel=mk('section','','panel opening-family-variants');
+ variantsPanel.hidden=true;
+ const variantsHeading=mk('h2','Variantes del estudio');
+ const variantList=mk('div','','opening-family-variant-list');
+ variantsPanel.append(variantsHeading,variantList);
+ host.prepend(variantsPanel);
  const plans=el('opening-lab-plans');
  const plansHome=document.createComment('Planes de la apertura');
  plans.before(plansHome);
@@ -257,7 +266,7 @@ export function initOpeningResearch({state,loadPGN,jump,notify,getLiveSnapshot})
  const persist=()=>{try{localStorage.setItem(KEY,JSON.stringify(data));}catch{notify('No se pudo guardar el laboratorio en este navegador. Exportá el PGN para conservarlo.','err');}};
  const catalog=[...OPENING_RESEARCH_DRAFTS,...OPENING_RESEARCH_EXPANSION,...OPENING_MODELS_2026,...OPENING_REFERENCE_LINES];
  const entries=()=>[...catalog,...data.custom].sort((a,b)=>a.family.localeCompare(b.family,'es')||a.name.localeCompare(b.name,'es'));
- let selected=OPENING_RESEARCH_DRAFTS[0]?.id,visible=false,focused=false,filterText='',branchPreview=null;
+ let selected=OPENING_RESEARCH_DRAFTS[0]?.id,visible=false,focused=false,studyFamily='',filterText='',branchPreview=null;
  const expandedFamilies=new Set(),expandedLines=new Set();
  let catalogFingerprint='';
  let activeTree=null;
@@ -314,7 +323,20 @@ export function initOpeningResearch({state,loadPGN,jump,notify,getLiveSnapshot})
  const requestedId=new URLSearchParams(window.location.search).get('study');
  if(requestedId&&entries().some(x=>x.id===requestedId))selected=requestedId;
  const pick=()=>entries().find(x=>x.id===selected);
- const studyHref=(id,analysis=false)=>sectionHref('openings',location.href,id,analysis);
+ const studyHref=(id,analysis=false,family='')=>sectionHref('openings',location.href,id,analysis,family);
+ const familyHref=(family,id='')=>studyHref(id,true,family);
+ function familyLink(label,family,activate,className=''){
+  const link=mk('a',label,className);
+  link.href=familyHref(family);
+  link.title='Ctrl + clic o ⌘ + clic para abrir el estudio en otra pestaña';
+  link.onclick=event=>{
+   event.stopPropagation();
+   if(!normalLinkClick(event))return;
+   event.preventDefault();
+   activate();
+  };
+  return link;
+ }
  const invalidateBranchPreview=message=>{
    branchPreview=null;
    const button=el('opening-lab-add'),status=el('opening-lab-branch-feedback');
@@ -328,7 +350,7 @@ export function initOpeningResearch({state,loadPGN,jump,notify,getLiveSnapshot})
    if(changed)invalidateBranchPreview('Elegí la posición de origen y revisá las jugadas de la nueva rama.');
    if(visible)document.title=(pick()?.name||'Biblioteca Maestra')+' · IB Chess Analyzer';
    if(push&&visible){
-     const url=studyHref(id,focused);
+     const url=studyHref(id,focused,studyFamily);
      if(location.pathname+location.search!==url)history.pushState({view:'openings',study:id},'',url);
    }
    render();
@@ -376,9 +398,15 @@ export function initOpeningResearch({state,loadPGN,jump,notify,getLiveSnapshot})
   if(!entries().some(x=>x.id===selected))selected=entries()[0]?.id;
   select.value=selected||'';
  }
+ const isSicilian=item=>/^e4 c5(?: |$)/.test(item.moves);
  function editorialSicilians(lines){
   const ids=new Set(catalog.map(item=>item.id));
-  return lines.filter(item=>ids.has(item.id)&&/^e4 c5(?: |$)/.test(item.moves));
+  return lines.filter(item=>ids.has(item.id)&&isSicilian(item));
+ }
+ function familyVariants(family){
+  if(!family)return [];
+  const all=entries();
+  return family==='Defensa Siciliana'?all.filter(isSicilian):all.filter(item=>item.family===family);
  }
  function renderCatalog(){
   const roots=entries().filter(x=>!x.origin?.parent);
@@ -420,7 +448,12 @@ export function initOpeningResearch({state,loadPGN,jump,notify,getLiveSnapshot})
   for(const [key,group] of groups){
     const family=document.createElement('details');family.className='opening-lab-catalog-family';
     family.open=expandedFamilies.has(key);
-    const summary=mk('summary',group.label+' · '+group.items.length+(group.items.length===1?' línea':' líneas'),'opening-lab-family-summary');
+    const labelText=group.label+' · '+group.items.length+(group.items.length===1?' línea':' líneas');
+    const summary=mk('summary',key==='mine'?labelText:'','opening-lab-family-summary');
+    if(key!=='mine')summary.append(familyLink(labelText,group.label,()=>{
+     family.open=!family.open;
+     if(family.open)showTreeNode(tree,tree.root);
+    },'opening-family-link'));
     const section=mk('div','','opening-lab-family-items');
     family.append(summary,section);
     const lines=group.items.map(item=>({...item,sans:validateOpeningLine(item.moves).sans}));
@@ -433,8 +466,8 @@ export function initOpeningResearch({state,loadPGN,jump,notify,getLiveSnapshot})
     section.append(tree.host,chapterList);
     trees.set(key,tree);
     if(previousTreeKey===key)activeTree=tree;
-    summary.addEventListener('click',()=>{
-     if(family.open)return;
+    summary.addEventListener('click',event=>{
+     if(family.open||!normalLinkClick(event))return;
      showTreeNode(tree,tree.root);
     });
     for(const item of lines){
@@ -457,7 +490,7 @@ export function initOpeningResearch({state,loadPGN,jump,notify,getLiveSnapshot})
       };
       const add=mk('button','＋ Agregar a mis estudios','btn primary');add.type='button';
       add.onclick=()=>openCopyToLibrary(item.id);
-      const separate=document.createElement('a');separate.href=studyHref(item.id);separate.target='_blank';separate.rel='noopener noreferrer';separate.className='btn outline';separate.textContent='↗ Otra pestaña';
+      const separate=document.createElement('a');separate.href=familyHref(key==='mine'?item.family:group.label,item.id);separate.target='_blank';separate.rel='noopener noreferrer';separate.className='btn outline';separate.textContent='↗ Otra pestaña';
       actions.append(analyze,add,separate);body.append(actions);
       line.append(title,body);
       line.addEventListener('toggle',()=>{
@@ -487,14 +520,12 @@ export function initOpeningResearch({state,loadPGN,jump,notify,getLiveSnapshot})
    for(const name of Object.keys(CORE_OPENING_FAMILIES)){
     const tree=trees.get('family:'+name);
     if(!tree)continue;
-    const button=mk('button',name,'btn outline');
-    button.type='button';
-    button.onclick=()=>{
+    const button=familyLink(name,name,()=>{
      tree.family.closest('.opening-catalog-side').open=true;
      tree.family.open=true;
      showTreeNode(tree,tree.root);
      tree.family.querySelector('summary').focus();
-    };
+    },'btn outline');
     columns[name.startsWith('Defensa ')?1:0].append(button);
    }
    coreLinks.append(...columns);
@@ -510,7 +541,9 @@ export function initOpeningResearch({state,loadPGN,jump,notify,getLiveSnapshot})
   const plan=openingPlans(draft);
   el('opening-plan-white').textContent=plan.white;
   el('opening-plan-black').textContent=plan.black;
-  const arrows=finalPosition?planReferenceArrows(fens[ply],plan):[];
+  const showArrows=el('opening-plan-arrows').checked;
+  el('opening-plan-explanation').hidden=!showArrows;
+  const arrows=finalPosition&&showArrows?planReferenceArrows(fens[ply],plan):[];
   const legend=el('opening-plan-arrow-list');
   legend.hidden=!arrows.length;
   legend.replaceChildren(...arrows.map(arrow=>{
@@ -529,7 +562,35 @@ export function initOpeningResearch({state,loadPGN,jump,notify,getLiveSnapshot})
   el('opening-plan-arrow-note').textContent=arrows.length?
    'Cada flecha marca una idea para su bando. Comprobá el turno y la respuesta rival.':
    'Consultá los planes escritos para esta posición.';
-  window.IB_ARROWS?.setReferenceArrows(el('opening-plan-arrows').checked?arrows:[],fens[ply]);
+  window.IB_ARROWS?.setReferenceArrows(arrows,fens[ply]);
+ }
+ let variantFingerprint='';
+ function renderFamilyVariants(){
+  variantsPanel.hidden=!studyFamily;
+  if(!studyFamily)return;
+  const variants=familyVariants(studyFamily);
+  const fingerprint=JSON.stringify([studyFamily,variants.map(item=>[item.id,item.name,item.eco])]);
+  if(variantFingerprint!==fingerprint){
+   variantFingerprint=fingerprint;
+   variantList.replaceChildren(...variants.map(item=>{
+    const link=mk('a','','opening-family-variant');
+    link.href=familyHref(studyFamily,item.id);
+    link.dataset.study=item.id;
+    link.append(mk('strong',item.name),mk('small',item.eco||item.family));
+    link.onclick=event=>{
+     if(!normalLinkClick(event))return;
+     event.preventDefault();
+     if(!open({analysis:true,family:studyFamily,study:item.id,scroll:false}))return;
+     const url=familyHref(studyFamily,item.id);
+     if(location.pathname+location.search!==url)history.pushState({section:'openings'},'',url);
+    };
+    return link;
+   }));
+  }
+  for(const link of variantList.children){
+   if(link.dataset.study===selected)link.setAttribute('aria-current','true');
+   else link.removeAttribute('aria-current');
+  }
  }
  function renderFocused(draft){
   const {fens}=validateOpeningLine(draft.moves);
@@ -538,8 +599,9 @@ export function initOpeningResearch({state,loadPGN,jump,notify,getLiveSnapshot})
   el('opening-focus-position').textContent=(state.previewFen?'Variante de Stockfish':
     ply===fens.length-1?'Posición final':'Media jugada '+ply+' de '+(fens.length-1))+
     ' · Juegan '+(fen.split(' ')[1]==='w'?'blancas':'negras');
-  document.querySelector('.topbar h1').textContent=draft.name;
-  document.querySelector('.topbar p').textContent=[draft.family,draft.eco].filter(Boolean).join(' · ');
+  document.querySelector('.topbar h1').textContent=studyFamily||draft.name;
+  document.querySelector('.topbar p').textContent=[studyFamily?draft.name:draft.family,draft.eco].filter(Boolean).join(' · ');
+  renderFamilyVariants();
   returnLink.href=studyHref(selected);
   renderPlans(draft,fens,ply);
  }
@@ -550,7 +612,8 @@ export function initOpeningResearch({state,loadPGN,jump,notify,getLiveSnapshot})
   renderCatalog();
   renderPositionTree();
   const selectedStudyLink=el('opening-lab-study-link');
-  selectedStudyLink.href=studyHref(selected);
+  selectedStudyLink.href=familyHref(draft.family,selected);
+  el('opening-lab-open').href=selectedStudyLink.href;
   selectedStudyLink.setAttribute('aria-label','Abrir '+draft.name+' en otra pestaña');
   const ownStudy=data.custom.some(x=>x.id===selected);
   el('opening-lab-study-type').textContent=ownStudy?'Estudio personal privado · editable':draft.model?'Partida modelo · '+draft.model:'Capítulo de investigación · borrador';
@@ -733,7 +796,9 @@ export function initOpeningResearch({state,loadPGN,jump,notify,getLiveSnapshot})
   }
  });
  el('opening-plan-arrows').onchange=()=>render();
- el('opening-lab-open').onclick=()=>{
+ el('opening-lab-open').onclick=event=>{
+  if(!normalLinkClick(event))return;
+  event.preventDefault();
   const previousPly=currentPly();
   if(!open({analysis:true}))return;
   history.replaceState({...history.state,openingPly:previousPly},'');
@@ -933,8 +998,10 @@ export function initOpeningResearch({state,loadPGN,jump,notify,getLiveSnapshot})
    downloadPgn(makePgn(pick()),'IB_Apertura_'+selected+'.pgn');
   }catch(e){notify(e.message,'err');}
  };
- function open({analysis=false,study,ply}={}){
-  const draft=entries().find(entry=>entry.id===(study||selected))||pick();
+ function open({analysis=false,study,ply,family='',scroll=true}={}){
+  const variants=familyVariants(family);
+  const draft=variants.length?(variants.find(entry=>entry.id===study)||variants[0]):
+    entries().find(entry=>entry.id===(study||selected))||pick();
   if(!draft)return false;
   const changed=selected!==draft.id;
   const needsLoad=state.game?.headers?.ResearchID!==draft.id;
@@ -948,7 +1015,9 @@ export function initOpeningResearch({state,loadPGN,jump,notify,getLiveSnapshot})
   selected=draft.id;
   if(changed)invalidateBranchPreview();
   visible=true;
-  focused=analysis;
+  studyFamily=variants.length?family:'';
+  focused=analysis||Boolean(studyFamily);
+  variantsPanel.hidden=!studyFamily;
   panel.hidden=focused;
   explorer.hidden=focused;
   focusPanel.hidden=returnLink.hidden=!focused;
@@ -972,12 +1041,14 @@ export function initOpeningResearch({state,loadPGN,jump,notify,getLiveSnapshot})
   else render();
   document.title=draft.name+' · IB Chess Analyzer';
   window.IB_LIVE?.positionChanged(true);
-  window.scrollTo?.(0,0);
+  if(scroll)window.scrollTo?.(0,0);
   return true;
  }
  function close(){
   if(!visible)return;
   visible=focused=false;
+  studyFamily='';
+  variantsPanel.hidden=true;
   panel.hidden=explorer.hidden=focusPanel.hidden=returnLink.hidden=true;
   plansHome.after(plans);
   window.IB_ARROWS?.setReferenceArrows([]);

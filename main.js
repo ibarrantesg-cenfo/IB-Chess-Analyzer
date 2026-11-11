@@ -407,11 +407,11 @@ for(const section of ROUTES){
  });
 }
 function activateLocationSection(){
- const {view,study,analysis}=sectionFromSearch(location.search);
+ const {view,study,analysis,family}=sectionFromSearch(location.search);
  const nav=document.getElementById('nav-'+view);
  if(!nav||nav.hidden){nativeHandlers.get('review')?.();return;}
  if(view==='openings'){
-  nativeHandlers.get(view)?.call(nav,{study,analysis,ply:analysis?undefined:history.state?.openingPly??0});
+  nativeHandlers.get(view)?.call(nav,{study,analysis,family,ply:analysis?undefined:history.state?.openingPly??0});
  }else nativeHandlers.get(view)?.call(nav);
  document.title=(view==='openings'?(window.IB_OPENING_LAB?.getCurrentTitle()||'Biblioteca Maestra'):nav.textContent.trim())+' · IB Chess Analyzer';
 }
