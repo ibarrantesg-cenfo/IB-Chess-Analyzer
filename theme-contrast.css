@@ -124,3 +124,14 @@
 .opening-family-variant {display:grid;gap:3px;padding:9px 11px;border:1px solid var(--ui-edge);border-radius:8px;color:var(--ui-ink);text-decoration:none;font-size:13px;}
 .opening-family-variant:hover,.opening-family-variant[aria-current="true"] {background:var(--ui-active);color:var(--ui-on-active);}
 .opening-family-variant[aria-current="true"] {border-inline-start:4px solid var(--ui-accent);}
+
+/* Keep engine suggestions beside their position in the opening's move sequence. */
+.move-list .move-white {grid-column:2;}
+.move-list .move-black {grid-column:3;}
+.opening-study-mode #live-lines {display:none;}
+.opening-study-mode #live-explanation {display:none;}
+.opening-study-mode .move-list {max-height:min(380px,50vh);}
+.engine-move-branches {grid-column:1/-1;display:flex;flex-wrap:wrap;align-items:center;gap:5px;margin:1px 0 5px 12px;padding:7px;border-inline-start:2px solid var(--ui-edge);background:var(--ui-raised);border-radius:6px;}
+.engine-move-label {color:var(--ui-muted);font-size:11px;margin-right:3px;}
+.move-list .engine-suggestion,.move-list .engine-variation-step {padding:5px 7px;white-space:nowrap;}
+.engine-variation-continuation {flex-basis:100%;display:flex;flex-wrap:wrap;gap:3px;}

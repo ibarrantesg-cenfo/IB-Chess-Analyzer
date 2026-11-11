@@ -25,6 +25,8 @@ const $ = (s) => document.querySelector(s);
 const state = {games:[], game:null, move:0, positions:[], evaluations:[], reports:[], worker:null, busy:false, stop:false, depth:18, mode:'lite', orientation:(localStorage.getItem('ib-board-orientation')==='black'?'black':'white'), lines:[], engineReady:false,analysisCache:new Map()};
 const glyphs = {wk:'♔',wq:'♕',wr:'♖',wb:'♗',wn:'♘',wp:'♙',bk:'♚',bq:'♛',br:'♜',bb:'♝',bn:'♞',bp:'♟'};
 const files='abcdefgh';
+const engineLinesByGame=new WeakMap();
+const openingMovesVisible=()=>document.querySelector('main.main').classList.contains('opening-study-mode');
 const demo=`[Event "Demostración · Gambito de dama"]\n[Site "IB Chess Academy"]\n[Date "2026.10.27"]\n[White "Blancas"]\n[Black "Negras"]\n[Result "*"]\n\n1. d4 d5 2. c4 e6 3. Nc3 Nf6 4. Bg5 Be7 5. e3 O-O 6. Nf3 Nbd7 7. Rc1 c6 8. Bd3 dxc4 9. Bxc4 Nd5 10. Bxe7 Qxe7 *`;
 function esc(s){return String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
 function parsePGN(text){
@@ -46,7 +48,7 @@ function loadText(text, source='Archivo PGN'){
  notify(parsed.length+' partida(s) importadas de '+source+'.');
  return parsed.length;
 }
-function chooseGame(i){state.game=state.games[i];state.positions=[state.game.moves[0].before,...state.game.moves.map(move=>move.after)];state.move=0;const cached=state.analysisCache.get(i);state.evaluations=cached?.evaluations||[];state.reports=cached?.reports||[];state.lines=[];if(!cached){const current=state.game;findReview(current).then(saved=>{if(!saved)return;const idx=state.games.indexOf(current);if(idx<0)return;state.analysisCache.set(idx,saved);if(state.game===current){state.evaluations=saved.evaluations;state.reports=saved.reports;render();}window.IB_PERFORMANCE?.analysisFinished();}).catch(console.warn);}if(window.IB_STUDIO)window.IB_STUDIO.gameChanged();render();window.IB_LIVE?.positionChanged(true);window.IB_PERFORMANCE?.gameChanged();}
+function chooseGame(i){window.IB_LIVE?.exitPlayback();state.previewFen=null;state.game=state.games[i];state.positions=[state.game.moves[0].before,...state.game.moves.map(move=>move.after)];state.move=0;const cached=state.analysisCache.get(i);state.evaluations=cached?.evaluations||[];state.reports=cached?.reports||[];state.lines=[];if(!cached){const current=state.game;findReview(current).then(saved=>{if(!saved)return;const idx=state.games.indexOf(current);if(idx<0)return;state.analysisCache.set(idx,saved);if(state.game===current){state.evaluations=saved.evaluations;state.reports=saved.reports;render();}window.IB_PERFORMANCE?.analysisFinished();}).catch(console.warn);}if(window.IB_STUDIO)window.IB_STUDIO.gameChanged();render();window.IB_LIVE?.positionChanged(true);window.IB_PERFORMANCE?.gameChanged();}
 function currentBoard(){return new Chess(state.previewFen||state.positions[state.move]||new Chess().fen());}
 function fmtEv(cp){if(cp==null)return '—'; if(Math.abs(cp)>5000)return (cp>0?'+':'−')+'M';return (cp>=0?'+':'')+(cp/100).toFixed(2);}
 function bestSan(fen,uci){if(!uci||!fen||uci==='(none)')return '—';try{const c=new Chess(fen);return c.move({from:uci.slice(0,2),to:uci.slice(2,4),promotion:uci[4]||'q'}).san;}catch{return uci;}}
@@ -61,7 +63,73 @@ function pieceMarkup(p){
 }
 function boardHTML(){const c=currentBoard(), reversed=state.orientation==='black', rankArr=reversed?[1,2,3,4,5,6,7,8]:[8,7,6,5,4,3,2,1], fileArr=reversed?[...files].reverse():[...files];let out='';const last=state.game?.moves[state.move-1];for(const r of rankArr) for(const f of fileArr){let sq=f+r,p=c.get(sq),highlight=last&&(last.from===sq||last.to===sq);out+=`<div class="square ${(files.indexOf(f)+r)%2===0?'light':'dark'} ${highlight?'highlight':''}" title="${sq}">${p?pieceMarkup(p):''}${f===fileArr[0]?`<span class="coord rank">${r}</span>`:''}${r===rankArr[7]?`<span class="coord file">${f}</span>`:''}</div>`;}return out;}
 function render(){const g=state.game;if(!g)return;$('#game-select').innerHTML=state.games.map((x,i)=>`<option value="${i}" ${g===x?'selected':''}>${i+1}. ${esc(x.headers.White||'?')} – ${esc(x.headers.Black||'?')} (${esc(x.headers.Result||'*')})</option>`).join('');$('#game-meta').textContent=[g.headers.Event,g.headers.Date].filter(Boolean).join('  ·  ')||'Partida importada';$('#board').innerHTML=boardHTML();$('#move-count').textContent=`${state.move} / ${g.moves.length} medias jugadas`;$('#position-fen').textContent=state.positions[state.move];renderMoves();renderReport();drawChart();}
-function renderMoves(){let html='';for(let i=0;i<state.game.moves.length;i++){const m=state.game.moves[i], r=state.reports[i], active=state.move===i+1, isWhite=i%2===0;if(isWhite)html+=`<span class="move-no">${Math.floor(i/2)+1}.</span>`;html+=`<button class="move ${active?'selected':''}" data-ply="${i+1}">${esc(m.san)}${r?`<span class="mark ${r.type}">${r.symbol}</span>`:''}</button>`;}$('#move-list').innerHTML=html;const list=$('#move-list'), active=list.querySelector('.move.selected');if(active){const top=active.offsetTop,bottom=top+active.offsetHeight;if(top<list.scrollTop)list.scrollTop=top-10;else if(bottom>list.scrollTop+list.clientHeight)list.scrollTop=bottom-list.clientHeight+10;}}
+function engineBranchMarkup(ply,items){
+ const playback=window.IB_LIVE?.playback();
+ const fromCurrentBranch=state.move===ply&&playback?.fen===state.positions[ply];
+ const branches=items.map(([rank,item])=>{
+  const active=fromCurrentBranch&&playback.rank===rank;
+  const first=item.moves[0];
+  const number=first.before.split(' ')[5]+(first.color==='w'?'.':'…');
+  const button=(label,index,classes,current=false)=>
+   `<button type="button" class="${classes}" data-engine-ply="${ply}" data-engine-rank="${rank}" data-engine-index="${index}"${current?' aria-current="step"':''}>${esc(label)}</button>`;
+  const suggestion=button(number+' '+first.san+' · '+item.score,1,'move engine-suggestion'+(active?' selected':''));
+  if(!active)return suggestion;
+  const continuation=item.moves.map((move,index)=>{
+   const prefix=move.color==='w'||index===0?move.before.split(' ')[5]+(move.color==='w'?'. ':'… '):'';
+   return button(prefix+move.san,index+1,'move engine-variation-step'+(playback.cursor===index+1?' selected':''),playback.cursor===index+1);
+  }).join('');
+  return suggestion+`<div class="engine-variation-continuation">${continuation}</div>
+   <div class="engine-variation-continuation"><button type="button" class="move" data-engine-action="return">Volver a la línea principal</button><button type="button" class="move" data-engine-action="save">Guardar variante</button></div>`;
+ }).join('');
+ return `<div class="engine-move-branches" data-engine-origin="${ply}"><span class="engine-move-label" title="Evaluación desde las blancas">Sugerencias de Stockfish</span>${branches}</div>`;
+}
+function scrollMoveIntoView(list,node){
+ if(!node)return;
+ const top=node.offsetTop,bottom=top+node.offsetHeight;
+ if(top<list.scrollTop)list.scrollTop=top-8;
+ else if(bottom>list.scrollTop+list.clientHeight)list.scrollTop=bottom-list.clientHeight+8;
+}
+function receiveEngineLines(fen,items){
+ if(!openingMovesVisible()||state.previewFen||state.positions[state.move]!==fen)return;
+ let positions=engineLinesByGame.get(state.game);
+ if(!positions){positions=new Map();engineLinesByGame.set(state.game,positions);}
+ const ply=state.move;
+ const previous=positions.get(ply);
+ positions.set(ply,items);
+ const list=$('#move-list');
+ const existing=list.querySelector(`[data-engine-origin="${ply}"]`);
+ const markup=engineBranchMarkup(ply,items);
+ if(existing){
+  const focused=document.activeElement;
+  const rank=existing.contains(focused)?focused.dataset.engineRank:null;
+  if(existing.outerHTML===markup)return;
+  existing.outerHTML=markup;
+  if(rank)list.querySelector(`[data-engine-origin="${ply}"] [data-engine-rank="${rank}"]`)?.focus({preventScroll:true});
+ }else{
+  const anchor=list.querySelector(`[data-ply="${ply}"]`);
+  if(anchor)anchor.insertAdjacentHTML('afterend',markup);
+  else if(ply===0)list.insertAdjacentHTML('afterbegin',markup);
+ }
+ if(!previous)scrollMoveIntoView(list,list.querySelector(`[data-engine-origin="${ply}"]`));
+}
+function renderMoves(){
+ const positions=openingMovesVisible()?engineLinesByGame.get(state.game):null;
+ const branchesAt=ply=>positions?.has(ply)?engineBranchMarkup(ply,positions.get(ply)):'';
+ let html=branchesAt(0);
+ for(let i=0;i<state.game.moves.length;i++){
+  const m=state.game.moves[i],report=state.reports[i],ply=i+1;
+  const active=state.move===ply;
+  const white=m.color==='w';
+  if(white||i===0||positions?.has(i))html+=`<span class="move-no">${m.before.split(' ')[5]}${white?'.':'…'}</span>`;
+  html+=`<button type="button" class="move ${white?'move-white':'move-black'}${active?' selected':''}" data-ply="${ply}">${esc(m.san)}${report?`<span class="mark ${report.type}">${report.symbol}</span>`:''}</button>`;
+  html+=branchesAt(ply);
+ }
+ const list=$('#move-list');
+ list.innerHTML=html;
+ const suggestion=list.querySelector(`[data-engine-origin="${state.move}"]`);
+ const current=list.querySelector('[aria-current="step"]')||suggestion||list.querySelector('.move.selected');
+ scrollMoveIntoView(list,current);
+}
 function jump(ply){const oldPly=state.move;window.IB_LIVE?.exitPlayback();state.move=Math.max(0,Math.min(state.positions.length-1,ply));if(Math.abs(state.move-oldPly)===1&&soundSettings().history){const move=state.game?.moves[Math.min(oldPly,state.move)];if(move){const type=move.flags?.includes('c')||move.flags?.includes('e')?'capture':move.flags?.includes('k')||move.flags?.includes('q')?'castle':move.promotion?'promotion':move.san?.includes('+')?'check':'move';playChessSound(type);}}state.previewFen=null;window.IB_STUDIO?.selectionChanged();render();window.IB_LIVE?.positionChanged();window.IB_OPENING_LAB?.positionChanged?.();}
 function classify(loss,{isBest=false,interesting=false,brilliant=false}={}){
  if(loss>220)return {type:'blunder',label:'Error grave',symbol:'??'};
@@ -268,7 +336,25 @@ $('#paste-pgn-import').onclick=()=>{
  guideAction.focus();
 };
 
-$('#game-select').addEventListener('change',e=>{stopAnalysis();chooseGame(Number(e.target.value));});$('#move-list').addEventListener('click',e=>{const b=e.target.closest('[data-ply]');if(b)jump(Number(b.dataset.ply));});
+$('#game-select').addEventListener('change',e=>{stopAnalysis();chooseGame(Number(e.target.value));});$('#move-list').addEventListener('click',event=>{
+ const action=event.target.closest('[data-engine-action]')?.dataset.engineAction;
+ if(action==='return'){window.IB_LIVE.exitPlayback();return;}
+ if(action==='save'){window.IB_LIVE.savePlayback();return;}
+ const branch=event.target.closest('[data-engine-ply]');
+ if(branch){
+  const ply=Number(branch.dataset.enginePly);
+  const items=engineLinesByGame.get(state.game)?.get(ply);
+  if(!items)return;
+  const rank=Number(branch.dataset.engineRank),index=Number(branch.dataset.engineIndex);
+  jump(ply);
+  window.IB_LIVE.replayLines(state.positions[ply],items,rank,index);
+  const active=$('#move-list').querySelector('[aria-current="step"]');
+  active?.focus({preventScroll:true});
+  return;
+ }
+ const move=event.target.closest('[data-ply]');
+ if(move)jump(Number(move.dataset.ply));
+});
 function stepDisplayedLine(delta){
  if(window.IB_LIVE?.isPlayingBack?.())return window.IB_LIVE.stepPlayback(delta);
  if(window.IB_STUDIO?.isVariationActive?.())return window.IB_STUDIO.stepVariation(delta);
@@ -328,7 +414,7 @@ window.IB_WORKSPACE=initWorkspace();
 window.IB_APPEARANCE=initBoardAppearance({refreshPieces:()=>{if(state.game){$('#board').innerHTML=boardHTML();window.IB_ARROWS?.positionChanged();}}});
 if(state.game)$('#board').innerHTML=boardHTML(); // restore saved SVG set immediately
 window.IB_ARROWS=initBoardArrows({getFen:()=>state.previewFen||state.positions[state.move],getOrientation:()=>state.orientation,isEditing:()=>document.getElementById('studio-paint')?.checked});
-window.IB_LIVE=initLiveAnalysis({isGameReviewBusy:()=>state.busy,getFen:()=>state.previewFen||state.positions[state.move],onPreview:(fen)=>{state.previewFen=fen;render();window.IB_OPENING_LAB?.previewChanged();window.IB_WORKSPACE?.variationChanged(true);},onLeavePreview:()=>{state.previewFen=null;render();window.IB_OPENING_LAB?.previewChanged();window.IB_WORKSPACE?.variationChanged(false);},onEvaluation(evaluation){liveBoardEvaluation=evaluation;updateBoardEvaluation();},getEngineUrl:()=>`${import.meta.env.BASE_URL}engine/stockfish-19-lite-single.js`,notify,onSaveVariation:(moves,notes)=>{
+window.IB_LIVE=initLiveAnalysis({isGameReviewBusy:()=>state.busy,getFen:()=>state.previewFen||state.positions[state.move],onPreview:(fen)=>{state.previewFen=fen;render();window.IB_OPENING_LAB?.previewChanged();window.IB_WORKSPACE?.variationChanged(true);},onLeavePreview:()=>{state.previewFen=null;render();window.IB_OPENING_LAB?.previewChanged();window.IB_WORKSPACE?.variationChanged(false);},onEvaluation(evaluation){liveBoardEvaluation=evaluation;updateBoardEvaluation();},onLines:receiveEngineLines,getEngineUrl:()=>`${import.meta.env.BASE_URL}engine/stockfish-19-lite-single.js`,notify,onSaveVariation:(moves,notes)=>{
  if(window.IB_OPENING_LAB?.isOpen?.()){window.IB_OPENING_LAB.addEngineVariation(moves,notes);return;}
  if(window.IB_STUDIO?.addEngineVariation(state.move,moves,notes))notify('Alternativa y comentario guardados en el estudio.');
 }});

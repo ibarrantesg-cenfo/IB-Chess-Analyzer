@@ -2,7 +2,7 @@ import { Chess } from 'chess.js';
 
 // UCI analysis runs in its own Web Worker. Batch Game Review is a separate engine.
 // No network calls or paid API are required.
-export function initLiveAnalysis({getFen,getEngineUrl,notify,onSaveVariation,onPreview,onLeavePreview,onEvaluation,isGameReviewBusy=()=>false}) {
+export function initLiveAnalysis({getFen,getEngineUrl,notify,onSaveVariation,onPreview,onLeavePreview,onEvaluation,onLines,isGameReviewBusy=()=>false}) {
   const host=document.querySelector('.analysis-column');
   const panel=document.createElement('div');
   panel.className='panel live-analysis-panel';
@@ -74,7 +74,7 @@ export function initLiveAnalysis({getFen,getEngineUrl,notify,onSaveVariation,onP
     return lead+' '+other+' '+idea(first,activeFen)+forcing+' El turno inicial corresponde a las '+initiative+'. La evaluación puede cambiar al profundizar.';
   };
   function playbackFen(item,index){
-    const c=new Chess(activeFen);
+    const c=new Chess(playback.fen);
     for(const move of item.moves.slice(0,index))c.move({from:move.from,to:move.to,promotion:move.promotion||'q'});
     return c.fen();
   }
@@ -88,10 +88,12 @@ export function initLiveAnalysis({getFen,getEngineUrl,notify,onSaveVariation,onP
     $('pv-back').disabled=playback.cursor===0;
     $('pv-next').disabled=playback.cursor>=item.moves.length;
   }
-  function enterPlayback(n,index=0){
-    const item=lines.get(n);if(!item)return;
-    const snapshot=new Map(lines);
-    playback={rank:n,cursor:index,item,fen:activeFen};
+  function enterPlayback(n,index=0,fen=activeFen,source=lines){
+    const item=source.get(n);
+    if(!item||(!playback&&fen!==getFen()))return;
+    const snapshot=new Map(source);
+    index=Math.max(0,Math.min(index,item.moves.length));
+    playback={rank:n,cursor:index,item,fen};
     paused=true;clearTimeout(debounce);stopWorker(); // Freeze calculated lines while replaying.
     lines=snapshot;activeFen=playback.fen;
     onPreview?.(playbackFen(item,index),true);
@@ -114,10 +116,17 @@ export function initLiveAnalysis({getFen,getEngineUrl,notify,onSaveVariation,onP
     if(!playback)return;
     playback=null;paused=false;onLeavePreview?.();draw();update(true);
   }
+  function saveVariation(item,rank,fen){
+    const notes='Stockfish, alternativa '+rank+' ('+item.score+', profundidad '+item.depth+'): '+item.san+'. '+idea(item.moves[0],fen);
+    onSaveVariation?.(item.moves.map(move=>move.san),notes);
+  }
   function draw(){
     const principal=lines.get(1);
     onEvaluation?.(enabled&&!paused&&!playback&&activeFen===getFen()&&principal?
       {fen:activeFen,score:principal.score,depth:principal.depth}:null);
+    if(enabled&&!paused&&!playback&&activeFen===getFen()&&lines.size){
+      onLines?.(activeFen,[...lines.entries()].sort(([a],[b])=>a-b));
+    }
     const status=$('live-status');
     status.textContent=!enabled?'Pausado':playback?'Reproduciendo variante':paused?'Análisis pausado':loading?'Cargando Stockfish':busy?'Calculando':'Listo';
     status.className='live-chip'+(busy?' live-running':'');
@@ -149,8 +158,9 @@ export function initLiveAnalysis({getFen,getEngineUrl,notify,onSaveVariation,onP
       card.dataset.rank=String(n);
       card.open=expandedRanks.has(n);
       const header=document.createElement('summary');header.className='live-line-head';
-      header.setAttribute('aria-label','Variante Stockfish '+n+', evaluación '+item.score+', profundidad '+item.depth);
-      const title=document.createElement('strong');title.textContent='#'+n+' · '+item.score;
+      const suggestion=item.moves[0].san;
+      header.setAttribute('aria-label','Variante Stockfish '+n+', '+suggestion+', evaluación '+item.score+', profundidad '+item.depth);
+      const title=document.createElement('strong');title.textContent='#'+n+' · '+suggestion+' · '+item.score;
       const depth=document.createElement('span');depth.textContent='d'+item.depth+' · '+(n===1?'Principal':'Alternativa');
       header.append(title,depth);
       card.append(header);
@@ -173,10 +183,7 @@ export function initLiveAnalysis({getFen,getEngineUrl,notify,onSaveVariation,onP
       const save=document.createElement('button');save.type='button';save.className='live-save-line';
       save.textContent=document.querySelector('main.main')?.classList.contains('opening-study-mode')?'＋ Guardar en este estudio':'＋ Añadir al estudio';
       save.title='Guardar esta continuación como una rama vinculada a la posición actual';
-      save.onclick=()=>{
-        const notes='Stockfish, alternativa '+n+' ('+item.score+', profundidad '+item.depth+'): '+item.san+'. '+idea(item.moves[0],activeFen);
-        onSaveVariation?.(item.moves.map(m=>m.san),notes);
-      };
+      save.onclick=()=>saveVariation(item,n,activeFen);
       actions.append(replay,save);
       body.append(variation,explanation,actions);card.append(body);
       // The engine updates continuously: preserve which lines the user opened.
@@ -263,6 +270,9 @@ export function initLiveAnalysis({getFen,getEngineUrl,notify,onSaveVariation,onP
   return {
     positionChanged:update,
     isPlayingBack:()=>Boolean(playback),
+    playback:()=>playback,
+    savePlayback(){if(playback)saveVariation(playback.item,playback.rank,playback.fen);},
+    replayLines(fen,items,rank,index){enterPlayback(rank,index,fen,new Map(items));},
     stepPlayback:changePlayback,
     seekPlayback,
     exitPlayback,
