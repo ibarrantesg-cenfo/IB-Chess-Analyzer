@@ -95,3 +95,21 @@
 .toolbar .label-inline select {min-width:0;max-width:100%;}
 .toolbar>.review-guide {min-width:0;flex-basis:100%;}
 #board .board-arrows path {stroke:#172331;stroke-width:3;paint-order:stroke fill;filter:drop-shadow(0 0 1px #fff);}
+
+/* Accessibility follow-up: preserve contextual messages when broad panel text rules apply.
+   These rules are intentionally theme-independent and use semantic tokens. */
+:root[data-theme] :is(.opening-lab-warning,.academic-alert,.library-warning) :is(p,small,label,strong,span) {
+ color:var(--ui-warning);
+}
+:root[data-theme] :is(.library-workspace .library-paste-note[data-type="error"],.toast.err) :is(p,small,label,strong,span) {
+ color:var(--ui-error);
+}
+:root[data-theme] :is(.library-workspace .library-paste-note[data-type="success"],.toast:not(.err)) :is(p,small,label,strong,span) {
+ color:var(--ui-success);
+}
+/* Do not let theme-specific background rules obscure native selection and text links. */
+:root[data-theme] ::selection {background:var(--ui-active);color:var(--ui-on-active);}
+:root[data-theme] :is(a,button,summary,[role="button"]):focus-visible {
+ outline:3px solid var(--ui-accent);
+ outline-offset:3px;
+}
