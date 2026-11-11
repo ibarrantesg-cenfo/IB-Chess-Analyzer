@@ -14,6 +14,9 @@ test('every workspace has a stable, browser-native deep link',()=>{
  }
  assert.equal(sectionHref('openings',origin,'najdorf-h5'),'/IB-Chess-Analyzer/?theme=dark&view=openings&study=najdorf-h5');
  assert.equal(sectionFromSearch('?view=openings&study=caro-short').study,'caro-short');
+ const focusUrl=sectionHref('openings',origin,'najdorf-h5',true);
+ assert.deepEqual(sectionFromSearch(new URL(focusUrl,origin).search),{view:'openings',study:'najdorf-h5',analysis:true});
+ assert.equal(sectionHref('review',new URL(focusUrl,origin)),'/IB-Chess-Analyzer/?theme=dark&view=review');
  assert.equal(sectionFromSearch('?view=bad-route').view,'review');
  assert.throws(()=>sectionHref('bad-route',origin),/inexistente/);
 });

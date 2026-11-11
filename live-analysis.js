@@ -2,7 +2,7 @@ import { Chess } from 'chess.js';
 
 // UCI analysis runs in its own Web Worker. Batch Game Review is a separate engine.
 // No network calls or paid API are required.
-export function initLiveAnalysis({getFen,getEngineUrl,notify,onSaveVariation,onPreview,onLeavePreview,isGameReviewBusy=()=>false}) {
+export function initLiveAnalysis({getFen,getEngineUrl,notify,onSaveVariation,onPreview,onLeavePreview,onEvaluation,isGameReviewBusy=()=>false}) {
   const host=document.querySelector('.analysis-column');
   const panel=document.createElement('div');
   panel.className='panel live-analysis-panel';
@@ -115,6 +115,9 @@ export function initLiveAnalysis({getFen,getEngineUrl,notify,onSaveVariation,onP
     playback=null;paused=false;onLeavePreview?.();draw();update(true);
   }
   function draw(){
+    const principal=lines.get(1);
+    onEvaluation?.(enabled&&!paused&&!playback&&activeFen===getFen()&&principal?
+      {fen:activeFen,score:principal.score,depth:principal.depth}:null);
     const status=$('live-status');
     status.textContent=!enabled?'Pausado':playback?'Reproduciendo variante':paused?'Análisis pausado':loading?'Cargando Stockfish':busy?'Calculando':'Listo';
     status.className='live-chip'+(busy?' live-running':'');

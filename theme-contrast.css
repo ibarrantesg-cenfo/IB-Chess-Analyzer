@@ -95,3 +95,21 @@
 .toolbar .label-inline select {min-width:0;max-width:100%;}
 .toolbar>.review-guide {min-width:0;flex-basis:100%;}
 #board .board-arrows path {stroke:#172331;stroke-width:3;paint-order:stroke fill;filter:drop-shadow(0 0 1px #fff);}
+
+/* Opening analysis uses the shared board, engine and move list. */
+.opening-focus-panel[hidden], .opening-focus-return[hidden] {display:none;}
+.opening-focus-return {margin-bottom:14px;}
+.opening-analysis-mode .analysis-column > .opening-focus-panel {order:-4;padding:16px;}
+.opening-focus-panel > h2 {font:700 18px Outfit,sans-serif;margin:0 0 5px;}
+#opening-focus-position {font-size:13px;margin:0;}
+.opening-focus-panel .opening-position-plans {margin:14px 0 0;}
+.opening-analysis-mode .live-analysis-panel .eyebrow {display:none;}
+.opening-analysis-mode .live-analysis-panel h2 {font-size:16px;}
+.opening-arrow-legend {list-style:none;padding:0;margin:12px 0 0;font-size:13px;line-height:1.5;}
+.opening-arrow-legend li {display:flex;align-items:baseline;gap:6px;margin:6px 0;}
+.opening-arrow-legend .plan-dot {flex:none;}
+.opening-analysis-mode .layout {grid-template-columns:minmax(0,1fr) minmax(0,1fr);}
+@media(max-width:940px){
+ .opening-analysis-mode .layout {grid-template-columns:minmax(0,1fr);}
+ .opening-analysis-mode .board-column {max-width:600px;width:100%;margin-inline:auto;}
+}

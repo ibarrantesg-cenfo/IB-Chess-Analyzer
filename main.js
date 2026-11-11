@@ -288,7 +288,30 @@ $('#last').onclick=()=>{if(!seekDisplayedLine(true))jump(state.positions.length-
  if(e.key==='ArrowRight'){e.preventDefault();if(!stepDisplayedLine(1))jump(state.move+1);}
 });window.addEventListener('resize',drawChart);
 const g=parsePGN(demo);state.games=g;chooseGame(0);updateReviewGuide();$('#black-name').textContent=state.game.headers.Black||'Negras';$('#white-name').textContent=state.game.headers.White||'Blancas';
-const initialRender=render;render=function(){initialRender();updateReviewGuide();$('#black-name').textContent=[state.game?.headers.BlackTitle,state.game?.headers.Black||'Negras'].filter(Boolean).join(' ');$('#white-name').textContent=[state.game?.headers.WhiteTitle,state.game?.headers.White||'Blancas'].filter(Boolean).join(' ');const cp=state.evaluations[state.move]?.cp;$('#eval-fill').style.height=(cp==null?50:(50+Math.tanh(cp/430)*46))+'%';$('#board-eval-value').textContent=state.previewFen?'Variante':fmtEv(cp);$('#board-eval-note').textContent=state.previewFen?'Evaluación en el panel de variantes':cp==null?'Análisis pendiente':'Ventaja '+(Math.abs(cp)<30?'equilibrada':cp>0?'blancas':'negras');};render();
+let liveBoardEvaluation=null;
+function updateBoardEvaluation(){
+ const fen=state.previewFen||state.positions[state.move];
+ const focused=document.querySelector('main.main').classList.contains('opening-analysis-mode');
+ const live=focused&&liveBoardEvaluation?.fen===fen?liveBoardEvaluation:null;
+ const cp=state.evaluations[state.move]?.cp;
+ let score=focused||state.previewFen?null:cp;
+ if(live)score=live.score.includes('M')?(live.score.startsWith('+')?10000:-10000):Number(live.score)*100;
+ $('#eval-fill').style.height=(score==null||!Number.isFinite(score)?50:50+Math.tanh(score/430)*46)+'%';
+ $('#board-eval-value').textContent=focused?(live?.score||'—'):state.previewFen?'Variante':fmtEv(cp);
+ $('#board-eval-note').textContent=focused?(live?'Profundidad '+live.depth:
+  state.previewFen?'Variante del motor':'Evaluación de la posición') :
+  state.previewFen?'Evaluación en el panel de variantes':cp==null?'Análisis pendiente':
+  Math.abs(cp)<30?'Posición equilibrada':'Ventaja '+(cp>0?'blancas':'negras');
+}
+const initialRender=render;
+render=function(){
+ initialRender();
+ updateReviewGuide();
+ $('#black-name').textContent=[state.game?.headers.BlackTitle,state.game?.headers.Black||'Negras'].filter(Boolean).join(' ');
+ $('#white-name').textContent=[state.game?.headers.WhiteTitle,state.game?.headers.White||'Blancas'].filter(Boolean).join(' ');
+ updateBoardEvaluation();
+};
+render();
 
 document.querySelectorAll('.player-edit').forEach(button=>button.addEventListener('click',async()=>{
  const side=button.dataset.side,old=state.game?.headers?.[side]||'';
@@ -305,7 +328,7 @@ window.IB_WORKSPACE=initWorkspace();
 window.IB_APPEARANCE=initBoardAppearance({refreshPieces:()=>{if(state.game){$('#board').innerHTML=boardHTML();window.IB_ARROWS?.positionChanged();}}});
 if(state.game)$('#board').innerHTML=boardHTML(); // restore saved SVG set immediately
 window.IB_ARROWS=initBoardArrows({getFen:()=>state.previewFen||state.positions[state.move],getOrientation:()=>state.orientation,isEditing:()=>document.getElementById('studio-paint')?.checked});
-window.IB_LIVE=initLiveAnalysis({isGameReviewBusy:()=>state.busy,getFen:()=>state.previewFen||state.positions[state.move],onPreview:(fen)=>{state.previewFen=fen;render();window.IB_WORKSPACE?.variationChanged(true);},onLeavePreview:()=>{state.previewFen=null;render();window.IB_WORKSPACE?.variationChanged(false);},getEngineUrl:()=>`${import.meta.env.BASE_URL}engine/stockfish-19-lite-single.js`,notify,onSaveVariation:(moves,notes)=>{
+window.IB_LIVE=initLiveAnalysis({isGameReviewBusy:()=>state.busy,getFen:()=>state.previewFen||state.positions[state.move],onPreview:(fen)=>{state.previewFen=fen;render();window.IB_OPENING_LAB?.previewChanged();window.IB_WORKSPACE?.variationChanged(true);},onLeavePreview:()=>{state.previewFen=null;render();window.IB_OPENING_LAB?.previewChanged();window.IB_WORKSPACE?.variationChanged(false);},onEvaluation(evaluation){liveBoardEvaluation=evaluation;updateBoardEvaluation();},getEngineUrl:()=>`${import.meta.env.BASE_URL}engine/stockfish-19-lite-single.js`,notify,onSaveVariation:(moves,notes)=>{
  if(window.IB_OPENING_LAB?.isOpen?.()){window.IB_OPENING_LAB.addEngineVariation(moves,notes);return;}
  if(window.IB_STUDIO?.addEngineVariation(state.move,moves,notes))notify('Alternativa y comentario guardados en el estudio.');
 }});
@@ -313,8 +336,7 @@ window.IB_LIVE=initLiveAnalysis({isGameReviewBusy:()=>state.busy,getFen:()=>stat
 
 window.IB_OPENING_LAB=initOpeningResearch({
  state,loadPGN:loadText,jump,notify,
- getLiveSnapshot:()=>window.IB_LIVE?.snapshot(),
- showReview:()=>{}
+ getLiveSnapshot:()=>window.IB_LIVE?.snapshot()
 });
 window.IB_PERFORMANCE=initPerformance({state,notify,parsePGN,analyzeGame:analyze,cancelGame:stopAnalysis,jumpGame:i=>{if(state.busy)return;chooseGame(i);},getAnalyses:()=>state.analysisCache});
 
@@ -323,9 +345,9 @@ window.IB_LOAD_STUDY=(pgn,source)=>{if(!loadText(pgn,source))return;document.que
 window.IB_LIBRARY=initLibraryWorkspace({studio:window.IB_STUDIO,notify,onOpen:()=>{window.IB_WORKSPACE?.refresh();}});
 const navReview=document.querySelector('#nav-review'),navLibrary=document.querySelector('#nav-library'),navReports=document.querySelector('#nav-reports');
 navReview.onclick=()=>{window.IB_OPENING_LAB?.close();window.IB_ACADEMY_ANALYTICS?.close();window.IB_ACADEMIC?.close();window.IB_ACADEMY?.close();window.IB_PERFORMANCE.hide();window.IB_LIBRARY.close();};
-document.querySelector('#nav-openings').onclick=()=>{
+document.querySelector('#nav-openings').onclick=(options)=>{
  window.IB_ACADEMY_ANALYTICS?.close();window.IB_ACADEMIC?.close();window.IB_ACADEMY?.close();
- window.IB_PERFORMANCE.hide();window.IB_LIBRARY.close();window.IB_OPENING_LAB?.open();
+ window.IB_PERFORMANCE.hide();window.IB_LIBRARY.close();window.IB_OPENING_LAB?.open(options);
 };
 navLibrary.onclick=()=>{window.IB_OPENING_LAB?.close();window.IB_ACADEMY_ANALYTICS?.close();window.IB_ACADEMIC?.close();window.IB_ACADEMY?.close();window.IB_PERFORMANCE.hide();window.IB_LIBRARY.open();};
 navReports.onclick=()=>{window.IB_OPENING_LAB?.close();window.IB_ACADEMY_ANALYTICS?.close();window.IB_ACADEMIC?.close();window.IB_ACADEMY?.close();window.IB_LIBRARY.close();window.IB_PERFORMANCE.show();navReview.classList.remove('active');navLibrary.classList.remove('active');};
@@ -385,14 +407,12 @@ for(const section of ROUTES){
  });
 }
 function activateLocationSection(){
- const {view,study}=sectionFromSearch(location.search);
+ const {view,study,analysis}=sectionFromSearch(location.search);
  const nav=document.getElementById('nav-'+view);
  if(!nav||nav.hidden){nativeHandlers.get('review')?.();return;}
- nativeHandlers.get(view)?.call(nav);
  if(view==='openings'){
-  const target=study||window.IB_OPENING_LAB?.getCurrentStudy();
-  if(target)window.IB_OPENING_LAB?.selectStudy(target,{push:false,openLine:true});
- }
+  nativeHandlers.get(view)?.call(nav,{study,analysis,ply:analysis?undefined:history.state?.openingPly??0});
+ }else nativeHandlers.get(view)?.call(nav);
  document.title=(view==='openings'?(window.IB_OPENING_LAB?.getCurrentTitle()||'Biblioteca Maestra'):nav.textContent.trim())+' · IB Chess Analyzer';
 }
 window.addEventListener('popstate',activateLocationSection);

@@ -57,7 +57,7 @@ test('opening UI makes all families and theory lines collapsible and offers an e
  assert.ok(ui.includes('Agregar como capítulo a un estudio existente'));
  assert.ok(ui.includes('Crear un estudio nuevo con esta línea'));
  assert.ok(ui.includes('window.IB_STUDIO.addOpeningLineToLibrary'));
- assert.ok(ui.includes('explorer.hidden=false'));
+ assert.ok(ui.includes('explorer.hidden=focused'));
  const styles=readFileSync(new URL('./style.css',import.meta.url),'utf8');
  assert.ok(styles.includes(':root[data-theme="light"] .opening-lab-catalog-line'));
  assert.ok(styles.includes(':root[data-theme="light"] .opening-lab-copy-dialog'));

@@ -1,3 +1,4 @@
+import {sectionHref} from './navigation-routes.js';
 import { openingPlans, planReferenceArrows } from './opening-plans.js';
 import { CORE_OPENING_FAMILIES } from './opening-core-families.js';
 import { OPENING_REFERENCE_LINES } from './opening-reference-lines.js';
@@ -59,7 +60,7 @@ export function validateOpeningLine(line){
  if(!sans.length)throw Error('La línea no contiene jugadas.');
  return {sans,fens};
 }
-export function initOpeningResearch({state,loadPGN,jump,notify,getLiveSnapshot,showReview}){
+export function initOpeningResearch({state,loadPGN,jump,notify,getLiveSnapshot}){
  const host=document.querySelector('.analysis-column');
  const panel=document.createElement('section');panel.className='panel opening-lab-panel';panel.id='opening-lab';panel.hidden=true;
  panel.innerHTML=`<div class="opening-lab-title"><div><span class="eyebrow">BIBLIOTECA MAESTRA · LÍNEA ACTIVA</span><h2>Explorar y analizar</h2><p>Seleccioná una línea, recorré sus jugadas en el tablero y guardá las que necesités en un estudio propio.</p></div><a href="?view=openings" id="opening-lab-study-link" class="btn outline" target="_blank" rel="noopener noreferrer" draggable="true" title="Abrí este estudio en una pestaña independiente o arrastrá el enlace">↗ Abrir en otra pestaña</a></div>
@@ -85,6 +86,7 @@ export function initOpeningResearch({state,loadPGN,jump,notify,getLiveSnapshot,s
    <h3>Planes para continuar</h3><p class="opening-lab-muted">Ideas orientativas de la familia. Elegí el plan según la estructura, la seguridad de los reyes y las amenazas de esta posición.</p>
    <div class="opening-plan-columns"><div><strong><span class="plan-dot plan-blue" aria-hidden="true"></span> Blancas · azul</strong><p id="opening-plan-white"></p></div><div><strong><span class="plan-dot plan-red" aria-hidden="true"></span> Negras · rojo</strong><p id="opening-plan-black"></p></div></div>
    <label class="opening-plan-toggle"><input type="checkbox" id="opening-plan-arrows" checked> Mostrar flechas de referencia</label>
+   <ul id="opening-plan-arrow-list" class="opening-arrow-legend" hidden></ul>
    <p id="opening-plan-arrow-note" class="opening-lab-muted"></p>
   </section>
   <p class="opening-arrow-help">Dibujá con clic derecho y arrastrá: dorado. Mantené Ctrl para azul o Ctrl + Alt para rojo. Repetí el trazo del mismo color para borrarlo; un clic izquierdo limpia tus marcas.</p>
@@ -116,6 +118,16 @@ export function initOpeningResearch({state,loadPGN,jump,notify,getLiveSnapshot,s
   <a id="opening-lab-reference" target="_blank" rel="noopener noreferrer">Abrir referencia de clasificación</a>
  </div>`;
  host.append(panel);
+ const focusPanel=mk('section','','panel opening-focus-panel');
+ focusPanel.hidden=true;
+ focusPanel.innerHTML=`<h2>Posición de estudio</h2><p id="opening-focus-position"></p>`;
+ const plans=el('opening-lab-plans');
+ const plansHome=document.createComment('Planes de la apertura');
+ plans.before(plansHome);
+ const returnLink=mk('a','← Volver a Biblioteca Maestra','btn outline opening-focus-return');
+ returnLink.hidden=true;
+ document.querySelector('.layout').before(returnLink);
+ host.prepend(focusPanel);
  // Discovery and study analysis are independent surfaces. Technical controls stay folded.
  const explorer=document.createElement('section');explorer.className='panel opening-lab-explorer';explorer.hidden=true;
  explorer.innerHTML='<div class="opening-lab-explorer-head"><span class="eyebrow">IB CHESS ACADEMY · EXPLORAR</span><h2>Biblioteca de aperturas</h2><p>Familias plegadas, líneas organizadas y acceso directo a tus estudios.</p></div>';
@@ -245,7 +257,7 @@ export function initOpeningResearch({state,loadPGN,jump,notify,getLiveSnapshot,s
  const persist=()=>{try{localStorage.setItem(KEY,JSON.stringify(data));}catch{notify('No se pudo guardar el laboratorio en este navegador. Exportá el PGN para conservarlo.','err');}};
  const catalog=[...OPENING_RESEARCH_DRAFTS,...OPENING_RESEARCH_EXPANSION,...OPENING_MODELS_2026,...OPENING_REFERENCE_LINES];
  const entries=()=>[...catalog,...data.custom].sort((a,b)=>a.family.localeCompare(b.family,'es')||a.name.localeCompare(b.name,'es'));
- let selected=OPENING_RESEARCH_DRAFTS[0]?.id,visible=false,filterText='',branchPreview=null;
+ let selected=OPENING_RESEARCH_DRAFTS[0]?.id,visible=false,focused=false,filterText='',branchPreview=null;
  const expandedFamilies=new Set(),expandedLines=new Set();
  let catalogFingerprint='';
  let activeTree=null;
@@ -302,11 +314,7 @@ export function initOpeningResearch({state,loadPGN,jump,notify,getLiveSnapshot,s
  const requestedId=new URLSearchParams(window.location.search).get('study');
  if(requestedId&&entries().some(x=>x.id===requestedId))selected=requestedId;
  const pick=()=>entries().find(x=>x.id===selected);
- const studyHref=id=>{
-   const url=new URL(window.location.href);
-   url.searchParams.delete('solicitar');url.searchParams.set('view','openings');url.searchParams.set('study',id);
-   url.hash='';return url.pathname+url.search;
- };
+ const studyHref=(id,analysis=false)=>sectionHref('openings',location.href,id,analysis);
  const invalidateBranchPreview=message=>{
    branchPreview=null;
    const button=el('opening-lab-add'),status=el('opening-lab-branch-feedback');
@@ -320,7 +328,7 @@ export function initOpeningResearch({state,loadPGN,jump,notify,getLiveSnapshot,s
    if(changed)invalidateBranchPreview('Elegí la posición de origen y revisá las jugadas de la nueva rama.');
    if(visible)document.title=(pick()?.name||'Biblioteca Maestra')+' · IB Chess Analyzer';
    if(push&&visible){
-     const url=studyHref(id);
+     const url=studyHref(id,focused);
      if(location.pathname+location.search!==url)history.pushState({view:'openings',study:id},'',url);
    }
    render();
@@ -495,8 +503,49 @@ export function initOpeningResearch({state,loadPGN,jump,notify,getLiveSnapshot,s
   if(!filtered.length)list.append(mk('p','No se encontraron líneas con ese nombre.','opening-lab-muted'));
  }
  function activeIsCorrect(){return state.game?.headers?.ResearchID===selected;}
+ function renderPlans(draft,fens,ply){
+  const finalPosition=visible&&activeIsCorrect()&&!state.previewFen&&
+    ply===fens.length-1&&state.positions[state.move]===fens[ply];
+  plans.hidden=!finalPosition;
+  const plan=openingPlans(draft);
+  el('opening-plan-white').textContent=plan.white;
+  el('opening-plan-black').textContent=plan.black;
+  const arrows=finalPosition?planReferenceArrows(fens[ply],plan):[];
+  const legend=el('opening-plan-arrow-list');
+  legend.hidden=!arrows.length;
+  legend.replaceChildren(...arrows.map(arrow=>{
+    const row=mk('li');
+    const side=arrow.side==='w'?'Blancas':'Negras';
+    const swatch=mk('span','','plan-dot '+(arrow.side==='w'?'plan-blue':'plan-red'));
+    swatch.setAttribute('aria-hidden','true');
+    const file=arrow.to.charCodeAt(0);
+    const rank=Number(arrow.to[1])+(arrow.side==='w'?1:-1);
+    const squares=[file-1,file+1].filter(f=>f>=97&&f<=104&&rank>=1&&rank<=8)
+      .map(f=>String.fromCharCode(f)+rank);
+    row.append(swatch,mk('span',side+' · '+arrow.from+' → '+arrow.to+
+      (squares.length?' · El peón controlaría '+squares.join(' y ')+'.':'.')));
+    return row;
+  }));
+  el('opening-plan-arrow-note').textContent=arrows.length?
+   'Cada flecha marca una idea para su bando. Comprobá el turno y la respuesta rival.':
+   'Consultá los planes escritos para esta posición.';
+  window.IB_ARROWS?.setReferenceArrows(el('opening-plan-arrows').checked?arrows:[],fens[ply]);
+ }
+ function renderFocused(draft){
+  const {fens}=validateOpeningLine(draft.moves);
+  const ply=Math.min(currentPly(),fens.length-1);
+  const fen=state.previewFen||fens[ply];
+  el('opening-focus-position').textContent=(state.previewFen?'Variante de Stockfish':
+    ply===fens.length-1?'Posición final':'Media jugada '+ply+' de '+(fens.length-1))+
+    ' · Juegan '+(fen.split(' ')[1]==='w'?'blancas':'negras');
+  document.querySelector('.topbar h1').textContent=draft.name;
+  document.querySelector('.topbar p').textContent=[draft.family,draft.eco].filter(Boolean).join(' · ');
+  returnLink.href=studyHref(selected);
+  renderPlans(draft,fens,ply);
+ }
  function render(){
   const draft=pick();if(!draft)return;
+  if(focused){renderFocused(draft);return;}
   renderChoices();
   renderCatalog();
   renderPositionTree();
@@ -519,16 +568,7 @@ export function initOpeningResearch({state,loadPGN,jump,notify,getLiveSnapshot,s
    chip.onclick=()=>openAt(i+1);lineEl.append(chip);
   });
   const ply=Math.min(currentPly(),sans.length),key=selected+'|'+ply;
-  const finalPosition=visible&&activeIsCorrect()&&!state.previewFen&&currentPly()===sans.length&&state.positions?.[state.move]===fens[sans.length];
-  el('opening-lab-plans').hidden=!finalPosition;
-  const plan=openingPlans(draft);
-  el('opening-plan-white').textContent=plan.white;
-  el('opening-plan-black').textContent=plan.black;
-  const referenceArrows=finalPosition?planReferenceArrows(fens[sans.length],plan):[];
-  el('opening-plan-arrow-note').textContent=referenceArrows.length?
-   'Referencias: '+referenceArrows.map(a=>(a.side==='w'?'blancas ':'negras ')+a.from+' → '+a.to).join(' · ')+'. Son alternativas para cada bando, no una secuencia ni una recomendación de Stockfish. Respetá el turno del tablero.':
-   'No se muestra una ruptura de referencia para esta posición. Revisá los planes escritos y mejorá las piezas antes de avanzar.';
-  window.IB_ARROWS?.setReferenceArrows(finalPosition&&el('opening-plan-arrows').checked?referenceArrows:[],fens[ply]);
+  renderPlans(draft,fens,ply);
 
   const lastLabel=ply?(Math.floor((ply-1)/2)+1)+(ply%2===0?'... ':'. ')+sans[ply-1]:'posición inicial';
   el('opening-lab-branch-base').textContent='Posición elegida: '+lastLabel+' · media jugada '+ply+' · '+(ply%2===0?'juegan blancas':'juegan negras')+'. La rama empieza AQUÍ.';
@@ -693,7 +733,24 @@ export function initOpeningResearch({state,loadPGN,jump,notify,getLiveSnapshot,s
   }
  });
  el('opening-plan-arrows').onchange=()=>render();
- el('opening-lab-open').onclick=()=>{const {sans}=validateOpeningLine(pick().moves);openAt(sans.length);};
+ el('opening-lab-open').onclick=()=>{
+  const previousPly=currentPly();
+  if(!open({analysis:true}))return;
+  history.replaceState({...history.state,openingPly:previousPly},'');
+  history.pushState({section:'openings',returnPly:previousPly},'',studyHref(selected,true));
+  returnLink.focus({preventScroll:true});
+ };
+ returnLink.onclick=event=>{
+  if(event.ctrlKey||event.metaKey||event.shiftKey||event.altKey)return;
+  event.preventDefault();
+  if(Number.isInteger(history.state?.returnPly)){history.back();return;}
+  const href=returnLink.href;
+  const ply=0;
+  if(open({ply})){
+   history.replaceState({section:'openings',openingPly:ply},'',href);
+   el('opening-lab-open').focus({preventScroll:true});
+  }
+ };
  el('opening-lab-copy-selected').onclick=()=>openCopyToLibrary(selected);
  el('opening-lab-refresh').onclick=render;
  el('opening-lab-save-note').onclick=()=>{
@@ -876,31 +933,55 @@ export function initOpeningResearch({state,loadPGN,jump,notify,getLiveSnapshot,s
    downloadPgn(makePgn(pick()),'IB_Apertura_'+selected+'.pgn');
   }catch(e){notify(e.message,'err');}
  };
- function open(){
+ function open({analysis=false,study,ply}={}){
+  const draft=entries().find(entry=>entry.id===(study||selected))||pick();
+  if(!draft)return false;
+  const changed=selected!==draft.id;
+  const needsLoad=state.game?.headers?.ResearchID!==draft.id;
+  if(needsLoad){
+   if(state.busy){notify('Detené el análisis antes de abrir otra línea.','err');return false;}
+   try{
+    loadPGN(makePgn(draft),'Laboratorio · '+draft.name);
+    if(state.game?.headers?.ResearchID!==draft.id)return false;
+   }catch(error){notify('No se pudo abrir la línea: '+error.message,'err');return false;}
+  }
+  selected=draft.id;
+  if(changed)invalidateBranchPreview();
   visible=true;
-  panel.hidden=false;explorer.hidden=false;
+  focused=analysis;
+  panel.hidden=focused;
+  explorer.hidden=focused;
+  focusPanel.hidden=returnLink.hidden=!focused;
+  if(focused)focusPanel.append(plans);
+  else plansHome.after(plans);
   const main=document.querySelector('main.main');
   main.classList.add('opening-study-mode');
+  main.classList.toggle('opening-analysis-mode',focused);
   document.querySelector('.layout').hidden=false;
   document.querySelector('.toolbar').hidden=true;
   const tools=document.querySelector('.workspace-tools');if(tools)tools.hidden=true;
   const paste=document.querySelector('#paste-pgn-panel');if(paste)paste.hidden=true;
-  document.querySelector('.topbar h1').textContent='Biblioteca Maestra · Estudio individual';
-  document.querySelector('.topbar p').textContent='Recorré las aperturas por posición y compará las continuaciones en el tablero.';
+  if(!focused){
+   document.querySelector('.topbar h1').textContent='Biblioteca Maestra · Estudio individual';
+   document.querySelector('.topbar p').textContent='Recorré las aperturas por posición y compará las continuaciones en el tablero.';
+  }
   document.querySelector('#nav-openings')?.classList.add('active');
   document.querySelector('#nav-review')?.classList.remove('active');
   document.querySelector('#nav-library')?.classList.remove('active');
-  render();
-  document.title=(pick()?.name||'Biblioteca Maestra')+' · IB Chess Analyzer';
-  if(!activeIsCorrect())openAt(0);
+  if(focused||ply!==undefined||needsLoad)openAt(focused?state.positions.length-1:ply??0);
+  else render();
+  document.title=draft.name+' · IB Chess Analyzer';
   window.IB_LIVE?.positionChanged(true);
   window.scrollTo?.(0,0);
+  return true;
  }
  function close(){
   if(!visible)return;
-  visible=false;panel.hidden=true;explorer.hidden=true;
+  visible=focused=false;
+  panel.hidden=explorer.hidden=focusPanel.hidden=returnLink.hidden=true;
+  plansHome.after(plans);
   window.IB_ARROWS?.setReferenceArrows([]);
-  document.querySelector('main.main')?.classList.remove('opening-study-mode');
+  document.querySelector('main.main')?.classList.remove('opening-study-mode','opening-analysis-mode');
   document.querySelector('#nav-openings')?.classList.remove('active');
  }
  window.addEventListener('storage',event=>{
@@ -912,5 +993,6 @@ export function initOpeningResearch({state,loadPGN,jump,notify,getLiveSnapshot,s
  render();
  return {open,close,isOpen:()=>visible,addEngineVariation,
   positionChanged(){if(visible){invalidateBranchPreview('Cambió la posición de origen. Revisá la variante antes de guardarla.');render();}},
+  previewChanged(){if(focused&&pick())renderFocused(pick());},
   refresh:render,selectStudy:(id,options)=>switchStudy(id,{push:false,...options}),getCurrentStudy:()=>selected,getCurrentTitle:()=>pick()?.name||'Biblioteca Maestra'};
 }
