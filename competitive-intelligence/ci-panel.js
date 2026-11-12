@@ -18,7 +18,7 @@ export function initCompetitiveIntelligence({notify}){
     <div class="ci-panel-head"><div><span class="eyebrow">REGISTRO COMPETITIVO</span><h3>Base de rivales</h3></div><button class="btn primary" id="ci-create" type="button">＋ Nuevo rival</button></div>
     <div class="ci-filters"><label>Buscar<input id="ci-search" type="search" placeholder="Nombre, alias o ID FIDE" /></label><label>Grupo<select id="ci-priority"><option value="all">Todos</option><option value="A">A</option><option value="B">B</option><option value="C">C</option></select></label></div>
     <div id="ci-players" class="ci-players"></div>
-    <div class="ci-starter"><strong>Investigación universitaria · JUNCOS 2026</strong><p>Registramos los participantes del circuito y conservamos sus fuentes. Esta acción verifica qué fichas faltan o necesitan actualización; no duplica los registros existentes.</p><button class="btn outline" id="ci-seed" type="button">↻ Comprobar y sincronizar rivales</button><div id="ci-seed-status" class="ci-seed-status" role="status" aria-live="polite">Consultá el estado de los jugadores universitarios.</div></div>
+    <div class="ci-starter" id="ci-starter" hidden><strong>Investigación universitaria · JUNCOS 2026</strong><p>Registramos los participantes del circuito y conservamos sus fuentes. Esta acción verifica qué fichas faltan o necesitan actualización; no duplica los registros existentes.</p><button class="btn outline" id="ci-seed" type="button">↻ Comprobar y sincronizar rivales</button><div id="ci-seed-status" class="ci-seed-status" role="status" aria-live="polite">Consultá el estado de los jugadores universitarios.</div></div>
    </section>
    <section class="ci-panel ci-detail-panel">
     <div id="ci-summary-detail" class="ci-detail-summary"><span class="eyebrow">EXPEDIENTE ACTIVO</span><h3 id="ci-detail-title">Seleccioná un rival o creá uno nuevo</h3><p id="ci-detail-description">Cada ficha será el punto de entrada a sus partidas, observaciones, aperturas y documentos privados.</p><div id="ci-public-evidence" class="ci-public-evidence" hidden></div><div class="ci-actions"><button class="btn outline" type="button" id="ci-edit" hidden>Editar ficha</button><button class="btn primary" type="button" id="ci-open-board" hidden>Abrir estudio documental</button></div></div>
@@ -42,10 +42,11 @@ export function initCompetitiveIntelligence({notify}){
   const plan=reconcileCandidates(players);
   const complete=plan.unchanged.length;
   const unresolved=plan.adds.length+plan.updates.length;
-  seedMessage(unresolved===0
-   ?'✓ Catálogo universitario sincronizado: '+complete+' de '+UNIVERSITY_RIVALS.length+' fichas, sin cambios pendientes.'
-   :'En Supabase: '+complete+' de '+UNIVERSITY_RIVALS.length+' fichas sincronizadas. Pendientes: '+plan.adds.length+' nuevas y '+plan.updates.length+' por actualizar.',
-   unresolved===0?'success':'neutral');
+  // The university import is a one-time onboarding action, not dashboard content.
+  // Keep the manual "Nuevo rival" workflow available independently.
+  el('ci-starter').hidden=unresolved===0;
+  if(unresolved>0)seedMessage('En Supabase: '+complete+' de '+UNIVERSITY_RIVALS.length+' perfiles sincronizados. Faltan '+plan.adds.length+' nuevos y '+plan.updates.length+' por actualizar.');
+  return plan;
  }
  function updateDetail(player){
   el('ci-selected-label').textContent=player?.display_name||'—';
@@ -153,7 +154,7 @@ export function initCompetitiveIntelligence({notify}){
    board?.setPlayers(players);render();updateDetail(players.find(x=>x.id===chosenId));
    const plan=reconcileCandidates(players);
    if(!plan.adds.length&&!plan.updates.length){
-    seedMessage('✓ Los '+UNIVERSITY_RIVALS.length+' rivales universitarios ya están registrados y no necesitan cambios. La importación está completa.','success');
+    updateSeedSummary();
     message('Catálogo universitario comprobado: no hay registros nuevos.');
     return;
    }
