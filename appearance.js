@@ -24,10 +24,10 @@ export function initBoardAppearance({refreshPieces}={}){
   el.className='appearance-menu';
   el.innerHTML=`<summary>Apariencia</summary>
   <div class="appearance-options">
+    <label>Coordenadas<select id="appearance-coordinates"><option value="outside">Fuera del tablero</option><option value="inside">Dentro de las casillas</option><option value="hidden">Ocultas</option></select></label>
     <label>Color de tablero<select id="appearance-scheme">${Object.entries(schemes).map(([id,p])=>'<option value="'+id+'">'+p.name+'</option>').join('')}<option value="custom">Personalizado</option></select></label>
     <div class="appearance-colors"><label>Casillas claras<input type="color" id="appearance-light" aria-label="Color de las casillas claras"/></label><label>Casillas oscuras<input type="color" id="appearance-dark" aria-label="Color de las casillas oscuras"/></label></div>
     <label>Estilo de piezas<select id="appearance-pieces"><option value="classic">Clásicas</option><option value="flat">Planas</option><option value="outline">Contorno</option><option value="bold">Alto contraste</option><optgroup label="Colecciones gráficas SVG"><option value="cburnett">CBurnett · Clásico</option><option value="merida">Mérida · Tradicional</option><option value="chessnut">Chessnut · Moderno</option><option value="fantasy">Fantasy · Artístico</option><option value="spatial">Spatial · Geométrico</option><option value="celtic">Celtic · Decorativo</option><option value="rhosgfx">RhosGFX · Pixel art</option><option value="kiwen-suwi">Kiwen Suwi · Ilustrado</option><option value="totoy">Totoy · Clásico artístico</option><option value="papercut">Papercut · Recortes</option></optgroup></select></label><div id="appearance-preview" class="appearance-preview" aria-label="Vista previa del estilo de piezas"></div>
-    <label>Coordenadas<select id="appearance-coordinates"><option value="outside">Fuera del tablero</option><option value="inside">Dentro de las casillas</option><option value="hidden">Ocultas</option></select></label>
     <button type="button" class="btn outline" id="appearance-reset">Restablecer apariencia</button>
     <small>Las preferencias se guardan en este navegador y no cambian el análisis de Stockfish.</small>
   </div>`;
