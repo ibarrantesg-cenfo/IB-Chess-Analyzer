@@ -82,8 +82,8 @@
 #board .square.light .coord {color:var(--board-light-ink);background:var(--board-light);}
 #board .square.dark .coord {color:var(--board-dark-ink);background:var(--board-dark);}
 #board .coord {padding:1px 2px;border-radius:2px;text-shadow:none;z-index:3;}
-#board .piece-image {filter:drop-shadow(0 0 1px #fff) drop-shadow(0 1px 1px #14202b);}
-#board .piece {font-variant-emoji:text;}
+#board .piece-image {filter:drop-shadow(0 1px 1px #14202b66);}
+#board .piece {font-size:8.8cqi;font-variant-emoji:text;}
 #board[data-piece-style="flat"] .white-piece {color:#fff;-webkit-text-stroke:1px #14202b;}
 #board[data-piece-style="flat"] .black-piece {color:#14202b;-webkit-text-stroke:1px #fff;}
 :root[data-theme] .topbar .eyebrow span {color:var(--ui-muted);}

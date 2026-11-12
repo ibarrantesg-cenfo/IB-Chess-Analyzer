@@ -18,28 +18,31 @@ const styles=new Set(['classic','flat','outline','bold','chessnut','fantasy','sp
 const storage='ib-chess-board-appearance-v1';
 const colorOk=c=>/^#[0-9a-f]{6}$/i.test(c);
 export function initBoardAppearance({refreshPieces}={}){
-  const workspace=document.querySelector('.workspace-tools');
-  if(!workspace)return;
+  const controls=document.querySelector('.board-panel .controls');
+  if(!controls)return;
   const el=document.createElement('details');
   el.className='appearance-menu';
-  el.innerHTML=`<summary>♟ Apariencia</summary>
+  el.innerHTML=`<summary>Apariencia</summary>
   <div class="appearance-options">
     <label>Color de tablero<select id="appearance-scheme">${Object.entries(schemes).map(([id,p])=>'<option value="'+id+'">'+p.name+'</option>').join('')}<option value="custom">Personalizado</option></select></label>
     <div class="appearance-colors"><label>Casillas claras<input type="color" id="appearance-light" aria-label="Color de las casillas claras"/></label><label>Casillas oscuras<input type="color" id="appearance-dark" aria-label="Color de las casillas oscuras"/></label></div>
     <label>Estilo de piezas<select id="appearance-pieces"><option value="classic">Clásicas</option><option value="flat">Planas</option><option value="outline">Contorno</option><option value="bold">Alto contraste</option><optgroup label="Colecciones gráficas SVG"><option value="cburnett">CBurnett · Clásico</option><option value="merida">Mérida · Tradicional</option><option value="chessnut">Chessnut · Moderno</option><option value="fantasy">Fantasy · Artístico</option><option value="spatial">Spatial · Geométrico</option><option value="celtic">Celtic · Decorativo</option><option value="rhosgfx">RhosGFX · Pixel art</option><option value="kiwen-suwi">Kiwen Suwi · Ilustrado</option><option value="totoy">Totoy · Clásico artístico</option><option value="papercut">Papercut · Recortes</option></optgroup></select></label><div id="appearance-preview" class="appearance-preview" aria-label="Vista previa del estilo de piezas"></div>
-    <label class="appearance-toggle"><input type="checkbox" id="appearance-coordinates" checked/> Mostrar coordenadas</label>
+    <label>Coordenadas<select id="appearance-coordinates"><option value="outside">Fuera del tablero</option><option value="inside">Dentro de las casillas</option><option value="hidden">Ocultas</option></select></label>
     <button type="button" class="btn outline" id="appearance-reset">Restablecer apariencia</button>
     <small>Las preferencias se guardan en este navegador y no cambian el análisis de Stockfish.</small>
   </div>`;
-  workspace.append(el);
+  controls.append(el);
   const $=id=>document.getElementById(id);
-  const defaults={scheme:'jade',light:schemes.jade.light,dark:schemes.jade.dark,pieces:'classic',coordinates:true};
+  const coordinateModes=['outside','inside','hidden'];
+  const defaults={scheme:'jade',light:schemes.jade.light,dark:schemes.jade.dark,pieces:'classic',coordinates:'outside'};
   let settings={...defaults};
   try{
     const v=JSON.parse(localStorage.getItem(storage)||'{}');
     if(v&&typeof v==='object'){
       const scheme=schemes[v.scheme]?v.scheme:v.scheme==='custom'?'custom':'jade';
-      settings={scheme,light:colorOk(v.light)?v.light:defaults.light,dark:colorOk(v.dark)?v.dark:defaults.dark,pieces:styles.has(v.pieces)?v.pieces:'classic',coordinates:v.coordinates!==false};
+      settings={scheme,light:colorOk(v.light)?v.light:defaults.light,dark:colorOk(v.dark)?v.dark:defaults.dark,
+        pieces:styles.has(v.pieces)?v.pieces:'classic',
+        coordinates:coordinateModes.includes(v.coordinates)?v.coordinates:v.coordinates===false?'hidden':defaults.coordinates};
     }
   }catch{}
   const drawPreview=()=>{
@@ -63,12 +66,13 @@ export function initBoardAppearance({refreshPieces}={}){
     root.style.setProperty('--board-light-ink',coordinateInk(settings.light));
     root.style.setProperty('--board-dark-ink',coordinateInk(settings.dark));
     const board=document.getElementById('board');
-    if(board){board.dataset.pieceStyle=settings.pieces;board.classList.toggle('hide-coordinates',!settings.coordinates);}
+    board.dataset.pieceStyle=settings.pieces;
+    board.closest('.board-row').dataset.coordinates=settings.coordinates;
     $('appearance-scheme').value=settings.scheme;
     $('appearance-light').value=settings.light;
     $('appearance-dark').value=settings.dark;
     $('appearance-pieces').value=settings.pieces;
-    $('appearance-coordinates').checked=settings.coordinates;
+    $('appearance-coordinates').value=settings.coordinates;
     drawPreview();
     try{localStorage.setItem(storage,JSON.stringify(settings));}catch{}
   };
@@ -81,7 +85,7 @@ export function initBoardAppearance({refreshPieces}={}){
     $(id).oninput=e=>{if(!colorOk(e.target.value))return;settings[key]=e.target.value;settings.scheme='custom';apply();};
   }
   $('appearance-pieces').onchange=e=>{settings.pieces=styles.has(e.target.value)?e.target.value:'classic';apply();refreshPieces?.();};
-  $('appearance-coordinates').onchange=e=>{settings.coordinates=e.target.checked;apply();};
+  $('appearance-coordinates').onchange=e=>{settings.coordinates=e.target.value;apply();};
   $('appearance-reset').onclick=()=>{settings={...defaults};apply();refreshPieces?.();};
   // The board container remains stable while its squares are re-rendered.
   apply();

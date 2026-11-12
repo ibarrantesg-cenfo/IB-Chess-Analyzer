@@ -25,11 +25,10 @@ test('the engine has no repeated explanatory block for an existing PV',()=>{
  assert.ok(source.includes("Tocá una línea para mostrar u ocultar las jugadas"));
  assert.ok(!source.includes("textContent=first?interpretation(first,1)"));
 });
-test('short-screen compact mode makes space for the full board while keeping comfortable mode',()=>{
- assert.ok(styles.includes('@media (min-width:851px) and (max-height:960px)'));
- assert.ok(styles.includes('.main.workspace-compact:not(.opening-study-mode) .board-row'));
- assert.ok(styles.includes('calc(100dvh - 435px)'));
- assert.ok(styles.includes('.live-line-accordion'));
+test('compact mode keeps the board readable on short displays and fluid on mobile',()=>{
+ assert.ok(styles.includes('.workspace-compact .board-row{max-width:clamp(420px,calc(100dvh - 250px),560px)}'));
+ assert.ok(styles.includes('.main.workspace-compact .board-row{max-width:min(100%,540px)}'));
+ assert.ok(styles.includes('grid-template:repeat(8,minmax(0,1fr))/repeat(8,minmax(0,1fr))'));
 });
 test('live variation has matching light theme and keyboard focus styles',()=>{
  assert.ok(styles.includes(':root[data-theme="light"] .live-line-accordion'));
