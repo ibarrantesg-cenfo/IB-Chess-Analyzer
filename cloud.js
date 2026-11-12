@@ -227,3 +227,6 @@ export async function submitAcademicGameForStudent(studentId,item){
  const {error}=await api.from('ib_student_games').insert(payload);
  if(error)throw error;
 }
+
+// Authenticated client shared with the separately authorized CI module. RLS is authoritative.
+export function getCIClient(){return api;}
