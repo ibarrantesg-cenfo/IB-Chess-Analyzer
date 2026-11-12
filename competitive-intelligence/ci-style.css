@@ -73,3 +73,16 @@
 .ci-evidence-links{display:flex;flex-wrap:wrap;gap:9px;margin-top:13px}
 .ci-evidence-links a{color:var(--ui-accent);font-size:12px;font-weight:700;text-decoration:underline;text-underline-offset:2px}
 .ci-tabs button[hidden],.ci-detail-summary button[hidden]{display:none!important}
+
+/* CI v2.2 — hard isolation. Other modules can reset their own hidden states on close;
+   this scope keeps the shared Game Review board from appearing behind CI. */
+.main.ci-isolated > .layout,
+.main.ci-isolated > .toolbar,
+.main.ci-isolated > .workspace-tools,
+.main.ci-isolated > .review-guide,
+.main.ci-isolated > .library-workspace,
+.main.ci-isolated > .performance-workspace,
+.main.ci-isolated > .academic-hub,
+.main.ci-isolated > .academy-screen,
+.main.ci-isolated > .academy-analytics-screen {display:none!important;}
+.ci-release{font-size:11px;font-weight:700;letter-spacing:.04em;color:var(--ui-accent);vertical-align:middle;white-space:nowrap;}
