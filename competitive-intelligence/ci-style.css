@@ -86,3 +86,10 @@
 .main.ci-isolated > .academy-screen,
 .main.ci-isolated > .academy-analytics-screen {display:none!important;}
 .ci-release{font-size:11px;font-weight:700;letter-spacing:.04em;color:var(--ui-accent);vertical-align:middle;white-space:nowrap;}
+
+
+/* Clear, immediately visible feedback for university import/sync actions. */
+.ci-seed-status{margin-top:12px;border:1px solid var(--ui-edge);border-radius:10px;background:var(--ui-raised);color:var(--ui-muted);padding:12px;font-size:12px;line-height:1.55;overflow-wrap:anywhere}
+.ci-seed-status[data-kind="success"]{border-color:var(--ui-accent);color:var(--ui-ink);background:var(--ui-active)}
+.ci-seed-status[data-kind="error"]{border-color:var(--ui-danger);color:var(--ui-error);background:var(--ui-error-bg)}
+#ci-seed[disabled]{opacity:.7;cursor:progress}
