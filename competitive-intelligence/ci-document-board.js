@@ -43,6 +43,7 @@ export function initCIDocumentaryBoard({host,service,onError}){
  }
  function playMove(from,to){
   if(ply!==moves.length){status('Para agregar una jugada, primero avanzá hasta el final. Las variantes desde posiciones anteriores se incorporarán en una fase posterior.',true);return;}
+  if(sourcePgn){status('Este PGN es un documento original protegido. Podés recorrerlo y anotar cada posición; para crear una línea nueva usá «Nuevo estudio».',true);return;}
   const chess=new Chess(history[ply]);let m;
   try{m=chess.move({from,to,promotion:'q'});}catch{status('Jugada no legal. Seleccioná otra pieza.',true);return;}
   if(!m){status('Jugada no legal.',true);return;}
