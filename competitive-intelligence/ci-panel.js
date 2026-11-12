@@ -2,22 +2,14 @@ import {getCIClient} from '../cloud.js';
 import {createCIService} from './ci-service.js';
 import {filterPlayers} from './ci-model.js';
 import {initCIDocumentaryBoard} from './ci-document-board.js';
+import {CI_SOURCES,UNIVERSITY_RIVALS,findUniversityCandidate,matchExistingCandidate,reconcileCandidates} from './ci-university-data.js';
 import './ci-style.css';
 
-const CANDIDATES=Object.freeze([
- {display_name:'David Alejandro Cabezas Solano',priority:'A'},
- {display_name:'Gerardo Alfonso Ramírez Madrid',priority:'A'},
- {display_name:'Dany José Montero Romero',priority:'A'},
- {display_name:'Juan Diego Coto Calderón',priority:'A'},
- {display_name:'Martín Eduardo Barboza Víquez',priority:'A'},
- {display_name:'Sebasthian Agüero Espinoza',priority:'B'},
- {display_name:'Luis Javier Cartín Aguilar',priority:'B'}
-]);
 export function initCompetitiveIntelligence({notify}){
  const main=document.querySelector('main.main'),layout=main.querySelector('.layout'),toolbar=main.querySelector('.toolbar'),tools=main.querySelector('.workspace-tools');
  const screen=document.createElement('section');screen.className='ci-screen';screen.hidden=true;
  screen.innerHTML=`<header class="ci-head"><div><span class="eyebrow">IB CHESS ACADEMY · INVESTIGACIÓN PRIVADA</span><h2>Competitive Intelligence</h2><p>Inteligencia competitiva, documentación de partidas y preparación con evidencia.</p></div><button class="btn outline" id="ci-reload" type="button">↻ Actualizar</button></header>
- <div class="ci-tabs" role="tablist" aria-label="Secciones de inteligencia"><button type="button" id="ci-tab-roster" role="tab" aria-selected="true" class="active">♟ Expedientes de rivales</button><button type="button" id="ci-tab-board" role="tab" aria-selected="false">♜ Estudio documental</button></div>
+ <div class="ci-tabs" role="tablist" aria-label="Secciones de inteligencia"><button type="button" id="ci-tab-roster" role="tab" aria-selected="true" class="active">♟ Expedientes de rivales</button><button type="button" id="ci-tab-board" role="tab" aria-selected="false" hidden>♜ Estudio documental</button></div>
  <div id="ci-status" class="ci-status" role="status"></div>
  <section id="ci-roster-screen" role="tabpanel" aria-labelledby="ci-tab-roster">
   <div class="ci-summary"><div><strong id="ci-total">0</strong><span>Rivales registrados</span></div><div><strong id="ci-priority-a">0</strong><span>Prioridad A</span></div><div><strong id="ci-selected-label">—</strong><span>Expediente activo</span></div></div>
@@ -26,10 +18,10 @@ export function initCompetitiveIntelligence({notify}){
     <div class="ci-panel-head"><div><span class="eyebrow">REGISTRO COMPETITIVO</span><h3>Base de rivales</h3></div><button class="btn primary" id="ci-create" type="button">＋ Nuevo rival</button></div>
     <div class="ci-filters"><label>Buscar<input id="ci-search" type="search" placeholder="Nombre, alias o ID FIDE" /></label><label>Grupo<select id="ci-priority"><option value="all">Todos</option><option value="A">A</option><option value="B">B</option><option value="C">C</option></select></label></div>
     <div id="ci-players" class="ci-players"></div>
-    <div class="ci-starter"><strong>¿Comenzamos con el circuito universitario?</strong><p>Podés incorporar una lista inicial de siete candidatos. Se cargarán sin Elo, FIDE ID ni conclusiones no verificadas.</p><button class="btn outline" id="ci-seed" type="button">Incorporar candidatos iniciales</button></div>
+    <div class="ci-starter"><strong>¿Comenzamos con el circuito universitario?</strong><p>Importá las participaciones públicas de JUNCOS 2026 y FedeU–CENFOTEC. Incluye IDs FIDE, Elo histórico por modalidad, universidad y enlaces verificables. No incorpora supuestas debilidades.</p><button class="btn outline" id="ci-seed" type="button">Incorporar rivales universitarios</button></div>
    </section>
    <section class="ci-panel ci-detail-panel">
-    <div id="ci-summary-detail" class="ci-detail-summary"><span class="eyebrow">EXPEDIENTE ACTIVO</span><h3 id="ci-detail-title">Seleccioná un rival o creá uno nuevo</h3><p id="ci-detail-description">Cada ficha será el punto de entrada a sus partidas, observaciones, aperturas y documentos privados.</p><div class="ci-actions"><button class="btn outline" type="button" id="ci-edit" hidden>Editar ficha</button><button class="btn primary" type="button" id="ci-open-board">Abrir estudio documental</button></div></div>
+    <div id="ci-summary-detail" class="ci-detail-summary"><span class="eyebrow">EXPEDIENTE ACTIVO</span><h3 id="ci-detail-title">Seleccioná un rival o creá uno nuevo</h3><p id="ci-detail-description">Cada ficha será el punto de entrada a sus partidas, observaciones, aperturas y documentos privados.</p><div id="ci-public-evidence" class="ci-public-evidence" hidden></div><div class="ci-actions"><button class="btn outline" type="button" id="ci-edit" hidden>Editar ficha</button><button class="btn primary" type="button" id="ci-open-board" hidden>Abrir estudio documental</button></div></div>
     <section id="ci-editor" hidden><div class="ci-panel-head"><div><span class="eyebrow">GESTIÓN DE EXPEDIENTE</span><h3 id="ci-editor-title">Nuevo rival</h3></div><button class="btn outline" type="button" id="ci-cancel">Cerrar</button></div>
      <form id="ci-form"><input type="hidden" id="ci-id"/><div class="ci-form-grid"><label>Nombre completo<input id="ci-name" required maxlength="160" autocomplete="off"/></label><label>FID · Identificador FIDE<input id="ci-fide" inputmode="numeric" placeholder="Opcional, solo números"/></label><label>Prioridad<select id="ci-priority-edit"><option value="A">A — Estratégico</option><option value="B">B — Recurrente</option><option value="C" selected>C — Seguimiento</option></select></label><label>Alias separados por coma<input id="ci-aliases" maxlength="1000"/></label></div><label>Notas iniciales<textarea id="ci-notes" rows="5" maxlength="10000" placeholder="Datos pendientes de verificar y fuente de investigación"></textarea></label><div class="ci-actions"><button class="btn primary" type="submit" id="ci-save">Guardar expediente</button><button class="btn outline" type="button" id="ci-reset">Limpiar</button><button class="btn outline" type="button" id="ci-archive" disabled>Archivar</button></div></form>
     </section>
@@ -50,9 +42,27 @@ export function initCompetitiveIntelligence({notify}){
   el('ci-detail-title').textContent=player?.display_name||'Seleccioná un rival o creá uno nuevo';
   el('ci-detail-description').textContent=player?'Prioridad '+player.priority+(player.fide_id?' · FIDE ID '+player.fide_id:' · Identificador FIDE pendiente')+' · Expediente privado.':'Cada ficha reúne investigación, partidas, observaciones y estudios privados sin afectar la biblioteca general.';
   el('ci-edit').hidden=!player;
+  el('ci-open-board').hidden=!player;
+  el('ci-tab-board').hidden=!player;
+  const evidence=el('ci-public-evidence');evidence.replaceChildren();
+  const candidate=player?findUniversityCandidate(player):null;
+  evidence.hidden=!candidate;
+  if(candidate){
+   const heading=document.createElement('strong');heading.textContent='Participación universitaria documentada · '+candidate.university;
+   evidence.append(heading);
+   const meta=document.createElement('p');
+   const ratings=Object.entries(candidate.ratings).map(([mode,n])=>(mode==='standard'?'Clásico':'Blitz')+': '+n+' (oct. 2026)');
+   meta.textContent=[...ratings,candidate.achievement].filter(Boolean).join(' · ')||'Participación FedeU–CENFOTEC 2026';
+   evidence.append(meta);
+   const caption=document.createElement('small');caption.textContent='Ratings de las listas iniciales, no Elo actual. Las fuentes no contienen por sí mismas estadísticas de repertorio.';
+   evidence.append(caption);
+   const links=document.createElement('div');links.className='ci-evidence-links';
+   for(const key of candidate.sourceKeys){const a=document.createElement('a');a.href=CI_SOURCES[key].url;a.target='_blank';a.rel='noopener noreferrer';a.textContent=CI_SOURCES[key].label;links.append(a);}
+   evidence.append(links);
+  }
  }
  function reset(){
-  chosenId='';el('ci-form').reset();el('ci-id').value='';el('ci-priority-edit').value='C';el('ci-archive').disabled=true;updateDetail(null);render();
+  chosenId='';if(tab==='board')switchTab('roster');el('ci-form').reset();el('ci-id').value='';el('ci-priority-edit').value='C';el('ci-archive').disabled=true;updateDetail(null);render();
  }
  function editNew(){
   reset();el('ci-editor-title').textContent='Nuevo rival';el('ci-editor').hidden=false;el('ci-summary-detail').hidden=true;
@@ -82,13 +92,14 @@ export function initCompetitiveIntelligence({notify}){
  async function refresh(){
   if(!active||!authorized||!service)return;
   message('Actualizando biblioteca privada…');
-  try{players=await service.listPlayers();board?.setPlayers(players);render();updateDetail(players.find(x=>x.id===chosenId));message('Base privada sincronizada. '+players.length+' expediente(s).');}
+  try{players=await service.listPlayers();if(chosenId&&!players.some(x=>x.id===chosenId)){chosenId='';await switchTab('roster');}board?.setPlayers(players);render();updateDetail(players.find(x=>x.id===chosenId));message('Base privada sincronizada. '+players.length+' expediente(s).');}
   catch(e){message('No se pudo consultar la base: '+e.message,true);}
  }
  async function switchTab(next){
+  if(next==='board'&&!chosenId){message('Seleccioná un jugador de la lista antes de abrir su estudio documental.',true);return;}
   tab=next;el('ci-roster-screen').hidden=next!=='roster';el('ci-board-screen').hidden=next!=='board';
   for(const key of ['roster','board']){el('ci-tab-'+key).classList.toggle('active',key===next);el('ci-tab-'+key).setAttribute('aria-selected',String(key===next));}
-  if(next==='board'&&board){await board.activate();}
+  if(next==='board'&&board){await board.activate();await board.selectPlayer(chosenId);}
  }
  async function show(){
   if(!service){notify('Supabase no está configurado para Competitive Intelligence.','err');return false;}
@@ -97,19 +108,21 @@ export function initCompetitiveIntelligence({notify}){
   authorized=true;active=true;screen.hidden=false;layout.hidden=true;toolbar.hidden=true;tools.hidden=true;
   document.querySelector('#nav-competitive-intelligence')?.classList.add('active');
   main.querySelector('.topbar h1').textContent='Competitive Intelligence';main.querySelector('.topbar p').textContent='Investigación y preparación competitiva privada.';
-  await refresh();await switchTab(tab);return true;
+  await refresh();await switchTab(chosenId?tab:'roster');return true;
  }
  function close(){if(active){layout.hidden=false;toolbar.hidden=false;tools.hidden=false;}active=false;authorized=false;screen.hidden=true;document.querySelector('#nav-competitive-intelligence')?.classList.remove('active');}
  async function canAccess(){if(!service)return false;try{return await service.authorized();}catch{return false;}}
  el('ci-tab-roster').onclick=()=>switchTab('roster');el('ci-tab-board').onclick=()=>switchTab('board');
  el('ci-reload').onclick=refresh;el('ci-search').oninput=render;el('ci-priority').onchange=render;
  el('ci-create').onclick=editNew;el('ci-edit').onclick=editSelected;el('ci-reset').onclick=editNew;el('ci-cancel').onclick=closeEditor;
- el('ci-open-board').onclick=async()=>{await switchTab('board');if(chosenId)await board?.selectPlayer(chosenId);};
+ el('ci-open-board').onclick=()=>switchTab('board');
  el('ci-form').onsubmit=async e=>{
   e.preventDefault();if(!active||!authorized)return;
   const payload={display_name:el('ci-name').value,fide_id:el('ci-fide').value,priority:el('ci-priority-edit').value,aliases:el('ci-aliases').value.split(','),notes:el('ci-notes').value};
   el('ci-save').disabled=true;
-  try{const id=el('ci-id').value,record=id?await service.updatePlayer(id,payload):await service.createPlayer(payload);
+  try{const id=el('ci-id').value,duplicate=matchExistingCandidate(payload,players.filter(x=>x.id!==id));
+   if(duplicate){chosenId=duplicate.id;editSelected();message('Ya existe un expediente con el mismo nombre o FIDE ID. Abrí su ficha existente para corregirla; no se creó un duplicado.',true);return;}
+   const record=id?await service.updatePlayer(id,payload):await service.createPlayer(payload);
    chosenId=record.id;await refresh();closeEditor();message('Expediente guardado. Seleccionado: '+record.display_name+'.');}
   catch(error){message('No se pudo guardar: '+error.message,true);}finally{el('ci-save').disabled=false;}
  };
@@ -120,14 +133,18 @@ export function initCompetitiveIntelligence({notify}){
  };
  el('ci-seed').onclick=async()=>{
   if(!active||!authorized)return;
-  const existing=new Set(players.map(p=>p.display_name.trim().toLowerCase()));
-  const pending=CANDIDATES.filter(p=>!existing.has(p.display_name.toLowerCase()));
-  if(!pending.length){message('Los siete candidatos ya aparecen en el registro.');return;}
-  if(!confirm('Agregar '+pending.length+' candidatos iniciales como expedientes por investigar, sin Elo ni FIDE ID?'))return;
-  el('ci-seed').disabled=true;let count=0;
-  try{for(const player of pending){await service.createPlayer({...player,notes:'Candidato de seguimiento universitario. Identidad, FIDE ID, partidas y estadísticas pendientes de verificación.'});count++;}
-   await refresh();message('Se incorporaron '+count+' candidatos. Revisá y completá sus fuentes.');}
-  catch(e){await refresh();message('Se incorporaron '+count+'. El siguiente falló: '+e.message,true);}
+  // Reload before reconciling to avoid duplicates from another session.
+  try{players=await service.listPlayers();}catch(error){message('No se pudo comprobar la lista existente: '+error.message,true);return;}
+  const plan=reconcileCandidates(players);
+  if(!plan.adds.length&&!plan.updates.length){message('Los '+UNIVERSITY_RIVALS.length+' participantes ya están registrados con las fuentes disponibles.');return;}
+  if(!confirm('Registrar '+plan.adds.length+' rivales universitarios y completar '+plan.updates.length+' fichas existentes con FIDE ID y fuentes públicas de 2026? No se sobrescribirán tus notas ni prioridades.'))return;
+  el('ci-seed').disabled=true;let added=0,updated=0;
+  try{
+   for(const row of plan.adds){await service.createPlayer(row.payload);added++;}
+   for(const row of plan.updates){await service.updatePlayer(row.existing.id,row.payload);updated++;}
+   await refresh();
+   message('Investigación universitaria: '+added+' expedientes nuevos, '+updated+' actualizados, '+plan.unchanged.length+' sin cambios. Verificá la identidad antes de incorporar PGN.');
+  }catch(e){await refresh();message('Guardados '+added+' nuevos y '+updated+' actualizados. Detenido por: '+e.message,true);}
   finally{el('ci-seed').disabled=false;}
  };
  return {show,close,canAccess};
