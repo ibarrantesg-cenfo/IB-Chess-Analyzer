@@ -133,3 +133,20 @@
 .ci-r-links a{color:var(--ui-accent);font-size:12px;font-weight:700;text-decoration:underline;text-underline-offset:3px;line-height:1.5}
 @media(max-width:960px){.ci-r-layout{grid-template-columns:1fr}}
 @media(max-width:560px){.ci-r-rating{grid-template-columns:1fr 1fr}.ci-r-rating-card:last-of-type{grid-column:1/-1}.ci-r-section{padding:14px}}
+
+
+/* CI v2.3: rival metrics live INSIDE the selected dossier, not beneath the roster. */
+.ci-detail-panel{align-self:start}
+.ci-detail-panel .ci-research{margin-top:14px}
+.ci-detail-panel .ci-detail-summary{min-height:0;display:block}
+.ci-detail-panel .ci-detail-summary h3{margin:9px 0}
+.ci-detail-panel .ci-detail-summary p{margin:0 0 14px;line-height:1.55}
+.ci-detail-panel .ci-r-layout{grid-template-columns:minmax(0,1fr)}
+.ci-detail-panel .ci-r-rating{margin-top:8px}
+.ci-detail-panel .ci-r-section{padding:15px}
+.ci-detail-toolbar{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px}
+.ci-board-back-row{display:flex;align-items:center;margin:0 0 14px}
+#ci-back-roster:not([hidden]){display:inline-flex}
+.ci-detail-panel .ci-legend{margin-top:18px}
+@media(max-width:1140px){.ci-detail-panel .ci-r-rating{grid-template-columns:repeat(3,minmax(0,1fr))}}
+@media(max-width:620px){.ci-detail-panel .ci-r-rating{grid-template-columns:repeat(2,minmax(0,1fr))}}
