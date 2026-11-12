@@ -30,3 +30,10 @@ test('private rival parameters are removed outside CI',()=>{
  assert.equal(new URL('https://example.org'+href).searchParams.has('ci_player'),false);
  assert.equal(new URL('https://example.org'+href).searchParams.has('ci_tab'),false);
 });
+
+test('historical JUNCOS ratings remain visible with an explicit historic label',()=>{
+ const content=readFileSync(new URL('./ci-player-profile.js',import.meta.url),'utf8');
+ assert.match(content,/findUniversityCandidate\(selected\)/);
+ assert.match(content,/JUNCOS · ranking inicial octubre 2026/);
+ assert.match(content,/FIDE · noviembre 2026/);
+});
