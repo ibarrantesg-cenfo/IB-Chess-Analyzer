@@ -9,7 +9,7 @@ import './ci-style.css';
 export function initCompetitiveIntelligence({notify}){
  const main=document.querySelector('main.main'),layout=main.querySelector('.layout'),toolbar=main.querySelector('.toolbar'),tools=main.querySelector('.workspace-tools');
  const screen=document.createElement('section');screen.className='ci-screen';screen.hidden=true;
- screen.innerHTML=`<header class="ci-head"><div><span class="eyebrow">IB CHESS ACADEMY · INVESTIGACIÓN PRIVADA</span><h2>Competitive Intelligence <span class="ci-release">v2.2</span></h2><p>Inteligencia competitiva, documentación de partidas y preparación con evidencia.</p></div><button class="btn outline" id="ci-reload" type="button">↻ Actualizar</button></header>
+ screen.innerHTML=`<header class="ci-head"><div><span class="eyebrow">IB CHESS ACADEMY · INVESTIGACIÓN PRIVADA</span><h2>Competitive Intelligence <span class="ci-release">v2.3</span></h2><p>Inteligencia competitiva, documentación de partidas y preparación con evidencia.</p></div><button class="btn outline" id="ci-reload" type="button">↻ Actualizar</button></header>
  <div class="ci-tabs" role="tablist" aria-label="Secciones de inteligencia"><button type="button" id="ci-tab-roster" role="tab" aria-selected="true" class="active">♟ Expedientes de rivales</button><button type="button" id="ci-tab-board" role="tab" aria-selected="false" hidden>♜ Estudio documental</button></div>
  <div id="ci-status" class="ci-status" role="status"></div>
  <section id="ci-roster-screen" role="tabpanel" aria-labelledby="ci-tab-roster">
@@ -31,12 +31,14 @@ export function initCompetitiveIntelligence({notify}){
    </section>
   </div>
  </section>
- <section id="ci-board-screen" role="tabpanel" aria-labelledby="ci-tab-board" hidden><div class="ci-board-back-row"><button id="ci-back-profile" type="button" class="btn outline">← Volver al expediente</button></div></section>`;
+ <section id="ci-board-screen" role="tabpanel" aria-labelledby="ci-tab-board" hidden></section>`;
  main.insertBefore(screen,main.querySelector('footer'));
  const el=id=>screen.querySelector('#'+id);
  const client=getCIClient();
  const service=client?createCIService(client):null;
  const board=service?initCIDocumentaryBoard({host:el('ci-board-screen'),service,onError:e=>console.warn('CI study',e)}):null;
+ // The board initializer owns the screen markup, so insert the back control afterwards.
+ el('ci-board-screen').insertAdjacentHTML('afterbegin','<div class="ci-board-back-row"><button id="ci-back-profile" type="button" class="btn outline">← Volver al expediente</button></div>');
  const profile=service?initCIPlayerProfile({host:el('ci-research'),service}):null;
  let active=false,authorized=false,players=[],chosenId='',tab='roster';
  // Browser history is the source of truth for rival and study navigation.
