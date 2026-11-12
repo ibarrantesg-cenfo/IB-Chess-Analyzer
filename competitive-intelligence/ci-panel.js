@@ -2,6 +2,7 @@ import {getCIClient} from '../cloud.js';
 import {createCIService} from './ci-service.js';
 import {filterPlayers} from './ci-model.js';
 import {initCIDocumentaryBoard} from './ci-document-board.js';
+import {initCIPlayerProfile} from './ci-player-profile.js';
 import {CI_SOURCES,UNIVERSITY_RIVALS,findUniversityCandidate,matchExistingCandidate,reconcileCandidates} from './ci-university-data.js';
 import './ci-style.css';
 
@@ -28,6 +29,7 @@ export function initCompetitiveIntelligence({notify}){
     <div class="ci-legend"><strong>Siglas</strong><p>RID · ID de rival &nbsp; FID · ID FIDE &nbsp; OBS · Observación &nbsp; EVD · Evidencia &nbsp; CF · Confianza &nbsp; IPR · Índice de previsibilidad.</p></div>
    </section>
   </div>
+  <div id="ci-research" hidden></div>
  </section>
  <section id="ci-board-screen" role="tabpanel" aria-labelledby="ci-tab-board" hidden></section>`;
  main.insertBefore(screen,main.querySelector('footer'));
@@ -35,6 +37,7 @@ export function initCompetitiveIntelligence({notify}){
  const client=getCIClient();
  const service=client?createCIService(client):null;
  const board=service?initCIDocumentaryBoard({host:el('ci-board-screen'),service,onError:e=>console.warn('CI study',e)}):null;
+ const profile=service?initCIPlayerProfile({host:el('ci-research'),service}):null;
  let active=false,authorized=false,players=[],chosenId='',tab='roster';
  const message=(text,isError=false)=>{el('ci-status').textContent=text;el('ci-status').classList.toggle('error',isError);};
  const seedMessage=(text,kind='neutral')=>{const node=el('ci-seed-status');node.textContent=text;node.dataset.kind=kind;};
@@ -73,7 +76,7 @@ export function initCompetitiveIntelligence({notify}){
   }
  }
  function reset(){
-  chosenId='';if(tab==='board')switchTab('roster');el('ci-form').reset();el('ci-id').value='';el('ci-priority-edit').value='C';el('ci-archive').disabled=true;updateDetail(null);render();
+  chosenId='';profile?.clear();if(tab==='board')switchTab('roster');el('ci-form').reset();el('ci-id').value='';el('ci-priority-edit').value='C';el('ci-archive').disabled=true;updateDetail(null);render();
  }
  function editNew(){
   reset();el('ci-editor-title').textContent='Nuevo rival';el('ci-editor').hidden=false;el('ci-summary-detail').hidden=true;
@@ -86,7 +89,7 @@ export function initCompetitiveIntelligence({notify}){
   el('ci-archive').disabled=false;el('ci-editor-title').textContent='Editar · '+p.display_name;el('ci-editor').hidden=false;el('ci-summary-detail').hidden=true;el('ci-name').focus();
  }
  function closeEditor(){el('ci-editor').hidden=true;el('ci-summary-detail').hidden=false;updateDetail(players.find(x=>x.id===chosenId));}
- function select(player){chosenId=player.id;closeEditor();updateDetail(player);render();}
+ function select(player){chosenId=player.id;closeEditor();updateDetail(player);render();profile?.select(player);}
  function render(){
   const list=filterPlayers(players,el('ci-search').value,el('ci-priority').value);
   el('ci-total').textContent=String(players.length);el('ci-priority-a').textContent=String(players.filter(p=>p.priority==='A').length);
@@ -103,7 +106,7 @@ export function initCompetitiveIntelligence({notify}){
  async function refresh(){
   if(!active||!authorized||!service)return;
   message('Actualizando biblioteca privada…');
-  try{players=await service.listPlayers();if(chosenId&&!players.some(x=>x.id===chosenId)){chosenId='';await switchTab('roster');}board?.setPlayers(players);render();updateDetail(players.find(x=>x.id===chosenId));updateSeedSummary();message('Base privada sincronizada. '+players.length+' expediente(s).');}
+  try{players=await service.listPlayers();if(chosenId&&!players.some(x=>x.id===chosenId)){chosenId='';await switchTab('roster');}board?.setPlayers(players);render();updateDetail(players.find(x=>x.id===chosenId));if(chosenId)profile?.select(players.find(x=>x.id===chosenId));else profile?.clear();updateSeedSummary();message('Base privada sincronizada. '+players.length+' expediente(s).');}
   catch(e){message('No se pudo consultar la base: '+e.message,true);}
  }
  async function switchTab(next){
@@ -121,7 +124,7 @@ export function initCompetitiveIntelligence({notify}){
   main.querySelector('.topbar h1').textContent='Competitive Intelligence';main.querySelector('.topbar p').textContent='Investigación y preparación competitiva privada.';
   await refresh();await switchTab(chosenId?tab:'roster');return true;
  }
- function close(){main.classList.remove('ci-isolated');if(active){layout.hidden=false;toolbar.hidden=false;tools.hidden=false;}active=false;authorized=false;screen.hidden=true;document.querySelector('#nav-competitive-intelligence')?.classList.remove('active');}
+ function close(){profile?.clear();main.classList.remove('ci-isolated');if(active){layout.hidden=false;toolbar.hidden=false;tools.hidden=false;}active=false;authorized=false;screen.hidden=true;document.querySelector('#nav-competitive-intelligence')?.classList.remove('active');}
  async function canAccess(){if(!service)return false;try{return await service.authorized();}catch{return false;}}
  el('ci-tab-roster').onclick=()=>switchTab('roster');el('ci-tab-board').onclick=()=>switchTab('board');
  el('ci-reload').onclick=refresh;el('ci-search').oninput=render;el('ci-priority').onchange=render;
