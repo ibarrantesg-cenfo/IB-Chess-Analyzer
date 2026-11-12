@@ -1,5 +1,5 @@
 import {sectionHref,normalLinkClick} from './navigation-routes.js';
-import { openingPlans, planReferenceArrows } from './opening-plans.js';
+import { openingPlans, openingPositionPlan } from './opening-plans.js';
 import { CORE_OPENING_FAMILIES } from './opening-core-families.js';
 import { OPENING_REFERENCE_LINES } from './opening-reference-lines.js';
 import { buildOpeningPositionTree } from './opening-position-tree.js';
@@ -83,13 +83,11 @@ export function initOpeningResearch({state,loadPGN,jump,notify,getLiveSnapshot})
   <div id="opening-lab-line" class="opening-lab-moves"></div>
   <section class="opening-lab-branches"><strong>Ramas de la misma posición</strong><p class="opening-lab-muted">Compara alternativas que parten de una posición idéntica. Las evaluaciones solo aparecen si hay una captura de Stockfish guardada para cada rama.</p><div id="opening-lab-branches" class="opening-lab-branch-list"></div></section>
   <section id="opening-lab-plans" class="opening-position-plans" hidden aria-label="Planes de la apertura">
-   <h3>Planes para continuar</h3>
-   <label class="opening-plan-toggle"><input type="checkbox" id="opening-plan-arrows" checked> Mostrar flechas de referencia y su explicación</label>
+   <h3 id="opening-plan-heading">Planes para continuar</h3>
+   <div id="opening-plan-toggle"><label class="opening-plan-toggle"><input type="checkbox" id="opening-plan-arrows" checked> Mostrar flechas de referencia y su explicación</label></div>
    <div id="opening-plan-explanation">
-   <p class="opening-lab-muted">Ideas orientativas de la familia. Elegí el plan según la estructura, la seguridad de los reyes y las amenazas de esta posición.</p>
-   <div class="opening-plan-columns"><div><strong><span class="plan-dot plan-blue" aria-hidden="true"></span> Blancas · azul</strong><p id="opening-plan-white"></p></div><div><strong><span class="plan-dot plan-red" aria-hidden="true"></span> Negras · rojo</strong><p id="opening-plan-black"></p></div></div>
+   <div class="opening-plan-columns"><div><strong>Blancas</strong><p id="opening-plan-white"></p></div><div><strong>Negras</strong><p id="opening-plan-black"></p></div></div>
    <ul id="opening-plan-arrow-list" class="opening-arrow-legend" hidden></ul>
-   <p id="opening-plan-arrow-note" class="opening-lab-muted"></p>
    </div>
   </section>
   <p class="opening-arrow-help">Dibujá con clic derecho y arrastrá: dorado. Mantené Ctrl para azul o Ctrl + Alt para rojo. Repetí el trazo del mismo color para borrarlo; un clic izquierdo limpia tus marcas.</p>
@@ -379,8 +377,8 @@ export function initOpeningResearch({state,loadPGN,jump,notify,getLiveSnapshot})
       notes.push('ESTADISTICA HISTORICA LICHESS MASTERS: '+n+' partidas; blancas '+m.white+', tablas '+m.draws+', negras '+m.black+'. Frecuencia no implica calidad objetiva.');
     }
     if(ply===sans.length){
-      const plan=openingPlans(draft);
-      notes.push('PLANES ORIENTATIVOS DE LA FAMILIA. Blancas: '+plan.white+' Negras: '+plan.black);
+      const plan=openingPositionPlan(c.fen());
+      if(plan)notes.push('PLANES DE ESTA POSICIÓN. Blancas: '+plan.white+' Negras: '+plan.black);
       const bibliography=data.sources[draft.id];
       if(bibliography)notes.push('REFERENCIAS EDITORIALES PENDIENTES DE REVISION: '+bibliography.replace(/\s+/g,' ').slice(0,1600));
     }
@@ -534,16 +532,26 @@ export function initOpeningResearch({state,loadPGN,jump,notify,getLiveSnapshot})
   if(!filtered.length)list.append(mk('p','No se encontraron líneas con ese nombre.','opening-lab-muted'));
  }
  function activeIsCorrect(){return state.game?.headers?.ResearchID===selected;}
+ function boardMatchesPosition(fen){
+  return Boolean(fen)&&activeIsCorrect()&&!state.previewFen&&state.positions[state.move]===fen;
+ }
  function renderPlans(draft,fens,ply){
-  const finalPosition=visible&&activeIsCorrect()&&!state.previewFen&&
-    ply===fens.length-1&&state.positions[state.move]===fens[ply];
+  const fen=fens[ply];
+  const finalPosition=visible&&ply===fens.length-1&&boardMatchesPosition(fen);
   plans.hidden=!finalPosition;
-  const plan=openingPlans(draft);
+  if(!finalPosition){
+   window.IB_ARROWS?.setReferenceArrows([]);
+   return;
+  }
+  const positionPlan=openingPositionPlan(fen);
+  const plan=positionPlan||openingPlans(draft);
+  el('opening-plan-heading').textContent=positionPlan?'Planes para continuar':'Guía general · '+draft.family;
   el('opening-plan-white').textContent=plan.white;
   el('opening-plan-black').textContent=plan.black;
   const showArrows=el('opening-plan-arrows').checked;
-  el('opening-plan-explanation').hidden=!showArrows;
-  const arrows=finalPosition&&showArrows?planReferenceArrows(fens[ply],plan):[];
+  el('opening-plan-toggle').hidden=!positionPlan;
+  el('opening-plan-explanation').hidden=Boolean(positionPlan)&&!showArrows;
+  const arrows=showArrows?(positionPlan?.arrows||[]):[];
   const legend=el('opening-plan-arrow-list');
   legend.hidden=!arrows.length;
   legend.replaceChildren(...arrows.map(arrow=>{
@@ -551,18 +559,10 @@ export function initOpeningResearch({state,loadPGN,jump,notify,getLiveSnapshot})
     const side=arrow.side==='w'?'Blancas':'Negras';
     const swatch=mk('span','','plan-dot '+(arrow.side==='w'?'plan-blue':'plan-red'));
     swatch.setAttribute('aria-hidden','true');
-    const file=arrow.to.charCodeAt(0);
-    const rank=Number(arrow.to[1])+(arrow.side==='w'?1:-1);
-    const squares=[file-1,file+1].filter(f=>f>=97&&f<=104&&rank>=1&&rank<=8)
-      .map(f=>String.fromCharCode(f)+rank);
-    row.append(swatch,mk('span',side+' · '+arrow.from+' → '+arrow.to+
-      (squares.length?' · El peón controlaría '+squares.join(' y ')+'.':'.')));
+    row.append(swatch,mk('span',side+' · '+arrow.from+' → '+arrow.to+' · '+arrow.explanation));
     return row;
   }));
-  el('opening-plan-arrow-note').textContent=arrows.length?
-   'Cada flecha marca una idea para su bando. Comprobá el turno y la respuesta rival.':
-   'Consultá los planes escritos para esta posición.';
-  window.IB_ARROWS?.setReferenceArrows(arrows,fens[ply]);
+  window.IB_ARROWS?.setReferenceArrows(arrows,fen);
  }
  let variantFingerprint='';
  function renderFamilyVariants(){
@@ -672,8 +672,12 @@ export function initOpeningResearch({state,loadPGN,jump,notify,getLiveSnapshot})
     open.onclick=()=>{switchStudy(other.id,{openLine:false});openAt(common+1);};
     row.append(details,open);branchHost.append(row);
   }
-  el('opening-lab-position').textContent=(activeIsCorrect()?'Posición '+ply+'/'+sans.length:'Variante aún no abierta')+' · FEN: '+fens[ply];
-  el('opening-lab-note').value=data.notes[key]??draft.notes?.[ply]??'';
+  const noteMatchesBoard=boardMatchesPosition(fens[ply]);
+  el('opening-lab-position').textContent=state.previewFen?'Variante de Stockfish · FEN: '+state.previewFen:
+    (noteMatchesBoard?'Posición '+ply+'/'+sans.length:'Variante aún no abierta')+' · FEN: '+fens[ply];
+  el('opening-lab-note').value=noteMatchesBoard?(data.notes[key]??draft.notes?.[ply]??''):'';
+  el('opening-lab-note').disabled=!noteMatchesBoard;
+  el('opening-lab-save-note').disabled=!noteMatchesBoard;
   el('opening-lab-sources').value=data.sources[selected]||'';
   const masterHost=el('opening-lab-masters-results');masterHost.replaceChildren();
   const historic=data.masters[fens[ply]];
@@ -819,8 +823,9 @@ export function initOpeningResearch({state,loadPGN,jump,notify,getLiveSnapshot})
  el('opening-lab-copy-selected').onclick=()=>openCopyToLibrary(selected);
  el('opening-lab-refresh').onclick=render;
  el('opening-lab-save-note').onclick=()=>{
-  if(!activeIsCorrect())return notify('Abrí primero la variante y seleccioná una posición.','err');
-  const key=selected+'|'+currentPly(),text=el('opening-lab-note').value.trim();
+  const ply=currentPly(),fen=validateOpeningLine(pick().moves).fens[ply];
+  if(!boardMatchesPosition(fen))return notify('Seleccioná una posición de la línea para guardar su comentario.','err');
+  const key=selected+'|'+ply,text=el('opening-lab-note').value.trim();
   if(text.length>4000)return notify('El comentario supera 4000 caracteres.','err');
   if(text)data.notes[key]=text;else delete data.notes[key];
   persist();render();notify('Comentario guardado localmente como borrador editorial.');
@@ -1064,6 +1069,6 @@ export function initOpeningResearch({state,loadPGN,jump,notify,getLiveSnapshot})
  render();
  return {open,close,isOpen:()=>visible,addEngineVariation,
   positionChanged(){if(visible){invalidateBranchPreview('Cambió la posición de origen. Revisá la variante antes de guardarla.');render();}},
-  previewChanged(){if(focused&&pick())renderFocused(pick());},
+  previewChanged(){if(visible)render();},
   refresh:render,selectStudy:(id,options)=>switchStudy(id,{push:false,...options}),getCurrentStudy:()=>selected,getCurrentTitle:()=>pick()?.name||'Biblioteca Maestra'};
 }

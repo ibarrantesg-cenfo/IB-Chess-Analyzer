@@ -148,27 +148,38 @@ test('the academy baseline has 10 White and 10 Black families with playable entr
 // Regression coverage for plans and the independently colored annotation layer.
 import { OPENING_REFERENCE_LINES } from './opening-reference-lines.js';
 import { OPENING_MODELS_2026 } from './opening-research-2026.js';
-import { openingPlans,planReferenceArrows } from './opening-plans.js';
+import { openingPlans,openingPositionPlan } from './opening-plans.js';
 import { arrowColor,ARROW_COLORS } from './board-arrows.js';
-test('all catalog families have plans and reference arrows from legal noncapturing moves',()=>{
+test('all catalog families have guidance and Caro-Kann never matches Sicilian Kan',()=>{
  const all=[...OPENING_RESEARCH_DRAFTS,...OPENING_RESEARCH_EXPANSION,...OPENING_REFERENCE_LINES,...OPENING_MODELS_2026];
- let illustrated=0;
  for(const draft of all){
-  const plan=openingPlans(draft),fen=validateOpeningLine(draft.moves).fens.at(-1);
+  const plan=openingPlans(draft);
   assert.equal(plan.scope,'family',draft.family);
   assert.ok(plan.white.length>80&&plan.black.length>80,draft.id);
-  const arrows=planReferenceArrows(fen,plan);
-  if(arrows.length)illustrated++;
-  for(const a of arrows){
-   const fields=fen.split(' ');if(fields[1]!==a.side){fields[1]=a.side;fields[3]='-';}
-   const chess=new Chess(fields.join(' '));
-   assert.equal(chess.isCheck(),false);
-   const move=chess.move({from:a.from,to:a.to});
-   assert.equal(move.color,a.side);assert.equal(move.captured,undefined);
-   assert.equal(a.color,a.side==='w'?ARROW_COLORS.blue:ARROW_COLORS.red);
-  }
  }
- assert.ok(illustrated>all.length*.7,'most final positions have a relevant pawn break to illustrate');
+ assert.match(openingPlans({family:'Defensa Caro-Kann · Avance'}).white,/Panov/);
+ assert.match(openingPlans({family:'Defensa Siciliana · Kan'}).black,/fianchetto/);
+});
+
+test('the Caro-Kann Advance annotations match the final position after 8.Nf4',()=>{
+ const draft=OPENING_RESEARCH_EXPANSION.find(row=>row.id==='caro-g4-c5');
+ const {sans,fens}=validateOpeningLine(draft.moves);
+ const fen=fens.at(-1),chess=new Chess(fen);
+ assert.equal(sans.at(-1),'Nf4');
+ assert.match(draft.notes[15],/alfil de g6 y al peón de h5/);
+ assert.equal(chess.turn(),'b');
+ assert.ok(chess.attackers('g6','w').includes('f4'));
+ assert.ok(chess.attackers('h5','w').includes('f4'));
+ assert.ok(chess.attackers('g6','b').includes('f7'));
+ const plan=openingPositionPlan(fen);
+ assert.deepEqual(plan.arrows.map(({from,to,color})=>[from,to,color]),[
+  ['f4','g6',ARROW_COLORS.blue],['c5','d4',ARROW_COLORS.red]
+ ]);
+ for(const san of ['cxd4','Nxg6','fxg6'])assert.equal(chess.move(san).san,san);
+ assert.equal(openingPositionPlan(fens.at(-2)),undefined);
+ assert.equal(openingPositionPlan(chess.fen()),undefined);
+ assert.equal(openingPositionPlan(fen.replace(' b ',' w ')),undefined);
+ assert.equal(openingPositionPlan(fen.replace(/ 1 8$/, ' 9 12')),plan);
 });
 test('modifier colors keep normal arrows gold and distinguish Ctrl from Ctrl+Alt',()=>{
  assert.equal(arrowColor({}),ARROW_COLORS.gold);

@@ -113,10 +113,10 @@ export const OPENING_RESEARCH_EXPANSION=[
   15:'Ae3 sostiene el desarrollo y puede ayudar en la lucha sobre d4.'
  },'Contrastar 4.Cf3 y las opciones 4...e6/4...c5, teniendo en cuenta los tiempos del peón c.'),
  make('caro-g4-c5','caro','Avance 4.Cc3 · 5.g4 y ruptura ...c5',C+' Nc3 e6 g4 Bg6 Nge2 c5 h4 h5 Nf4','B12',{
-  9:'g4 gana espacio, pero desprotege zonas del flanco de rey y exige cálculo.',
-  10:'...Ag6 preserva el alfil, aunque condiciona futuras reacciones con ...h5.',
-  12:'...c5 busca contrajuego central cuando las blancas ya han avanzado peones de flanco.',
-  15:'Cf4 aumenta las amenazas al alfil y centraliza el caballo desde e2.'
+  9:'5.g4 ataca al alfil de f5 y gana espacio en el flanco de rey.',
+  10:'5…Ag6 retira el alfil atacado. El peón de f7 lo protege en g6.',
+  12:'6…c5 ataca el peón blanco de d4, base de la cadena d4–e5.',
+  15:'8.Cf4 lleva el caballo de e2 a f4, desde donde ataca al alfil de g6 y al peón de h5. Juegan negras y el peón de f7 puede recapturar si las blancas toman en g6.'
  },'Calcular las respuestas negras frente a g4/h4 antes de asignar categorías como ataque ganador.'),
  make('caro-h4','caro','Avance 4.h4 h5 · provocación temprana',C+' h4 h5 Bd3 Bxd3 Qxd3 e6 Nf3 c5','B12',{
   7:'h4 cuestiona el espacio del alfil y limita o condiciona ...h5.',
