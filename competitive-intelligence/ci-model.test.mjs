@@ -1,0 +1,13 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import {CI_CODES,validatePlayer,validateObservation,normalizePgn,validateSourceUrl,filterPlayers} from './ci-model.js';
+import {createCIService} from './ci-service.js';
+test('siglas canónicas son estables',()=>{assert.equal(CI_CODES.IPR,'Índice de previsibilidad de repertorio');assert.equal(CI_CODES.RLS,'Seguridad por filas');});
+test('normalización de jugador y deduplicación de alias',()=>{const p=validatePlayer({display_name:'  Rival   Ejemplo ',fide_id:'1234567',aliases:['A','A'],priority:'A'});assert.equal(p.display_name,'Rival Ejemplo');assert.deepEqual(p.aliases,['A']);});
+test('rechaza prioridades y FIDE ID falsos',()=>{assert.throws(()=>validatePlayer({display_name:'Rival',priority:'admin'}));assert.throws(()=>validatePlayer({display_name:'Rival',fide_id:'ABC'}));});
+test('evidencia exige confianza válida y tamaño de muestra íntegro',()=>{assert.throws(()=>validateObservation({code:'IPR',claim:'x',sample_n:-1}));assert.throws(()=>validateObservation({code:'IPR',claim:'x',confidence:'certain'}));assert.equal(validateObservation({code:'ipr',claim:'Idea',sample_n:3}).code,'IPR');});
+test('PGN sin cambios semánticos',()=>{assert.equal(normalizePgn(' 1. e4 e5\r\n* '),'1. e4 e5\n*');assert.throws(()=>normalizePgn(''));});
+test('fuentes HTTP(S) únicamente',()=>{assert.throws(()=>validateSourceUrl('javascript:alert(1)'));assert.match(validateSourceUrl('https://lichess.org/study/test'),/^https:/);});
+test('filtro por prioridades y alias',()=>{const a=[{display_name:'Rival Uno',priority:'A',aliases:['El Uno']},{display_name:'Otro',priority:'B',aliases:[]}];assert.equal(filterPlayers(a,'uno','A').length,1);assert.equal(filterPlayers(a,'', 'B').length,1);});
+test('un alumno nunca ejecuta consulta de expedientes sin autorización',async()=>{let tableCalled=false;const mock={rpc:async()=>({data:false,error:null}),from:()=>{tableCalled=true;throw Error('unexpected');}};const service=createCIService(mock);await assert.rejects(()=>service.listPlayers(),/Acceso restringido/);assert.equal(tableCalled,false);});
+test('error de autorización falla cerrado',async()=>{const mock={rpc:async()=>({data:null,error:{message:'RPC unavailable'}}),from:()=>{throw Error('unexpected');}};await assert.rejects(()=>createCIService(mock).listPlayers(),/RPC unavailable/);});
