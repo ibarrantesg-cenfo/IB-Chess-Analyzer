@@ -18,9 +18,10 @@ export function initCIDocumentaryBoard({host,service,onError}){
  <div class="ci-board-layout"><div class="ci-board-side"><div class="ci-document-board" id="ci-chessboard" role="group" aria-label="Tablero de estudio documental"></div><div class="ci-board-controls"><button class="btn outline" type="button" id="ci-board-first" aria-label="Inicio">⏮</button><button class="btn outline" type="button" id="ci-board-back" aria-label="Anterior">◀</button><span id="ci-board-counter">0 / 0</span><button class="btn outline" type="button" id="ci-board-next" aria-label="Siguiente">▶</button><button class="btn outline" type="button" id="ci-board-last" aria-label="Final">⏭</button><button class="btn outline" type="button" id="ci-board-flip">Girar</button></div><div id="ci-board-message" class="ci-study-message" role="status">Elegí un rival y cargá una partida.</div></div>
  <div class="ci-board-editor"><label>Título de documento<input id="ci-study-title" maxlength="160" placeholder="Preparación contra rival / partida modelo"></label><label>Origen y referencia<input id="ci-study-source" maxlength="2048" placeholder="Torneo, fecha o URL pública"></label><label>Importar PGN<textarea rows="4" id="ci-study-pgn" placeholder="[Event &quot;Partida modelo&quot;]&#10;1. e4 e5 2. Nf3 Nc6 *"></textarea></label><div class="ci-actions"><button class="btn outline" type="button" id="ci-study-import">Cargar PGN al tablero</button><button class="btn outline" type="button" id="ci-study-export">Exportar PGN</button></div><div class="ci-study-moves" id="ci-study-moves" aria-label="Lista de jugadas"></div><label>Comentario de la posición <span id="ci-study-ply">0</span><textarea id="ci-study-note" rows="5" placeholder="Plan, estructura, idea crítica, evidencia o hipótesis..."></textarea></label><div class="ci-actions"><button class="btn primary" type="button" id="ci-study-save">Guardar documento privado</button></div></div></div>`;
  const get=id=>host.querySelector('#'+id);
- let history=[new Chess().fen()],moves=[],notes={},ply=0,orientation='w',selected=-1,recordId=null,authorized=false,working=false;
+ let history=[new Chess().fen()],moves=[],notes={},ply=0,orientation='w',selected=-1,recordId=null,authorized=false,working=false,sourcePgn='';
  const status=(text,error=false)=>{get('ci-board-message').textContent=text;get('ci-board-message').classList.toggle('error',error);};
  function exportCurrent(){
+  if(sourcePgn)return sourcePgn;
   const chess=new Chess();for(const san of moves)chess.move(san);return chess.pgn();
  }
  function syncNote(){notes[String(ply)]=get('ci-study-note').value;}
@@ -45,7 +46,7 @@ export function initCIDocumentaryBoard({host,service,onError}){
   const chess=new Chess(history[ply]);let m;
   try{m=chess.move({from,to,promotion:'q'});}catch{status('Jugada no legal. Seleccioná otra pieza.',true);return;}
   if(!m){status('Jugada no legal.',true);return;}
-  syncNote();moves.push(m.san);history.push(chess.fen());ply++;selected=-1;get('ci-study-pgn').value=exportCurrent();render();status('Jugada añadida al documento. Guardá para conservarla.');
+  syncNote();moves.push(m.san);history.push(chess.fen());ply++;selected=-1;sourcePgn='';get('ci-study-pgn').value=exportCurrent();render();status('Jugada añadida al documento. Guardá para conservarla.');
  }
  function render(){
   const chess=new Chess(history[ply]);const board=get('ci-chessboard');board.replaceChildren();
@@ -65,7 +66,7 @@ export function initCIDocumentaryBoard({host,service,onError}){
   currentNote();showMoves();
  }
  function clear(){
-  recordId=null;moves=[];history=[new Chess().fen()];notes={};ply=0;selected=-1;get('ci-study-title').value='';get('ci-study-source').value='';get('ci-study-pgn').value='';render();status('Documento nuevo. No se ha guardado nada.');
+  recordId=null;moves=[];history=[new Chess().fen()];notes={};ply=0;selected=-1;sourcePgn='';get('ci-study-existing').value='';get('ci-study-title').value='';get('ci-study-source').value='';get('ci-study-pgn').value='';render();status('Documento nuevo. No se ha guardado nada.');
  }
  function setPlayers(players){
   const picker=get('ci-study-player'),previous=picker.value;picker.replaceChildren(new Option('Elegí un rival',''));
@@ -81,8 +82,8 @@ export function initCIDocumentaryBoard({host,service,onError}){
  get('ci-board-flip').onclick=()=>{orientation=orientation==='w'?'b':'w';render();};
  get('ci-study-new').onclick=clear;
  get('ci-study-player').onchange=()=>{clear();loadList();};
- get('ci-study-load').onclick=async()=>{const id=get('ci-study-existing').value,player=get('ci-study-player').value;if(!id||!player)return status('Seleccioná un estudio existente.',true);try{const record=await service.getPreparation(id,player),doc=decodeDocument(record),parsed=parsePGN(doc.pgn);recordId=record.id;notes=doc.notes;moves=parsed.sans;history=parsed.fens;ply=0;get('ci-study-title').value=doc.title;get('ci-study-source').value=doc.source;get('ci-study-pgn').value=doc.pgn;render();status('Estudio abierto. Podés recorrerlo y actualizar los comentarios.');}catch(e){status('No se pudo abrir: '+e.message,true);}};
- get('ci-study-import').onclick=()=>{try{const parsed=parsePGN(get('ci-study-pgn').value);syncNote();moves=parsed.sans;history=parsed.fens;notes={};ply=0;selected=-1;render();status('PGN válido. '+moves.length+' medias jugadas cargadas. Guardá el documento.');}catch(e){status('PGN inválido: '+e.message,true);}};
+ get('ci-study-load').onclick=async()=>{const id=get('ci-study-existing').value,player=get('ci-study-player').value;if(!id||!player)return status('Seleccioná un estudio existente.',true);try{const record=await service.getPreparation(id,player),doc=decodeDocument(record),parsed=parsePGN(doc.pgn);recordId=record.id;notes=doc.notes;moves=parsed.sans;history=parsed.fens;sourcePgn=doc.pgn;ply=0;get('ci-study-title').value=doc.title;get('ci-study-source').value=doc.source;get('ci-study-pgn').value=doc.pgn;render();status('Estudio abierto. Podés recorrerlo y actualizar los comentarios.');}catch(e){status('No se pudo abrir: '+e.message,true);}};
+ get('ci-study-import').onclick=()=>{try{const parsed=parsePGN(get('ci-study-pgn').value);syncNote();moves=parsed.sans;history=parsed.fens;notes={};sourcePgn=get('ci-study-pgn').value.trim();ply=0;selected=-1;render();status('PGN válido. '+moves.length+' medias jugadas cargadas. Guardá el documento.');}catch(e){status('PGN inválido: '+e.message,true);}};
  get('ci-study-export').onclick=()=>{const blob=new Blob([exportCurrent()],{type:'application/x-chess-pgn'});const url=URL.createObjectURL(blob);const link=document.createElement('a');link.href=url;link.download='IB_CI_Estudio.pgn';link.click();setTimeout(()=>URL.revokeObjectURL(url),1000);};
  get('ci-study-save').onclick=async()=>{if(working)return;const player=get('ci-study-player').value,title=get('ci-study-title').value.trim();if(!player||!title)return status('Elegí un rival e ingresá un título antes de guardar.',true);if(!authorized)return status('Sin autorización.',true);syncNote();working=true;get('ci-study-save').disabled=true;try{const data={title,plan:encodeDocument({pgn:exportCurrent(),notes,source:get('ci-study-source').value})};const rec=recordId?await service.updatePreparation(recordId,player,data):await service.createPreparation(player,data);recordId=rec.id;await loadList();get('ci-study-existing').value=recordId;status('Estudio privado guardado en Supabase.');}catch(e){status('Error al guardar: '+e.message,true);onError?.(e);}finally{working=false;get('ci-study-save').disabled=false;}};
  render();
