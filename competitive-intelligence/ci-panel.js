@@ -8,7 +8,7 @@ import './ci-style.css';
 export function initCompetitiveIntelligence({notify}){
  const main=document.querySelector('main.main'),layout=main.querySelector('.layout'),toolbar=main.querySelector('.toolbar'),tools=main.querySelector('.workspace-tools');
  const screen=document.createElement('section');screen.className='ci-screen';screen.hidden=true;
- screen.innerHTML=`<header class="ci-head"><div><span class="eyebrow">IB CHESS ACADEMY · INVESTIGACIÓN PRIVADA</span><h2>Competitive Intelligence</h2><p>Inteligencia competitiva, documentación de partidas y preparación con evidencia.</p></div><button class="btn outline" id="ci-reload" type="button">↻ Actualizar</button></header>
+ screen.innerHTML=`<header class="ci-head"><div><span class="eyebrow">IB CHESS ACADEMY · INVESTIGACIÓN PRIVADA</span><h2>Competitive Intelligence <span class="ci-release">v2.2</span></h2><p>Inteligencia competitiva, documentación de partidas y preparación con evidencia.</p></div><button class="btn outline" id="ci-reload" type="button">↻ Actualizar</button></header>
  <div class="ci-tabs" role="tablist" aria-label="Secciones de inteligencia"><button type="button" id="ci-tab-roster" role="tab" aria-selected="true" class="active">♟ Expedientes de rivales</button><button type="button" id="ci-tab-board" role="tab" aria-selected="false" hidden>♜ Estudio documental</button></div>
  <div id="ci-status" class="ci-status" role="status"></div>
  <section id="ci-roster-screen" role="tabpanel" aria-labelledby="ci-tab-roster">
@@ -105,12 +105,12 @@ export function initCompetitiveIntelligence({notify}){
   if(!service){notify('Supabase no está configurado para Competitive Intelligence.','err');return false;}
   let allowed=false;try{allowed=await service.authorized();}catch(e){console.warn('CI:',e.message);}
   if(!allowed){notify('Competitive Intelligence: acceso administrativo no habilitado.','err');return false;}
-  authorized=true;active=true;screen.hidden=false;layout.hidden=true;toolbar.hidden=true;tools.hidden=true;
+  authorized=true;active=true;screen.hidden=false;main.classList.add('ci-isolated');layout.hidden=true;toolbar.hidden=true;tools.hidden=true;
   document.querySelector('#nav-competitive-intelligence')?.classList.add('active');
   main.querySelector('.topbar h1').textContent='Competitive Intelligence';main.querySelector('.topbar p').textContent='Investigación y preparación competitiva privada.';
   await refresh();await switchTab(chosenId?tab:'roster');return true;
  }
- function close(){if(active){layout.hidden=false;toolbar.hidden=false;tools.hidden=false;}active=false;authorized=false;screen.hidden=true;document.querySelector('#nav-competitive-intelligence')?.classList.remove('active');}
+ function close(){main.classList.remove('ci-isolated');if(active){layout.hidden=false;toolbar.hidden=false;tools.hidden=false;}active=false;authorized=false;screen.hidden=true;document.querySelector('#nav-competitive-intelligence')?.classList.remove('active');}
  async function canAccess(){if(!service)return false;try{return await service.authorized();}catch{return false;}}
  el('ci-tab-roster').onclick=()=>switchTab('roster');el('ci-tab-board').onclick=()=>switchTab('board');
  el('ci-reload').onclick=refresh;el('ci-search').oninput=render;el('ci-priority').onchange=render;
