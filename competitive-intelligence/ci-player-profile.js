@@ -5,6 +5,7 @@ export function initCIPlayerProfile({host,service}){
  host.className='ci-research';host.hidden=true;
  host.innerHTML=`<div class="ci-research-header"><div><span class="eyebrow">PERFIL COMPETITIVO · EVIDENCIA Y DATOS</span><h3 id="ci-r-name">Seleccioná un rival</h3></div><button class="btn outline" type="button" id="ci-r-refresh">Actualizar estadísticas</button></div>
  <div id="ci-r-rating" class="ci-r-rating"></div>
+ <section id="ci-r-dossier" class="ci-r-section" hidden><h4>Informe de preparación · evidencia pública</h4><div id="ci-r-dossier-body"></div></section>
  <div class="ci-r-layout"><section class="ci-r-section"><h4>Repertorio por partidas verificadas</h4><p class="ci-subtle">Se calcula únicamente a partir de los PGN completos almacenados; las referencias externas no cuentan como partidas analizadas.</p><div id="ci-r-repertoire" class="ci-r-repertoire"></div></section>
  <section class="ci-r-section"><h4>Banco de partidas PGN</h4><div id="ci-r-games" class="ci-r-games"></div></section></div>
  <div class="ci-r-layout"><section class="ci-r-section"><h4>Importar partidas del rival</h4><p class="ci-subtle">Acepta un PGN completo o archivo con varias partidas. Verifica jugadas y que el rival coincida con los encabezados antes de guardar en tu base privada.</p>
@@ -30,6 +31,33 @@ export function initCIPlayerProfile({host,service}){
    add(card,'small',monthly!=null?'FIDE · noviembre 2026':historicValue!=null?'JUNCOS · ranking inicial octubre 2026':'Elo pendiente de verificar');
   }
   if(fid){const link=document.createElement('a');link.href='https://ratings.fide.com/profile/'+encodeURIComponent(fid);link.target='_blank';link.rel='noopener noreferrer';link.textContent='Consultar ficha FIDE oficial · '+fid;panel.append(link);}
+ }
+ function renderDossier(){
+  const block=el('ci-r-dossier'),body=el('ci-r-dossier-body');
+  body.replaceChildren();
+  const isDavid=String(selected?.fide_id||'')==='6507522';
+  block.hidden=!isDavid;
+  if(!isDavid)return;
+  const sections=[
+   ['Identificación','FM David Alejandro Cabezas Solano · UCR · FIDE 6507522. Campeón Nacional Absoluto de Costa Rica 2026 (10,5/11). Subcampeón Centroamericano y del Caribe U20 2024.'],
+   ['Muestra externa de aperturas','Un índice externo de 142 partidas registra 57 primeras jugadas con blancas: 26 con Cf3, 22 con d4, 6 con g3, 2 con e4 y 1 con c4. Muestra parcial: no confundir con porcentajes de todas sus partidas.'],
+   ['Respuesta con negras','En la colección externa aparece Siciliana en 42 partidas de distintos colores; existen partidas concretas con ...c5 frente a 1.e4. No se ha verificado estadísticamente toda su distribución por variantes.'],
+   ['Antecedente directo','Una base de partidas indexa Cabezas–Barrantes del 15 de octubre de 2026: 1.Cf3 Cf6 2.g3 g6 3.b3 Ag7. El resultado reportado es victoria de David; corroborar el PGN íntegro antes de analizar errores.'],
+   ['Preparación sugerida','Si David conduce blancas, revisar sistemas Réti/Catalana con Cf3, g3, d4 y transposiciones. Si conduce negras, preparar respuesta específica a la Siciliana, sin asumir una Najdorf fija. Priorizar estudio de partidas completas y finales largos.'],
+   ['Calidad de datos','El repertorio cuantitativo de esta pantalla se calcula únicamente cuando importés PGN completos y verificados. Los datos anteriores son investigación pública con sus fuentes, no partidas almacenadas ni diagnóstico del motor.']
+  ];
+  for(const [heading,detail] of sections){
+   const section=add(body,'div','', 'ci-r-color');add(section,'h5',heading);add(section,'p',detail,'ci-subtle');
+  }
+  const sources=[
+   ['FCA · Campeonato Nacional 2026','https://fcacostarica.com/campeonato-nacional-mayor-absoluto-y-femenino-2026/'],
+   ['Chess.com · partidas públicas','https://www.chess.com/games/david-alejandro-cabezas-solano'],
+   ['Base externa · 142 partidas','https://chess.com.im/db/player_profile.php?fide_id=6507522'],
+   ['JUNCOS 2026 · inscripción','https://s2.chess-results.com/tnr1516373.aspx?SNode=S0&lan=21'],
+   ['Olimpiada 2026 · resultados','https://ply.fun/olympiad-2026/open/players/6507522']
+  ];
+  const links=add(body,'div','', 'ci-r-links');
+  for(const [title,url] of sources){const a=document.createElement('a');a.href=url;a.target='_blank';a.rel='noopener noreferrer';a.textContent=title;links.append(a);}
  }
  function renderReferences(){
   const panel=el('ci-r-links');panel.replaceChildren();
@@ -122,7 +150,7 @@ export function initCIPlayerProfile({host,service}){
  return {
   async select(player){
    selected=player||null;host.hidden=!selected;records=[];if(!selected)return;
-   el('ci-r-name').textContent=selected.display_name;renderRatings();renderReferences();renderStats();renderGames();status('Fuentes FIDE consultadas. Partidas privadas pendientes de carga.');
+   el('ci-r-name').textContent=selected.display_name;renderRatings();renderDossier();renderReferences();renderStats();renderGames();status('Fuentes FIDE consultadas. Partidas privadas pendientes de carga.');
    await refresh();
   },
   clear(){selected=null;host.hidden=true;records=[];requestId++;}
