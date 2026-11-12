@@ -1,4 +1,5 @@
 import {ratingFor,gameReferences,parseCIImport,analyzeCIGames} from './ci-player-intelligence.js';
+import {findUniversityCandidate} from './ci-university-data.js';
 
 export function initCIPlayerProfile({host,service}){
  host.className='ci-research';host.hidden=true;
@@ -20,11 +21,13 @@ export function initCIPlayerProfile({host,service}){
  function renderRatings(){
   const panel=el('ci-r-rating');panel.replaceChildren();const fid=selected?.fide_id;
   const r=ratingFor(fid);
+  const historic=findUniversityCandidate(selected);
   for(const [type,label] of [['standard','Clásico'],['rapid','Rápidas'],['blitz','Blitz']]){
    const card=add(panel,'div','', 'ci-r-rating-card');
+   const monthly=r?.[type],historicValue=historic?.ratings?.[type];
    add(card,'span',label);
-   add(card,'strong',r?.[type]!=null?String(r[type]):'—');
-   add(card,'small',r?'FIDE · noviembre 2026':'Pendiente de verificación FIDE');
+   add(card,'strong',monthly!=null?String(monthly):historicValue!=null?String(historicValue):'—');
+   add(card,'small',monthly!=null?'FIDE · noviembre 2026':historicValue!=null?'JUNCOS · ranking inicial octubre 2026':'Elo pendiente de verificar');
   }
   if(fid){const link=document.createElement('a');link.href='https://ratings.fide.com/profile/'+encodeURIComponent(fid);link.target='_blank';link.rel='noopener noreferrer';link.textContent='Consultar ficha FIDE oficial · '+fid;panel.append(link);}
  }

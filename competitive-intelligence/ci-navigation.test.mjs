@@ -24,5 +24,5 @@ test('documentary board and its tab require a selected rival',()=>{
  assert.match(ci,/if\(next==='board'&&!chosenId\)/);
 });
 test('release marker changes when new deployment has landed',()=>{
- assert.match(ci,/ci-release">v2\.2/);
+ assert.match(ci,/ci-release">v2\.3/);
 });

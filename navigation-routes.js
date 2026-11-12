@@ -6,6 +6,7 @@ export function sectionHref(view,href,study='',analysis=false,family=''){
  const url=new URL(href);
  url.searchParams.delete('solicitar');
  url.searchParams.set('view',view);
+ if(view!=='competitive-intelligence'){url.searchParams.delete('ci_player');url.searchParams.delete('ci_tab');}
  if(view==='openings'&&study)url.searchParams.set('study',study);
  else url.searchParams.delete('study');
  if(view==='openings'&&family)url.searchParams.set('family',family);
