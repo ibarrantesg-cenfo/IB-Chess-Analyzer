@@ -1,0 +1,31 @@
+name: Validación CI privada
+on:
+  pull_request:
+    paths:
+      - 'competitive-intelligence/**'
+      - 'main.js'
+      - 'cloud.js'
+      - 'navigation-routes.js'
+      - 'package.json'
+      - '.github/workflows/competitive-intelligence-check.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  validation:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: npm install --include=optional --no-audit --no-fund
+      - run: npm install --no-save --no-audit --no-fund "@rollup/rollup-linux-x64-gnu@$(node -p "require('./node_modules/rollup/package.json').version")"
+      - run: npm run check
+      - run: npm test
+      - run: npm run build
+        env:
+          GITHUB_PAGES: 'true'
+      - name: Confirmar módulo restringido
+        run: |
+          node -e "const fs=require('fs'); const src=fs.readFileSync('competitive-intelligence/ci-panel.js','utf8'); if(!src.includes('service.authorized()'))process.exit(1)"
