@@ -512,9 +512,17 @@ academyNav.onclick=()=>{window.IB_CI?.close();window.IB_OPENING_LAB?.close();win
 analyticsNav.onclick=()=>{window.IB_CI?.close();window.IB_OPENING_LAB?.close();window.IB_ACADEMIC?.close();window.IB_ACADEMY?.close();window.IB_PERFORMANCE.hide();window.IB_LIBRARY.close();window.IB_ACADEMY_ANALYTICS.show();navReview.classList.remove('active');navLibrary.classList.remove('active');navReports.classList.remove('active');};
 
 ciNav.onclick=async()=>{
- const allowed=await window.IB_CI.show();if(!allowed)return;
- window.IB_OPENING_LAB?.close();window.IB_ACADEMIC?.close();window.IB_ACADEMY?.close();window.IB_ACADEMY_ANALYTICS?.close();window.IB_PERFORMANCE.hide();window.IB_LIBRARY.close();
+ // Authorize before changing the current screen. Closing other modules after
+ // opening CI would restore the Game Review layout on top of the private screen.
+ if(!(await window.IB_CI.canAccess())){
+  notify('Competitive Intelligence requiere autorización administrativa.','err');
+  return;
+ }
+ window.IB_OPENING_LAB?.close();window.IB_ACADEMIC?.close();window.IB_ACADEMY?.close();
+ window.IB_ACADEMY_ANALYTICS?.close();window.IB_PERFORMANCE.hide();window.IB_LIBRARY.close();
  navReview.classList.remove('active');navLibrary.classList.remove('active');navReports.classList.remove('active');
+ const opened=await window.IB_CI.show();
+ if(!opened)navReview.onclick?.();
 };
 let roleCheck=0;
 async function updateAccountNavigation(){
