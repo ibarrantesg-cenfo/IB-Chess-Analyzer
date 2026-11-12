@@ -1,6 +1,6 @@
 // Browser-native routes for opening a section or an individual study in a separate tab.
 // Use links with a real href; buttons cannot be dragged onto a browser tab bar.
-export const ROUTES=Object.freeze(['review','library','openings','reports','academic','academy','academy-analytics','preferences']);
+export const ROUTES=Object.freeze(['review','library','openings','reports','academic','academy','academy-analytics','competitive-intelligence','preferences']);
 export function sectionHref(view,href,study='',analysis=false,family=''){
  if(!ROUTES.includes(view))throw new Error('Vista inexistente: '+view);
  const url=new URL(href);
