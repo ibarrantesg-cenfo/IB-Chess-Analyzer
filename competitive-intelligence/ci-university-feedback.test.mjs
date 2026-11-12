@@ -8,7 +8,7 @@ const styles=readFileSync(new URL('./ci-style.css',import.meta.url),'utf8');
 test('university sync gives feedback next to the button',()=>{
  assert.match(panel,/id="ci-seed-status"[^>]+role="status"/);
  assert.match(panel,/const seedMessage=/);
- assert.match(panel,/ya están registrados y no necesitan cambios/);
+ assert.match(panel,/el\('ci-starter'\)\.hidden=unresolved===0/);
  assert.match(panel,/No se pudo comprobar la base/);
  assert.match(styles,/\.ci-seed-status\[data-kind="success"\]/);
 });
