@@ -22,16 +22,16 @@ export function initCompetitiveIntelligence({notify}){
     <div class="ci-starter" id="ci-starter" hidden><strong>Investigación universitaria · JUNCOS 2026</strong><p>Registramos los participantes del circuito y conservamos sus fuentes. Esta acción verifica qué fichas faltan o necesitan actualización; no duplica los registros existentes.</p><button class="btn outline" id="ci-seed" type="button">↻ Comprobar y sincronizar rivales</button><div id="ci-seed-status" class="ci-seed-status" role="status" aria-live="polite">Consultá el estado de los jugadores universitarios.</div></div>
    </section>
    <section class="ci-panel ci-detail-panel">
-    <div id="ci-summary-detail" class="ci-detail-summary"><span class="eyebrow">EXPEDIENTE ACTIVO</span><h3 id="ci-detail-title">Seleccioná un rival o creá uno nuevo</h3><p id="ci-detail-description">Cada ficha será el punto de entrada a sus partidas, observaciones, aperturas y documentos privados.</p><div id="ci-public-evidence" class="ci-public-evidence" hidden></div><div class="ci-actions"><button class="btn outline" type="button" id="ci-edit" hidden>Editar ficha</button><button class="btn primary" type="button" id="ci-open-board" hidden>Abrir estudio documental</button></div></div>
+    <div id="ci-summary-detail" class="ci-detail-summary"><div class="ci-detail-toolbar"><button id="ci-back-roster" class="btn outline" type="button" hidden>← Volver a rivales</button><span class="eyebrow">EXPEDIENTE ACTIVO</span></div><h3 id="ci-detail-title">Seleccioná un rival o creá uno nuevo</h3><p id="ci-detail-description">Cada ficha será el punto de entrada a sus partidas, observaciones, aperturas y documentos privados.</p><div id="ci-public-evidence" class="ci-public-evidence" hidden></div><div class="ci-actions"><button class="btn outline" type="button" id="ci-edit" hidden>Editar ficha</button><button class="btn primary" type="button" id="ci-open-board" hidden>Abrir estudio documental</button></div></div>
     <section id="ci-editor" hidden><div class="ci-panel-head"><div><span class="eyebrow">GESTIÓN DE EXPEDIENTE</span><h3 id="ci-editor-title">Nuevo rival</h3></div><button class="btn outline" type="button" id="ci-cancel">Cerrar</button></div>
      <form id="ci-form"><input type="hidden" id="ci-id"/><div class="ci-form-grid"><label>Nombre completo<input id="ci-name" required maxlength="160" autocomplete="off"/></label><label>FID · Identificador FIDE<input id="ci-fide" inputmode="numeric" placeholder="Opcional, solo números"/></label><label>Prioridad<select id="ci-priority-edit"><option value="A">A — Estratégico</option><option value="B">B — Recurrente</option><option value="C" selected>C — Seguimiento</option></select></label><label>Alias separados por coma<input id="ci-aliases" maxlength="1000"/></label></div><label>Notas iniciales<textarea id="ci-notes" rows="5" maxlength="10000" placeholder="Datos pendientes de verificar y fuente de investigación"></textarea></label><div class="ci-actions"><button class="btn primary" type="submit" id="ci-save">Guardar expediente</button><button class="btn outline" type="button" id="ci-reset">Limpiar</button><button class="btn outline" type="button" id="ci-archive" disabled>Archivar</button></div></form>
     </section>
+    <div id="ci-research" hidden></div>
     <div class="ci-legend"><strong>Siglas</strong><p>RID · ID de rival &nbsp; FID · ID FIDE &nbsp; OBS · Observación &nbsp; EVD · Evidencia &nbsp; CF · Confianza &nbsp; IPR · Índice de previsibilidad.</p></div>
    </section>
   </div>
-  <div id="ci-research" hidden></div>
  </section>
- <section id="ci-board-screen" role="tabpanel" aria-labelledby="ci-tab-board" hidden></section>`;
+ <section id="ci-board-screen" role="tabpanel" aria-labelledby="ci-tab-board" hidden><div class="ci-board-back-row"><button id="ci-back-profile" type="button" class="btn outline">← Volver al expediente</button></div></section>`;
  main.insertBefore(screen,main.querySelector('footer'));
  const el=id=>screen.querySelector('#'+id);
  const client=getCIClient();
@@ -39,6 +39,20 @@ export function initCompetitiveIntelligence({notify}){
  const board=service?initCIDocumentaryBoard({host:el('ci-board-screen'),service,onError:e=>console.warn('CI study',e)}):null;
  const profile=service?initCIPlayerProfile({host:el('ci-research'),service}):null;
  let active=false,authorized=false,players=[],chosenId='',tab='roster';
+ // Browser history is the source of truth for rival and study navigation.
+ function routeState(){
+  const q=new URLSearchParams(location.search);
+  if(q.get('view')!=='competitive-intelligence')return {playerId:'',tab:'roster'};
+  return {playerId:q.get('ci_player')||'',tab:q.get('ci_tab')==='board'?'board':'roster'};
+ }
+ function recordRoute(playerId=chosenId,nextTab=tab){
+  const url=new URL(location.href);
+  url.searchParams.set('view','competitive-intelligence');
+  if(playerId)url.searchParams.set('ci_player',playerId);else url.searchParams.delete('ci_player');
+  if(playerId&&nextTab==='board')url.searchParams.set('ci_tab','board');else url.searchParams.delete('ci_tab');
+  if(url.pathname+url.search!==location.pathname+location.search)
+   history.pushState({section:'competitive-intelligence',ciPlayer:playerId,ciTab:nextTab},'',url.pathname+url.search);
+ }
  const message=(text,isError=false)=>{el('ci-status').textContent=text;el('ci-status').classList.toggle('error',isError);};
  const seedMessage=(text,kind='neutral')=>{const node=el('ci-seed-status');node.textContent=text;node.dataset.kind=kind;};
  function updateSeedSummary(){
@@ -58,6 +72,7 @@ export function initCompetitiveIntelligence({notify}){
   el('ci-edit').hidden=!player;
   el('ci-open-board').hidden=!player;
   el('ci-tab-board').hidden=!player;
+  el('ci-back-roster').hidden=!player;
   const evidence=el('ci-public-evidence');evidence.replaceChildren();
   const candidate=player?findUniversityCandidate(player):null;
   evidence.hidden=!candidate;
@@ -76,7 +91,7 @@ export function initCompetitiveIntelligence({notify}){
   }
  }
  function reset(){
-  chosenId='';profile?.clear();if(tab==='board')switchTab('roster');el('ci-form').reset();el('ci-id').value='';el('ci-priority-edit').value='C';el('ci-archive').disabled=true;updateDetail(null);render();
+  chosenId='';profile?.clear();if(tab==='board')switchTab('roster',false);el('ci-form').reset();el('ci-id').value='';el('ci-priority-edit').value='C';el('ci-archive').disabled=true;updateDetail(null);render();
  }
  function editNew(){
   reset();el('ci-editor-title').textContent='Nuevo rival';el('ci-editor').hidden=false;el('ci-summary-detail').hidden=true;
@@ -89,7 +104,15 @@ export function initCompetitiveIntelligence({notify}){
   el('ci-archive').disabled=false;el('ci-editor-title').textContent='Editar · '+p.display_name;el('ci-editor').hidden=false;el('ci-summary-detail').hidden=true;el('ci-name').focus();
  }
  function closeEditor(){el('ci-editor').hidden=true;el('ci-summary-detail').hidden=false;updateDetail(players.find(x=>x.id===chosenId));}
- function select(player){chosenId=player.id;closeEditor();updateDetail(player);render();profile?.select(player);}
+ function select(player,record=true){
+  if(!player)return;
+  chosenId=player.id;tab='roster';
+  el('ci-roster-screen').hidden=false;el('ci-board-screen').hidden=true;
+  closeEditor();updateDetail(player);render();
+  void profile?.select(player);
+  if(record)recordRoute(player.id,'roster');
+  el('ci-detail-title').scrollIntoView({block:'start',behavior:'smooth'});
+ }
  function render(){
   const list=filterPlayers(players,el('ci-search').value,el('ci-priority').value);
   el('ci-total').textContent=String(players.length);el('ci-priority-a').textContent=String(players.filter(p=>p.priority==='A').length);
@@ -106,13 +129,14 @@ export function initCompetitiveIntelligence({notify}){
  async function refresh(){
   if(!active||!authorized||!service)return;
   message('Actualizando biblioteca privada…');
-  try{players=await service.listPlayers();if(chosenId&&!players.some(x=>x.id===chosenId)){chosenId='';await switchTab('roster');}board?.setPlayers(players);render();updateDetail(players.find(x=>x.id===chosenId));if(chosenId)profile?.select(players.find(x=>x.id===chosenId));else profile?.clear();updateSeedSummary();message('Base privada sincronizada. '+players.length+' expediente(s).');}
+  try{players=await service.listPlayers();if(chosenId&&!players.some(x=>x.id===chosenId)){chosenId='';await switchTab('roster',false);}board?.setPlayers(players);render();updateDetail(players.find(x=>x.id===chosenId));if(chosenId)profile?.select(players.find(x=>x.id===chosenId));else profile?.clear();updateSeedSummary();message('Base privada sincronizada. '+players.length+' expediente(s).');}
   catch(e){message('No se pudo consultar la base: '+e.message,true);}
  }
- async function switchTab(next){
+ async function switchTab(next,record=true){
   if(next==='board'&&!chosenId){message('Seleccioná un jugador de la lista antes de abrir su estudio documental.',true);return;}
   tab=next;el('ci-roster-screen').hidden=next!=='roster';el('ci-board-screen').hidden=next!=='board';
   for(const key of ['roster','board']){el('ci-tab-'+key).classList.toggle('active',key===next);el('ci-tab-'+key).setAttribute('aria-selected',String(key===next));}
+  if(record)recordRoute(chosenId,next);
   if(next==='board'&&board){await board.activate();await board.selectPlayer(chosenId);}
  }
  async function show(){
@@ -122,11 +146,26 @@ export function initCompetitiveIntelligence({notify}){
   authorized=true;active=true;screen.hidden=false;main.classList.add('ci-isolated');layout.hidden=true;toolbar.hidden=true;tools.hidden=true;
   document.querySelector('#nav-competitive-intelligence')?.classList.add('active');
   main.querySelector('.topbar h1').textContent='Competitive Intelligence';main.querySelector('.topbar p').textContent='Investigación y preparación competitiva privada.';
-  await refresh();await switchTab(chosenId?tab:'roster');return true;
+  await refresh();
+  const requested=routeState();
+  const found=players.find(p=>p.id===requested.playerId);
+  if(found){
+   chosenId=found.id;updateDetail(found);render();void profile?.select(found);
+   await switchTab(requested.tab,false);
+  }else{
+   chosenId='';profile?.clear();updateDetail(null);render();
+   await switchTab('roster',false);
+  }
+  return true;
  }
  function close(){profile?.clear();main.classList.remove('ci-isolated');if(active){layout.hidden=false;toolbar.hidden=false;tools.hidden=false;}active=false;authorized=false;screen.hidden=true;document.querySelector('#nav-competitive-intelligence')?.classList.remove('active');}
  async function canAccess(){if(!service)return false;try{return await service.authorized();}catch{return false;}}
  el('ci-tab-roster').onclick=()=>switchTab('roster');el('ci-tab-board').onclick=()=>switchTab('board');
+ el('ci-back-profile').onclick=()=>switchTab('roster');
+ el('ci-back-roster').onclick=()=>{
+  chosenId='';profile?.clear();updateDetail(null);render();recordRoute('','roster');
+  el('ci-players').scrollIntoView({block:'start',behavior:'smooth'});
+ };
  el('ci-reload').onclick=refresh;el('ci-search').oninput=render;el('ci-priority').onchange=render;
  el('ci-create').onclick=editNew;el('ci-edit').onclick=editSelected;el('ci-reset').onclick=editNew;el('ci-cancel').onclick=closeEditor;
  el('ci-open-board').onclick=()=>switchTab('board');
@@ -137,13 +176,13 @@ export function initCompetitiveIntelligence({notify}){
   try{const id=el('ci-id').value,duplicate=matchExistingCandidate(payload,players.filter(x=>x.id!==id));
    if(duplicate){chosenId=duplicate.id;editSelected();message('Ya existe un expediente con el mismo nombre o FIDE ID. Abrí su ficha existente para corregirla; no se creó un duplicado.',true);return;}
    const record=id?await service.updatePlayer(id,payload):await service.createPlayer(payload);
-   chosenId=record.id;await refresh();closeEditor();message('Expediente guardado. Seleccionado: '+record.display_name+'.');}
+   chosenId=record.id;await refresh();closeEditor();recordRoute(record.id,'roster');message('Expediente guardado. Seleccionado: '+record.display_name+'.');}
   catch(error){message('No se pudo guardar: '+error.message,true);}finally{el('ci-save').disabled=false;}
  };
  el('ci-archive').onclick=async()=>{
   const id=el('ci-id').value;if(!id||!active||!authorized)return;
   if(!confirm('¿Archivar el expediente? No se eliminarán sus datos.'))return;
-  try{await service.archivePlayer(id);chosenId='';reset();closeEditor();await refresh();message('Expediente archivado.');}catch(e){message(e.message,true);}
+  try{await service.archivePlayer(id);chosenId='';reset();closeEditor();recordRoute('','roster');await refresh();message('Expediente archivado.');}catch(e){message(e.message,true);}
  };
  el('ci-seed').onclick=async()=>{
   if(!active||!authorized){seedMessage('No hay una sesión administradora activa. Iniciá sesión y volvé a entrar.','error');return;}
