@@ -1,12 +1,13 @@
 import {ratingFor,gameReferences,parseCIImport,analyzeCIGames} from './ci-player-intelligence.js';
 import {findUniversityCandidate} from './ci-university-data.js';
 import {createCIGameIndex,gameFilterOptions,filterCIGames,ciFilterStats} from './ci-game-explorer.js';
+import {dossierCoverage} from './ci-dossier-coverage.js';
 import {tournamentSourcesFor,olympiadScoresFor,CI_SOURCE_STATUS} from './ci-tournament-sources.js';
 
 export function initCIPlayerProfile({host,service}){
  host.className='ci-research';host.hidden=true;
  host.innerHTML=`<div class="ci-research-header"><div><span class="eyebrow">PERFIL COMPETITIVO · EVIDENCIA Y DATOS</span><h3 id="ci-r-name">Seleccioná un rival</h3></div><button class="btn outline" type="button" id="ci-r-refresh">Actualizar estadísticas</button></div>
- <div id="ci-r-rating" class="ci-r-rating"></div><div id="ci-r-coverage" class="ci-r-coverage" role="status"></div>
+ <div id="ci-r-rating" class="ci-r-rating"></div><div id="ci-r-coverage" class="ci-r-coverage" role="status"></div><details class="ci-dossier-audit"><summary>Estado del expediente y próximos datos por investigar</summary><div id="ci-r-audit"></div></details>
  <section id="ci-r-events" class="ci-r-section" hidden><h4>Historial de torneos y fuentes</h4><p class="ci-subtle">Registros públicos vinculados por FIDE ID, incluso fuera del ámbito universitario. Las inscripciones no equivalen a partidas PGN. Se incluyen enlaces a planillas individuales cuando existen.</p><div id="ci-r-events-list" class="ci-r-events-list"></div></section>
  <section id="ci-r-dossier" class="ci-r-section" hidden><h4>Informe de preparación · evidencia pública</h4><div id="ci-r-dossier-body"></div></section>
  <div class="ci-r-layout"><section class="ci-r-section"><h4>Repertorio por partidas verificadas</h4><p class="ci-subtle">Se calcula únicamente a partir de los PGN completos almacenados; las referencias externas no cuentan como partidas analizadas.</p><div id="ci-r-repertoire" class="ci-r-repertoire"></div></section>
@@ -112,6 +113,18 @@ export function initCIPlayerProfile({host,service}){
    add(box,'span',name);add(box,'strong',value);
   }
  }
+ function renderAudit(){
+  const c=dossierCoverage(selected,records);
+  const root=el('ci-r-audit');root.replaceChildren();
+  const p=add(root,'p','PGN completos: '+c.evidence.storedPgn+' · blancas '+c.evidence.white+' / negras '+c.evidence.black+' · ECO documentados '+c.evidence.ecoKnown+' · torneos vinculados '+c.evidence.tournaments+' · planillas externas '+c.evidence.individualSheets,'ci-subtle');
+  if(!c.missing.length)add(root,'p','Los campos básicos están cubiertos. Seguí ampliando la muestra de partidas y verificando fuentes.','ci-subtle');
+  else{
+   const list=document.createElement('ul');
+   for(const item of c.missing){const li=document.createElement('li');li.textContent=item;list.append(li);}
+   root.append(list);
+  }
+  add(root,'small','La cobertura indica existencia de evidencia, no nivel competitivo ni certeza estadística.','ci-subtle');
+ }
  function renderReferences(){
   const panel=el('ci-r-links');panel.replaceChildren();
   const refs=gameReferences(selected?.fide_id);
@@ -185,7 +198,7 @@ export function initCIPlayerProfile({host,service}){
    const games=await service.listGames(selected.id);
    if(token!==requestId)return;
    records=games;
-   updateGameOptions();renderStats();renderGames();renderCoverage();
+   updateGameOptions();renderStats();renderGames();renderCoverage();renderAudit();
   }catch(error){if(token===requestId){status('No fue posible cargar partidas: '+error.message,true);records=[];updateGameOptions();renderStats();renderGames();renderCoverage();}}
  }
  async function importPGN(){
@@ -227,7 +240,7 @@ export function initCIPlayerProfile({host,service}){
    selected=player||null;host.hidden=!selected;records=[];if(!selected)return;
    el('ci-r-name').textContent=selected.display_name;
    el('ci-game-query').value='';for(const id of ['ci-game-year','ci-game-event','ci-game-color','ci-game-result','ci-game-eco'])el(id).value='all';
-   renderRatings();renderEventSources();renderDossier();renderReferences();renderStats();renderGames();renderCoverage();status('Fuentes FIDE consultadas. Partidas privadas pendientes de carga.');
+   renderRatings();renderEventSources();renderDossier();renderReferences();renderStats();renderGames();renderCoverage();renderAudit();status('Fuentes FIDE consultadas. Partidas privadas pendientes de carga.');
    await refresh();
   },
   clear(){selected=null;host.hidden=true;records=[];requestId++;}
