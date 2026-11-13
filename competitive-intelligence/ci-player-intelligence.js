@@ -50,15 +50,30 @@ export const gameReferences=fideId=>{
  return CI_JUNCOS_STANDARD_FIDE_IDS.has(id)?[CI_JUNCOS_STANDARD_PGN,...found]:found;
 };
 
-/** Partition PGN by game header rather than guessing moves. Reject headerless multi-game inputs. */
+/** Split legal PGN exports by header blocks, regardless of tag order.
+ * ChessPrime commonly puts [Source] before [Event]; do not require Event first.
+ * A new header block after movetext begins the next game.
+ */
 export function splitPGN(raw){
- const text=String(raw??'').replace(/\r\n?/g,'\n').trim();
+ const text=String(raw??'').replace(/^\uFEFF/,'').replace(/\r\n?/g,'\n').trim();
  if(!text)throw Error('Pegá o seleccioná un PGN antes de importarlo.');
  if(text.length>3_000_000)throw Error('PGN demasiado grande (máximo 3 MB).');
- const starts=[...text.matchAll(/^\[Event\s+"[^"]*"\]/gm)].map(m=>m.index);
- if(!starts.length)return [text];
- if(starts[0]!==0&&text.slice(0,starts[0]).trim())throw Error('Contenido inesperado antes de la primera partida.');
- return starts.map((start,i)=>text.slice(start,starts[i+1]??text.length).trim()).filter(Boolean);
+ const lines=text.split('\n'),games=[];
+ let buffer=[],sawHeader=false,sawMoves=false;
+ const header=/^\[[A-Za-z][A-Za-z0-9_]*\s+"(?:[^"\\]|\\.)*"\]\s*$/;
+ const flush=()=>{const game=buffer.join('\n').trim();if(game)games.push(game);buffer=[];sawHeader=false;sawMoves=false;};
+ for(const line of lines){
+  const stripped=line.trim();
+  if(header.test(stripped)){
+   if(sawMoves)flush();
+   sawHeader=true;buffer.push(line);continue;
+  }
+  if(!sawHeader&&stripped&&!stripped.startsWith('%'))throw Error('Contenido inesperado antes de la primera partida.');
+  if(sawHeader&&stripped&&!stripped.startsWith('%'))sawMoves=true;
+  buffer.push(line);
+ }
+ flush();
+ return games;
 }
 const pgnHeader=(pgn,key)=>{
  const match=String(pgn).match(new RegExp('^\\['+key+'\\s+"([^"]*)"\\]','im'));
@@ -71,6 +86,16 @@ const sameName=(actual,expected)=>{
  // Only allow explicit last+first transposition, no surname-only matching.
  return parts.length>=3&&target.length>=3&&parts.length===target.length&&parts.every(t=>target.includes(t));
 };
+/** Fast prefilter for batch imports. Never attributes a PGN without a full,
+ * exact normalized name (allowing surname-first order) or matching FIDE ID.
+ */
+export function matchesCIPlayerHeader(pgn,player){
+ const fide=String(player?.fide_id||'');
+ const white=pgnHeader(pgn,'White'),black=pgnHeader(pgn,'Black');
+ const wf=pgnHeader(pgn,'WhiteFideId')||pgnHeader(pgn,'WhiteFideID');
+ const bf=pgnHeader(pgn,'BlackFideId')||pgnHeader(pgn,'BlackFideID');
+ return Boolean((fide&&((wf===fide)||(bf===fide)))||sameName(white,player?.display_name)||sameName(black,player?.display_name));
+}
 export function parseCIImport(raw,player){
  const chunks=splitPGN(raw),good=[],rejected=[];
  for(let i=0;i<chunks.length;i++){
@@ -83,8 +108,8 @@ export function parseCIImport(raw,player){
    const whiteFid=headers.WhiteFideId||headers.WhiteFideID||'',blackFid=headers.BlackFideId||headers.BlackFideID||'';
    const fide=String(player.fide_id||'');
    // Require exact FIDE match if present; otherwise full-name matching.
-   const matchedWhite=fide&&String(whiteFid)===fide||sameName(white,player.display_name);
-   const matchedBlack=fide&&String(blackFid)===fide||sameName(black,player.display_name);
+   const matchedWhite=(fide&&String(whiteFid)===fide)||sameName(white,player.display_name);
+   const matchedBlack=(fide&&String(blackFid)===fide)||sameName(black,player.display_name);
    if(matchedWhite===matchedBlack)throw Error('No se pudo identificar de forma inequívoca al rival en esta partida.');
    const color=matchedWhite?'w':'b';
    const length=board.history().length;

@@ -1,13 +1,14 @@
-import {parseCIImport,splitPGN,CI_JUNCOS_STANDARD_PGN} from './ci-player-intelligence.js';
+import {parseCIImport,splitPGN,matchesCIPlayerHeader} from './ci-player-intelligence.js';
 
 /** Pure preview: no writes, and no player creation from a PGN header. */
 export function planCITournamentImport(raw,players){
  const games=splitPGN(raw);
- if(games.length>150)throw Error('Máximo 150 partidas por lote.');
+ if(games.length>1500)throw Error('Máximo 1500 partidas por lote. Dividí la colección en archivos más pequeños.');
  const ready=[],rejected=[];
  for(let i=0;i<games.length;i++){
   const matches=[];
   for(const p of players){
+   if(!matchesCIPlayerHeader(games[i],p))continue;
    const test=parseCIImport(games[i],p);
    if(test.good.length===1)matches.push({player:p,game:test.good[0]});
   }
@@ -20,13 +21,12 @@ export function planCITournamentImport(raw,players){
 }
 
 export function initCITournamentImporter({host,service,getPlayers,onImported}){
- host.innerHTML=`<details class="ci-tournament-manager"><summary>Gestionar PGN de torneos universitarios</summary>
+ host.innerHTML=`<details class="ci-tournament-manager"><summary>Importar PGN de rivales y torneos</summary>
  <div class="ci-tournament-body">
- <p>Hay 10 partidas PGN anunciadas para JUNCOS Clásico 2026. La fuente está disponible para descargarlas. Una vez obtenido el PGN, cargalo aquí: se distribuirán solamente las partidas de rivales identificados, sin modificar sus fichas ni sus estudios.</p>
- <a href="${CI_JUNCOS_STANDARD_PGN.url}" target="_blank" rel="noopener noreferrer">Abrir partidas JUNCOS 2026 (Chess-Results)</a>
+ <p>Importá PGN de JUNCOS, ChessPrime, SnoopChess o torneos nacionales. Se validan las partidas y se asignan únicamente a rivales reconocidos; no se alteran sus estudios.</p>
  <label>Archivo PGN de torneo<input id="ci-batch-file" type="file" accept=".pgn,.txt,text/plain,application/x-chess-pgn"/></label>
  <label>O pegar PGN<textarea id="ci-batch-text" rows="5" placeholder="Pegá partidas completas con White, Black y jugadas legales"></textarea></label>
- <label>URL de procedencia<input id="ci-batch-source" type="url" value="${CI_JUNCOS_STANDARD_PGN.url}"/></label>
+ <label>URL de procedencia<input id="ci-batch-source" type="url" placeholder="https://fuente-del-archivo.example/"/></label>
  <div class="ci-actions"><button class="btn outline" id="ci-batch-preview" type="button">Verificar partidas</button><button class="btn primary" id="ci-batch-save" type="button" disabled>Guardar partidas identificadas</button></div>
  <p id="ci-batch-result" role="status" aria-live="polite">No hay un archivo verificado todavía.</p>
  <div id="ci-batch-preview-list" class="ci-batch-preview-list"></div>
