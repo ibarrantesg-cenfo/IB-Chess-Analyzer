@@ -3,6 +3,7 @@ import {createCIService} from './ci-service.js';
 import {filterPlayers} from './ci-model.js';
 import {initCIDocumentaryBoard} from './ci-document-board.js';
 import {initCIPlayerProfile} from './ci-player-profile.js';
+import {initCITournamentImporter} from './ci-tournament-import.js';
 import {CI_SOURCES,UNIVERSITY_RIVALS,findUniversityCandidate,matchExistingCandidate,reconcileCandidates} from './ci-university-data.js';
 import './ci-style.css';
 
@@ -19,6 +20,7 @@ export function initCompetitiveIntelligence({notify}){
     <div class="ci-panel-head"><div><span class="eyebrow">REGISTRO COMPETITIVO</span><h3>Base de rivales</h3></div><button class="btn primary" id="ci-create" type="button">＋ Nuevo rival</button></div>
     <div class="ci-filters"><label>Buscar<input id="ci-search" type="search" placeholder="Nombre, alias o ID FIDE" /></label><label>Grupo<select id="ci-priority"><option value="all">Todos</option><option value="A">A</option><option value="B">B</option><option value="C">C</option></select></label></div>
     <div id="ci-players" class="ci-players"></div>
+    <div id="ci-tournament-import"></div>
     <div class="ci-starter" id="ci-starter" hidden><strong>Investigación universitaria · JUNCOS 2026</strong><p>Registramos los participantes del circuito y conservamos sus fuentes. Esta acción verifica qué fichas faltan o necesitan actualización; no duplica los registros existentes.</p><button class="btn outline" id="ci-seed" type="button">↻ Comprobar y sincronizar rivales</button><div id="ci-seed-status" class="ci-seed-status" role="status" aria-live="polite">Consultá el estado de los jugadores universitarios.</div></div>
    </section>
    <section class="ci-panel ci-detail-panel">
@@ -40,6 +42,7 @@ export function initCompetitiveIntelligence({notify}){
  // The board initializer owns the screen markup, so insert the back control afterwards.
  el('ci-board-screen').insertAdjacentHTML('afterbegin','<div class="ci-board-back-row"><button id="ci-back-profile" type="button" class="btn outline">← Volver al expediente</button></div>');
  const profile=service?initCIPlayerProfile({host:el('ci-research'),service}):null;
+ const tournamentImporter=service?initCITournamentImporter({host:el('ci-tournament-import'),service,getPlayers:()=>players,onImported:async()=>{message('Partidas del torneo guardadas en la base privada. Elegí un rival para ver sus estadísticas.');if(chosenId)await profile?.select(players.find(x=>x.id===chosenId));}}):null;
  let active=false,authorized=false,players=[],chosenId='',tab='roster';
  // Browser history is the source of truth for rival and study navigation.
  function routeState(){
