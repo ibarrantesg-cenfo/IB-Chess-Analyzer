@@ -150,3 +150,13 @@
 .ci-detail-panel .ci-legend{margin-top:18px}
 @media(max-width:1140px){.ci-detail-panel .ci-r-rating{grid-template-columns:repeat(3,minmax(0,1fr))}}
 @media(max-width:620px){.ci-detail-panel .ci-r-rating{grid-template-columns:repeat(2,minmax(0,1fr))}}
+
+
+/* Persistent dossier data coverage, distinct from one-time import controls. */
+.ci-r-coverage{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:9px;margin:10px 0 16px}
+.ci-r-coverage-item{display:flex;flex-direction:column;gap:5px;border:1px solid var(--ui-edge);border-radius:10px;padding:11px 12px;background:var(--ui-raised);min-width:0}
+.ci-r-coverage-item span{font-size:11px;color:var(--ui-muted);font-weight:650}
+.ci-r-coverage-item strong{font-size:12px;font-weight:750;color:var(--ui-ink);overflow-wrap:anywhere}
+.ci-r-coverage-item.ready{border-left:3px solid var(--ui-accent)}
+.ci-r-source-note{font-size:12px;padding:12px;background:var(--ui-raised);border:1px solid var(--ui-edge);border-radius:10px;color:var(--ui-ink);line-height:1.6;margin:4px 0 10px}
+@media(max-width:560px){.ci-r-coverage{grid-template-columns:1fr}}
