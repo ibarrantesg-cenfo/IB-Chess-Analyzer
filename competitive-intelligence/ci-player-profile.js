@@ -1,10 +1,12 @@
 import {ratingFor,gameReferences,parseCIImport,analyzeCIGames} from './ci-player-intelligence.js';
 import {findUniversityCandidate} from './ci-university-data.js';
+import {tournamentSourcesFor,olympiadScoresFor,CI_SOURCE_STATUS} from './ci-tournament-sources.js';
 
 export function initCIPlayerProfile({host,service}){
  host.className='ci-research';host.hidden=true;
  host.innerHTML=`<div class="ci-research-header"><div><span class="eyebrow">PERFIL COMPETITIVO · EVIDENCIA Y DATOS</span><h3 id="ci-r-name">Seleccioná un rival</h3></div><button class="btn outline" type="button" id="ci-r-refresh">Actualizar estadísticas</button></div>
  <div id="ci-r-rating" class="ci-r-rating"></div><div id="ci-r-coverage" class="ci-r-coverage" role="status"></div>
+ <section id="ci-r-events" class="ci-r-section" hidden><h4>Historial de torneos y fuentes</h4><p class="ci-subtle">Registros públicos vinculados por FIDE ID, incluso fuera del ámbito universitario. Las inscripciones no equivalen a partidas PGN. Se incluyen enlaces a planillas individuales cuando existen.</p><div id="ci-r-events-list" class="ci-r-events-list"></div></section>
  <section id="ci-r-dossier" class="ci-r-section" hidden><h4>Informe de preparación · evidencia pública</h4><div id="ci-r-dossier-body"></div></section>
  <div class="ci-r-layout"><section class="ci-r-section"><h4>Repertorio por partidas verificadas</h4><p class="ci-subtle">Se calcula únicamente a partir de los PGN completos almacenados; las referencias externas no cuentan como partidas analizadas.</p><div id="ci-r-repertoire" class="ci-r-repertoire"></div></section>
  <section class="ci-r-section"><h4>Banco de partidas PGN</h4><div id="ci-r-games" class="ci-r-games"></div></section></div>
@@ -31,6 +33,31 @@ export function initCIPlayerProfile({host,service}){
    add(card,'small',monthly!=null?'FIDE · noviembre 2026':historicValue!=null?'JUNCOS · ranking inicial octubre 2026':'Elo pendiente de verificar');
   }
   if(fid){const link=document.createElement('a');link.href='https://ratings.fide.com/profile/'+encodeURIComponent(fid);link.target='_blank';link.rel='noopener noreferrer';link.textContent='Consultar ficha FIDE oficial · '+fid;panel.append(link);}
+ }
+ function renderEventSources(){
+  const id=selected?.fide_id;
+  const tournaments=tournamentSourcesFor(id),scores=olympiadScoresFor(id);
+  const panel=el('ci-r-events'),list=el('ci-r-events-list');
+  list.replaceChildren();panel.hidden=!tournaments.length;
+  if(!tournaments.length)return;
+  const overview=add(list,'p',tournaments.length+' torneos o listas identificadas · '+scores.length+' planillas individuales enlazadas. Estos registros NO incrementan el contador de PGN almacenados.','ci-r-source-note');
+  for(const event of tournaments){
+   const row=add(list,'div','', 'ci-r-event');
+   const title=document.createElement('a');title.textContent=event.title;title.href=event.url;title.target='_blank';title.rel='noopener noreferrer';row.append(title);
+   add(row,'small',event.date+' · '+event.timeControl+' · '+CI_SOURCE_STATUS[event.status]);
+  }
+  if(scores.length){
+   const details=document.createElement('details');details.className='ci-r-score-details';
+   const summary=document.createElement('summary');summary.textContent='Olimpiada de Samarcanda: '+scores.length+' planillas individuales';details.append(summary);
+   for(const game of scores){
+    const row=add(details,'div','', 'ci-r-event');
+    const a=document.createElement('a');a.href=game.url;a.target='_blank';a.rel='noopener noreferrer';
+    a.textContent='Ronda '+game.round+' · '+game.opponent+' · '+(game.color==='w'?'Blancas':'Negras')+' · '+game.result;
+    row.append(a);
+    add(row,'small',game.date+' · Planilla pública; PGN no importado todavía');
+   }
+   list.append(details);
+  }
  }
  function renderDossier(){
   const block=el('ci-r-dossier'),body=el('ci-r-dossier-body');
@@ -170,7 +197,7 @@ export function initCIPlayerProfile({host,service}){
  return {
   async select(player){
    selected=player||null;host.hidden=!selected;records=[];if(!selected)return;
-   el('ci-r-name').textContent=selected.display_name;renderRatings();renderDossier();renderReferences();renderStats();renderGames();renderCoverage();status('Fuentes FIDE consultadas. Partidas privadas pendientes de carga.');
+   el('ci-r-name').textContent=selected.display_name;renderRatings();renderEventSources();renderDossier();renderReferences();renderStats();renderGames();renderCoverage();status('Fuentes FIDE consultadas. Partidas privadas pendientes de carga.');
    await refresh();
   },
   clear(){selected=null;host.hidden=true;records=[];requestId++;}
