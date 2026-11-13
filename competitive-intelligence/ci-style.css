@@ -200,3 +200,21 @@
 .ci-dossier-audit ul{margin:10px 0 8px;padding-left:20px;line-height:1.7;color:var(--ui-ink);font-size:12px}
 .ci-dossier-audit p{margin:10px 0 7px}
 .ci-dossier-audit small{display:block;margin-top:8px}
+
+
+/* Contextual PGN repertoire tree, evidence-first. */
+.ci-tree-section{margin:16px 0}
+.ci-tree-head h4{margin:0 0 8px}
+.ci-tree-controls{display:flex;gap:9px;align-items:end;flex-wrap:wrap;margin:12px 0}
+.ci-tree-controls label{flex:1;min-width:160px;font-size:12px;font-weight:750;display:flex;flex-direction:column;gap:7px;color:var(--ui-ink)}
+.ci-tree-controls select{width:100%;border:1px solid var(--ui-edge);border-radius:9px;background:var(--ui-field);color:var(--ui-ink);padding:10px}
+.ci-tree-path{background:var(--ui-raised);border:1px solid var(--ui-edge);border-radius:9px;padding:12px;font-size:13px;line-height:1.65;font-weight:650;color:var(--ui-ink);overflow-wrap:anywhere;min-height:42px}
+.ci-tree-lines{display:grid;gap:8px;margin:12px 0}
+.ci-tree-choice{display:flex;flex-direction:column;text-align:left;gap:7px;padding:11px 13px;background:var(--ui-raised);color:var(--ui-ink);border:1px solid var(--ui-edge);border-radius:10px;cursor:pointer;font:inherit;transition:border-color .15s}
+.ci-tree-choice:hover,.ci-tree-choice:focus-visible{border-color:var(--ui-accent);outline-offset:2px}
+.ci-tree-choice-heading{display:flex;justify-content:space-between;gap:12px;font-size:12px;align-items:center}
+.ci-tree-choice-heading strong{font-size:14px}
+.ci-tree-choice-heading span{font-size:12px;color:var(--ui-muted);white-space:nowrap}
+.ci-tree-choice-bar{height:5px;background:var(--ui-field);border-radius:10px;overflow:hidden;width:100%}
+.ci-tree-choice-bar i{display:block;height:100%;background:var(--ui-accent);border-radius:10px}
+.ci-tree-choice small{font-size:11px;color:var(--ui-muted)}
