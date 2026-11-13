@@ -160,3 +160,17 @@
 .ci-r-coverage-item.ready{border-left:3px solid var(--ui-accent)}
 .ci-r-source-note{font-size:12px;padding:12px;background:var(--ui-raised);border:1px solid var(--ui-edge);border-radius:10px;color:var(--ui-ink);line-height:1.6;margin:4px 0 10px}
 @media(max-width:560px){.ci-r-coverage{grid-template-columns:1fr}}
+
+
+/* Tournament PGN manager: an ongoing, collapsed research utility, not onboarding clutter. */
+.ci-tournament-manager{margin-top:16px;background:var(--ui-raised);border:1px solid var(--ui-edge);border-radius:12px}
+.ci-tournament-manager summary{list-style:revert;padding:13px 15px;cursor:pointer;font-size:12px;font-weight:750;color:var(--ui-ink)}
+.ci-tournament-body{padding:0 15px 15px;display:grid;gap:11px}
+.ci-tournament-body p{font-size:12px;color:var(--ui-muted);line-height:1.6;margin:0}
+.ci-tournament-body>a{font-size:12px;color:var(--ui-accent);font-weight:700;overflow-wrap:anywhere}
+.ci-tournament-body label{font-size:12px;margin:0;display:flex;flex-direction:column;gap:6px}
+.ci-tournament-body :is(input,textarea){width:100%;min-width:0;background:var(--ui-field);border:1px solid var(--ui-edge);color:var(--ui-ink);border-radius:8px;padding:10px}
+.ci-tournament-body #ci-batch-result{border-radius:8px;border:1px solid var(--ui-edge);padding:10px;background:var(--ui-surface);color:var(--ui-ink)}
+.ci-batch-preview-list{max-height:200px;overflow:auto;display:grid;gap:5px}
+.ci-batch-preview-list p{border-left:2px solid var(--ui-edge);padding-left:8px}
+.ci-tournament-manager button[disabled]{opacity:.6;cursor:default}
