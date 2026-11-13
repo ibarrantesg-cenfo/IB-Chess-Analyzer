@@ -40,7 +40,7 @@ export const UNIVERSITY_RIVALS=Object.freeze([
  entry('Pablo Andrés Mora Arias','6529151','UACA','C',{standard:1465}),
  entry('Miguel Andrés Rojas Anchía','6550550','UTN','C',{}, {standardSource:true}),
  entry('Allan Castillo Hernández','6583822','LEAD University','C',{}, {standardSource:true}),
- entry('Mateo Espitia Torres',null,'TEC','A',{}, {fedeu:'Tercer lugar absoluto FedeU–CENFOTEC, mayo 2026'})
+ entry('Mateo Espitia Torres','6508332','TEC','A',{}, {fedeu:'Tercer lugar absoluto FedeU–CENFOTEC, mayo 2026'})
 ]);
 
 export const normalizeCIName=value=>String(value||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().replace(/[^a-z0-9]+/g,' ').trim().replace(/\s+/g,' ');
