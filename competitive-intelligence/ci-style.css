@@ -218,3 +218,23 @@
 .ci-tree-choice-bar{height:5px;background:var(--ui-field);border-radius:10px;overflow:hidden;width:100%}
 .ci-tree-choice-bar i{display:block;height:100%;background:var(--ui-accent);border-radius:10px}
 .ci-tree-choice small{font-size:11px;color:var(--ui-muted)}
+
+
+/* Visual repertoire board: local, read-only, respects existing piece and square colors. */
+.ci-tree-layout{display:grid;grid-template-columns:minmax(225px,340px) minmax(0,1fr);gap:16px;align-items:start;margin:14px 0}
+.ci-tree-board-panel{min-width:0;position:sticky;top:12px}
+.ci-tree-moves{min-width:0}
+.ci-position-heading{display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:8px}
+.ci-position-heading strong{font-size:12px;color:var(--ui-ink)}
+.ci-position-heading button{padding:7px 11px;font-size:12px}
+.ci-position-board{display:grid;grid-template-columns:repeat(8,minmax(0,1fr));width:100%;aspect-ratio:1;overflow:hidden;border:1px solid var(--ui-edge);border-radius:8px;box-shadow:0 5px 18px rgba(0,0,0,.08)}
+.ci-position-square{position:relative;display:flex;align-items:center;justify-content:center;min-width:0;min-height:0;aspect-ratio:1;user-select:none}
+.ci-position-square.light{background:var(--board-light,#c2d1cb);color:var(--board-light-ink,#263a32)}
+.ci-position-square.dark{background:var(--board-dark,#678c86);color:var(--board-dark-ink,#f4fff9)}
+.ci-position-square.last-move{box-shadow:inset 0 0 0 9999px rgba(255,220,77,.24)}
+.ci-position-square img{width:88%;height:88%;object-fit:contain;pointer-events:none;position:relative;z-index:1}
+.ci-position-glyph{font-size:clamp(14px,3vw,38px);line-height:1;pointer-events:none}
+.ci-position-rank,.ci-position-file{position:absolute;z-index:2;font-size:clamp(7px,.9vw,10px);font-weight:850;line-height:1}
+.ci-position-rank{top:3px;left:3px}.ci-position-file{right:3px;bottom:3px}
+.ci-position-info{font-size:11px;line-height:1.5;color:var(--ui-muted);padding:8px 2px}
+@media(max-width:1050px){.ci-tree-layout{grid-template-columns:1fr}.ci-tree-board-panel{max-width:360px;position:static;margin:auto;width:100%}}
