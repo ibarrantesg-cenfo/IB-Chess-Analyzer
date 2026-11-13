@@ -1,4 +1,5 @@
 import {buildCIRepertoireTree,ciTreeNodeAt,ciTreeChoices,ciTreeMoveLabel} from './ci-repertoire-tree.js';
+import {initCIPositionBoard} from './ci-position-board.js';
 
 /** Inline, read-only preparation tree. All actions are locally reversible. */
 export function initCIRepertoireTree({host}){
@@ -6,11 +7,15 @@ export function initCIRepertoireTree({host}){
  <div class="ci-tree-controls"><label>Juega con <select id="ci-tree-color"><option value="w">Blancas</option><option value="b">Negras</option></select></label>
  <button type="button" class="btn outline" id="ci-tree-back" disabled>← Retroceder</button>
  <button type="button" class="btn outline" id="ci-tree-reset" disabled>Inicio</button></div>
- <p class="ci-tree-path" id="ci-tree-path" aria-live="polite">Posición inicial</p>
- <p class="ci-r-summary" id="ci-tree-sample"></p><div id="ci-tree-lines" class="ci-tree-lines"></div>
+ <div class="ci-tree-layout">
+ <div id="ci-tree-board" class="ci-tree-board-panel"></div>
+ <div class="ci-tree-moves"><p class="ci-tree-path" id="ci-tree-path" aria-live="polite">Posición inicial</p>
+ <p class="ci-r-summary" id="ci-tree-sample"></p><div id="ci-tree-lines" class="ci-tree-lines"></div></div>
+ </div>
  <p class="ci-subtle">Las jugadas siguen el orden real del PGN, incluidas las del oponente. Sin evaluación de motor; los resultados pertenecen a las partidas que siguieron cada rama.</p>
  </section>`;
  const el=id=>host.querySelector('#'+id);
+ const board=initCIPositionBoard({host:el('ci-tree-board')});
  let records=[],filters={},path=[],state=buildCIRepertoireTree([],{color:'w'});
  const add=(parent,tag,text,cls)=>{const e=document.createElement(tag);e.textContent=text;if(cls)e.className=cls;parent.append(e);return e;};
  function render(){
@@ -18,6 +23,7 @@ export function initCIRepertoireTree({host}){
   const choices=ciTreeChoices(node),container=el('ci-tree-lines');
   container.replaceChildren();
   el('ci-tree-back').disabled=!path.length;el('ci-tree-reset').disabled=!path.length;
+  board.setLine(path);
   el('ci-tree-path').textContent=path.length?path.map((m,i)=>ciTreeMoveLabel(m,i+1)).join('  '):'Posición inicial';
   el('ci-tree-sample').textContent=state.sample+' PGN de muestra · '+node.total+' alcanzan esta posición'+(node.unknown?' · '+node.unknown+' sin resultado':'');
   if(!choices.length){
@@ -41,7 +47,7 @@ export function initCIRepertoireTree({host}){
   state=buildCIRepertoireTree(records,{color:el('ci-tree-color').value,filters});
   render();
  }
- el('ci-tree-color').onchange=()=>rebuild();
+ el('ci-tree-color').onchange=()=>{board.setOrientation(el('ci-tree-color').value);rebuild();};
  el('ci-tree-back').onclick=()=>{if(path.length){path.pop();render();}};
  el('ci-tree-reset').onclick=()=>{path=[];render();};
  return {update(nextRecords=[],nextFilters={},resetPath=true){
