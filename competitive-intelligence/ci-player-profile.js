@@ -2,6 +2,7 @@ import {ratingFor,gameReferences,parseCIImport,analyzeCIGames} from './ci-player
 import {findUniversityCandidate} from './ci-university-data.js';
 import {createCIGameIndex,gameFilterOptions,filterCIGames,ciFilterStats} from './ci-game-explorer.js';
 import {dossierCoverage} from './ci-dossier-coverage.js';
+import {initCIRepertoireTree} from './ci-repertoire-tree-ui.js';
 import {tournamentSourcesFor,olympiadScoresFor,CI_SOURCE_STATUS} from './ci-tournament-sources.js';
 
 export function initCIPlayerProfile({host,service}){
@@ -10,6 +11,7 @@ export function initCIPlayerProfile({host,service}){
  <div id="ci-r-rating" class="ci-r-rating"></div><div id="ci-r-coverage" class="ci-r-coverage" role="status"></div><details class="ci-dossier-audit"><summary>Estado del expediente y próximos datos por investigar</summary><div id="ci-r-audit"></div></details>
  <section id="ci-r-events" class="ci-r-section" hidden><h4>Historial de torneos y fuentes</h4><p class="ci-subtle">Registros públicos vinculados por FIDE ID, incluso fuera del ámbito universitario. Las inscripciones no equivalen a partidas PGN. Se incluyen enlaces a planillas individuales cuando existen.</p><div id="ci-r-events-list" class="ci-r-events-list"></div></section>
  <section id="ci-r-dossier" class="ci-r-section" hidden><h4>Informe de preparación · evidencia pública</h4><div id="ci-r-dossier-body"></div></section>
+ <div id="ci-repertoire-tree"></div>
  <div class="ci-r-layout"><section class="ci-r-section"><h4>Repertorio por partidas verificadas</h4><p class="ci-subtle">Se calcula únicamente a partir de los PGN completos almacenados; las referencias externas no cuentan como partidas analizadas.</p><div id="ci-r-repertoire" class="ci-r-repertoire"></div></section>
  <section class="ci-r-section"><h4>Banco de partidas PGN</h4><p class="ci-subtle">Explorá exclusivamente las partidas completas guardadas en la base privada. Los filtros no alteran el expediente.</p>
  <div class="ci-game-filters">
@@ -30,6 +32,7 @@ export function initCIPlayerProfile({host,service}){
  <p id="ci-r-status" class="ci-r-status" role="status" aria-live="polite">Sin importaciones pendientes.</p>
  </section><section class="ci-r-section"><h4>Fuentes y partidas localizadas</h4><p class="ci-subtle">Colecciones públicas y torneos donde se pueden consultar las partidas. No se agregan como PGN hasta verificar sus jugadas completas.</p><div id="ci-r-links" class="ci-r-links"></div></section></div>`;
  const el=id=>host.querySelector('#'+id);
+ const tree=initCIRepertoireTree({host:el('ci-repertoire-tree')});
  let selected=null,records=[],busy=false,requestId=0;
  const status=(s,error=false)=>{el('ci-r-status').textContent=s;el('ci-r-status').classList.toggle('error',error);};
  const add=(parent,tag,text,cls)=>{const node=document.createElement(tag);node.textContent=text;if(cls)node.className=cls;parent.append(node);return node;};
@@ -198,8 +201,8 @@ export function initCIPlayerProfile({host,service}){
    const games=await service.listGames(selected.id);
    if(token!==requestId)return;
    records=games;
-   updateGameOptions();renderStats();renderGames();renderCoverage();renderAudit();
-  }catch(error){if(token===requestId){status('No fue posible cargar partidas: '+error.message,true);records=[];updateGameOptions();renderStats();renderGames();renderCoverage();}}
+   updateGameOptions();tree.update(records,gameFilters());renderStats();renderGames();renderCoverage();renderAudit();
+  }catch(error){if(token===requestId){status('No fue posible cargar partidas: '+error.message,true);records=[];updateGameOptions();tree.update(records,gameFilters());renderStats();renderGames();renderCoverage();}}
  }
  async function importPGN(){
   if(!selected||busy)return;
@@ -234,15 +237,16 @@ export function initCIPlayerProfile({host,service}){
  el('ci-r-import').onclick=importPGN;
  el('ci-r-clear').onclick=()=>{el('ci-r-file').value='';el('ci-r-pgn').value='';el('ci-r-source').value='';status('Formulario limpio.');};
  el('ci-r-refresh').onclick=refresh;
- for(const id of ['ci-game-query','ci-game-year','ci-game-event','ci-game-color','ci-game-result','ci-game-eco'])el(id).addEventListener(id==='ci-game-query'?'input':'change',renderGames);
+ for(const id of ['ci-game-query','ci-game-year','ci-game-event','ci-game-color','ci-game-result','ci-game-eco'])el(id).addEventListener(id==='ci-game-query'?'input':'change',()=>{renderGames();tree.update(records,gameFilters());});
  return {
   async select(player){
    selected=player||null;host.hidden=!selected;records=[];if(!selected)return;
    el('ci-r-name').textContent=selected.display_name;
    el('ci-game-query').value='';for(const id of ['ci-game-year','ci-game-event','ci-game-color','ci-game-result','ci-game-eco'])el(id).value='all';
+   tree.update([],gameFilters());
    renderRatings();renderEventSources();renderDossier();renderReferences();renderStats();renderGames();renderCoverage();renderAudit();status('Fuentes FIDE consultadas. Partidas privadas pendientes de carga.');
    await refresh();
   },
-  clear(){selected=null;host.hidden=true;records=[];requestId++;}
+  clear(){selected=null;host.hidden=true;records=[];requestId++;tree.clear();}
  };
 }
