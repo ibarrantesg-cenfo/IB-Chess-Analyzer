@@ -10,7 +10,7 @@ export const CI_SOURCES=Object.freeze({
 });
 const entry=(name,fide,university,priority,ratings={},more={})=>Object.freeze({
  display_name:name,fide_id:fide||null,university,priority,ratings:Object.freeze(ratings),
- sourceKeys:Object.freeze([...Object.keys(ratings),...(more.fedeu?['fedeu']:[])]),
+ sourceKeys:Object.freeze([...new Set([...Object.keys(ratings),...(more.standardSource?['standard']:[]),...(more.fedeu?['fedeu']:[])])]),
  achievement:more.fedeu||'',aliases:Object.freeze(more.aliases||[])
 });
 /** Elo I mostrado en las listas iniciales, NO ratings del mes actual. */
@@ -36,6 +36,10 @@ export const UNIVERSITY_RIVALS=Object.freeze([
  entry('Ethan Alonso Villalobos Núñez','6563147','UNED','C',{standard:1640,blitz:1591}),
  entry('Aarón Vargas Solano','6514219','LEAD University','C',{standard:1609,blitz:1588}),
  entry('Christian Gabriel Rojas Ordóñez','6560377','UNA','C',{standard:1571,blitz:1560}),
+ entry('Anthony León Cubero','6511430','UTN','C',{standard:1547}),
+ entry('Pablo Andrés Mora Arias','6529151','UACA','C',{standard:1465}),
+ entry('Miguel Andrés Rojas Anchía','6550550','UTN','C',{}, {standardSource:true}),
+ entry('Allan Castillo Hernández','6583822','LEAD University','C',{}, {standardSource:true}),
  entry('Mateo Espitia Torres',null,'TEC','A',{}, {fedeu:'Tercer lugar absoluto FedeU–CENFOTEC, mayo 2026'})
 ]);
 

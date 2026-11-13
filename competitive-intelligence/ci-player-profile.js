@@ -4,7 +4,7 @@ import {findUniversityCandidate} from './ci-university-data.js';
 export function initCIPlayerProfile({host,service}){
  host.className='ci-research';host.hidden=true;
  host.innerHTML=`<div class="ci-research-header"><div><span class="eyebrow">PERFIL COMPETITIVO · EVIDENCIA Y DATOS</span><h3 id="ci-r-name">Seleccioná un rival</h3></div><button class="btn outline" type="button" id="ci-r-refresh">Actualizar estadísticas</button></div>
- <div id="ci-r-rating" class="ci-r-rating"></div>
+ <div id="ci-r-rating" class="ci-r-rating"></div><div id="ci-r-coverage" class="ci-r-coverage" role="status"></div>
  <section id="ci-r-dossier" class="ci-r-section" hidden><h4>Informe de preparación · evidencia pública</h4><div id="ci-r-dossier-body"></div></section>
  <div class="ci-r-layout"><section class="ci-r-section"><h4>Repertorio por partidas verificadas</h4><p class="ci-subtle">Se calcula únicamente a partir de los PGN completos almacenados; las referencias externas no cuentan como partidas analizadas.</p><div id="ci-r-repertoire" class="ci-r-repertoire"></div></section>
  <section class="ci-r-section"><h4>Banco de partidas PGN</h4><div id="ci-r-games" class="ci-r-games"></div></section></div>
@@ -59,10 +59,28 @@ export function initCIPlayerProfile({host,service}){
   const links=add(body,'div','', 'ci-r-links');
   for(const [title,url] of sources){const a=document.createElement('a');a.href=url;a.target='_blank';a.rel='noopener noreferrer';a.textContent=title;links.append(a);}
  }
+ function renderCoverage(){
+  const panel=el('ci-r-coverage');panel.replaceChildren();
+  const fide=String(selected?.fide_id||'');
+  const monthly=ratingFor(fide),historical=findUniversityCandidate(selected),sources=gameReferences(fide);
+  const cells=[
+   ['Identidad',fide?'FID identificado':'ID FIDE pendiente',Boolean(fide)],
+   ['Elo',monthly?'FIDE nov. 2026':historical&&Object.keys(historical.ratings).length?'JUNCOS histórico':'Sin rating verificado',Boolean(monthly||historical&&Object.keys(historical.ratings).length)],
+   ['PGN en base',records.length+' partidas completas',records.length>0],
+   ['Fuentes',sources.length+' referencias consultables',sources.length>0]
+  ];
+  for(const [name,value,ready] of cells){
+   const box=add(panel,'div','',ready?'ci-r-coverage-item ready':'ci-r-coverage-item pending');
+   add(box,'span',name);add(box,'strong',value);
+  }
+ }
  function renderReferences(){
   const panel=el('ci-r-links');panel.replaceChildren();
   const refs=gameReferences(selected?.fide_id);
   if(!refs.length)add(panel,'p','Sin colección de PGN localizada todavía. La ficha FIDE queda disponible arriba.','ci-subtle');
+  if(refs.some(ref=>ref.kind==='tournament-pgn')){
+   const callout=add(panel,'p','JUNCOS Clásico 2026: Chess-Results anuncia 10 partidas descargables del torneo. No todas corresponden necesariamente a este jugador. Descargá el PGN, importá solo partidas identificadas y verificá la procedencia.','ci-r-source-note');
+  }
   for(const ref of refs){
    const link=document.createElement('a');link.href=ref.url;link.target='_blank';link.rel='noopener noreferrer';link.textContent=ref.label;panel.append(link);
   }
@@ -86,6 +104,8 @@ export function initCIPlayerProfile({host,service}){
    showData(block,data.responses[color]);
    add(block,'small','Clasificación ECO según encabezado PGN');
    showData(block,data.openings[color]);
+   add(block,'small','Secuencias frecuentes (hasta 8 medias jugadas)');
+   showData(block,data.lines[color]);
    const c=data.byColor[color];
    add(block,'p',c.n?'Resultados registrados: '+c.wins+' V · '+c.draws+' T · '+c.losses+' D':'Sin resultados importados.','ci-subtle');
   }
@@ -111,8 +131,8 @@ export function initCIPlayerProfile({host,service}){
    const games=await service.listGames(selected.id);
    if(token!==requestId)return;
    records=games;
-   renderStats();renderGames();
-  }catch(error){if(token===requestId){status('No fue posible cargar partidas: '+error.message,true);records=[];renderStats();renderGames();}}
+   renderStats();renderGames();renderCoverage();
+  }catch(error){if(token===requestId){status('No fue posible cargar partidas: '+error.message,true);records=[];renderStats();renderGames();renderCoverage();}}
  }
  async function importPGN(){
   if(!selected||busy)return;
@@ -150,7 +170,7 @@ export function initCIPlayerProfile({host,service}){
  return {
   async select(player){
    selected=player||null;host.hidden=!selected;records=[];if(!selected)return;
-   el('ci-r-name').textContent=selected.display_name;renderRatings();renderDossier();renderReferences();renderStats();renderGames();status('Fuentes FIDE consultadas. Partidas privadas pendientes de carga.');
+   el('ci-r-name').textContent=selected.display_name;renderRatings();renderDossier();renderReferences();renderStats();renderGames();renderCoverage();status('Fuentes FIDE consultadas. Partidas privadas pendientes de carga.');
    await refresh();
   },
   clear(){selected=null;host.hidden=true;records=[];requestId++;}
