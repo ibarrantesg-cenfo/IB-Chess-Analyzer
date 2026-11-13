@@ -86,6 +86,16 @@ const sameName=(actual,expected)=>{
  // Only allow explicit last+first transposition, no surname-only matching.
  return parts.length>=3&&target.length>=3&&parts.length===target.length&&parts.every(t=>target.includes(t));
 };
+/** Fast prefilter for batch imports. Never attributes a PGN without a full,
+ * exact normalized name (allowing surname-first order) or matching FIDE ID.
+ */
+export function matchesCIPlayerHeader(pgn,player){
+ const fide=String(player?.fide_id||'');
+ const white=pgnHeader(pgn,'White'),black=pgnHeader(pgn,'Black');
+ const wf=pgnHeader(pgn,'WhiteFideId')||pgnHeader(pgn,'WhiteFideID');
+ const bf=pgnHeader(pgn,'BlackFideId')||pgnHeader(pgn,'BlackFideID');
+ return Boolean((fide&&((wf===fide)||(bf===fide)))||sameName(white,player?.display_name)||sameName(black,player?.display_name));
+}
 export function parseCIImport(raw,player){
  const chunks=splitPGN(raw),good=[],rejected=[];
  for(let i=0;i<chunks.length;i++){
