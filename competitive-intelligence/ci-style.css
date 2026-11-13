@@ -174,3 +174,13 @@
 .ci-batch-preview-list{max-height:200px;overflow:auto;display:grid;gap:5px}
 .ci-batch-preview-list p{border-left:2px solid var(--ui-edge);padding-left:8px}
 .ci-tournament-manager button[disabled]{opacity:.6;cursor:default}
+
+
+/* Source-backed cross-tournament history. Independent from imported PGN statistics. */
+.ci-r-events-list{display:grid;gap:9px}
+.ci-r-event{border:1px solid var(--ui-edge);border-radius:10px;padding:11px 13px;background:var(--ui-raised);display:flex;flex-direction:column;gap:5px}
+.ci-r-event a{color:var(--ui-accent);font-size:13px;font-weight:750;line-height:1.4;text-underline-offset:3px;overflow-wrap:anywhere}
+.ci-r-event small{font-size:11px;color:var(--ui-muted);line-height:1.4}
+.ci-r-score-details{border:1px solid var(--ui-edge);border-radius:10px;padding:10px}
+.ci-r-score-details summary{font-weight:750;font-size:12px;cursor:pointer;padding:4px 0 8px;color:var(--ui-ink)}
+.ci-r-score-details .ci-r-event{margin:8px 0}
