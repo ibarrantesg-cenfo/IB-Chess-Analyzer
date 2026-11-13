@@ -30,7 +30,25 @@ export const CI_PGN_REFERENCES=Object.freeze({
 });
 
 export const ratingFor=fideId=>CI_FIDE_NOV_2026[String(fideId||'')]||null;
-export const gameReferences=fideId=>CI_PGN_REFERENCES[String(fideId||'')]||[];
+/** JUNCOS Standard tournament game database advertises 10 downloadable PGNs in 5 rounds.
+ * This does not imply all these players appear in the 10 available game scores.
+ */
+export const CI_JUNCOS_STANDARD_PGN=Object.freeze({
+ label:'JUNCOS 2026 · 10 PGN disponibles en 5 rondas (descarga del torneo)',
+ url:'https://s3.chess-results.com/partiesuche.aspx?art=3&lan=2&tnr=1516373',
+ kind:'tournament-pgn',
+ totalAdvertised:10,
+ tournamentId:'1516373'
+});
+const CI_JUNCOS_STANDARD_FIDE_IDS=new Set([
+ '6507522','6506941','6521541','6520901','6518095',
+ '6514219','6560377','6563147','6511430','6529151','6550550','6583822'
+]);
+export const gameReferences=fideId=>{
+ const id=String(fideId||'');
+ const found=CI_PGN_REFERENCES[id]||[];
+ return CI_JUNCOS_STANDARD_FIDE_IDS.has(id)?[CI_JUNCOS_STANDARD_PGN,...found]:found;
+};
 
 /** Partition PGN by game header rather than guessing moves. Reject headerless multi-game inputs. */
 export function splitPGN(raw){
