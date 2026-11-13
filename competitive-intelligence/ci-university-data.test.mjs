@@ -33,9 +33,9 @@ test('re-import is idempotent for sourced profiles',()=>{
  assert.equal(plan.updates.length,0);
  assert.equal(plan.unchanged.length,UNIVERSITY_RIVALS.length);
 });
-test('candidate without FIDE ID has documented results but never fabricated Elo',()=>{
+test('Mateo FIDE ID verified from official records without fabricating Elo',()=>{
  const c=UNIVERSITY_RIVALS.find(x=>x.display_name==='Mateo Espitia Torres');
- assert.equal(c.fide_id,null);
+ assert.equal(c.fide_id,'6508332');
  assert.equal(Object.keys(c.ratings).length,0);
  assert.match(candidatePayload(c).notes,/FedeU/);
 });
