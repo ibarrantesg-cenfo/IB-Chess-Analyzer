@@ -3,7 +3,7 @@ import {createCIGameIndex,filterCIGames} from './ci-game-explorer.js';
 
 const root=()=>({move:null,ply:0,total:0,completed:0,wins:0,draws:0,losses:0,unknown:0,children:new Map()});
 const gameOutcome=(result,color)=>{
- if(result==='1/2-1/2')return 'draw';
+ if(result==='1/2-1/2')return 'draws';
  if(result==='1-0')return color==='w'?'wins':'losses';
  if(result==='0-1')return color==='b'?'wins':'losses';
  return 'unknown';
