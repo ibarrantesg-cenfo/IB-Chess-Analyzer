@@ -1,5 +1,6 @@
 import {ratingFor,gameReferences,parseCIImport,analyzeCIGames} from './ci-player-intelligence.js';
 import {findUniversityCandidate} from './ci-university-data.js';
+import {createCIGameIndex,gameFilterOptions,filterCIGames,ciFilterStats} from './ci-game-explorer.js';
 import {tournamentSourcesFor,olympiadScoresFor,CI_SOURCE_STATUS} from './ci-tournament-sources.js';
 
 export function initCIPlayerProfile({host,service}){
@@ -9,7 +10,17 @@ export function initCIPlayerProfile({host,service}){
  <section id="ci-r-events" class="ci-r-section" hidden><h4>Historial de torneos y fuentes</h4><p class="ci-subtle">Registros públicos vinculados por FIDE ID, incluso fuera del ámbito universitario. Las inscripciones no equivalen a partidas PGN. Se incluyen enlaces a planillas individuales cuando existen.</p><div id="ci-r-events-list" class="ci-r-events-list"></div></section>
  <section id="ci-r-dossier" class="ci-r-section" hidden><h4>Informe de preparación · evidencia pública</h4><div id="ci-r-dossier-body"></div></section>
  <div class="ci-r-layout"><section class="ci-r-section"><h4>Repertorio por partidas verificadas</h4><p class="ci-subtle">Se calcula únicamente a partir de los PGN completos almacenados; las referencias externas no cuentan como partidas analizadas.</p><div id="ci-r-repertoire" class="ci-r-repertoire"></div></section>
- <section class="ci-r-section"><h4>Banco de partidas PGN</h4><div id="ci-r-games" class="ci-r-games"></div></section></div>
+ <section class="ci-r-section"><h4>Banco de partidas PGN</h4><p class="ci-subtle">Explorá exclusivamente las partidas completas guardadas en la base privada. Los filtros no alteran el expediente.</p>
+ <div class="ci-game-filters">
+  <label>Buscar <input id="ci-game-query" type="search" placeholder="Rival, evento, ECO o jugadas"/></label>
+  <label>Año <select id="ci-game-year"><option value="all">Todos</option></select></label>
+  <label>Torneo <select id="ci-game-event"><option value="all">Todos</option></select></label>
+  <label>Color <select id="ci-game-color"><option value="all">Ambos</option><option value="w">Blancas</option><option value="b">Negras</option></select></label>
+  <label>Resultado <select id="ci-game-result"><option value="all">Todos</option><option value="win">Victoria</option><option value="draw">Tablas</option><option value="loss">Derrota</option><option value="unknown">Sin resultado</option></select></label>
+  <label>ECO <select id="ci-game-eco"><option value="all">Todos</option></select></label>
+ </div>
+ <p id="ci-game-count" class="ci-r-summary" role="status"></p>
+ <div id="ci-r-games" class="ci-r-games"></div></section></div>
  <div class="ci-r-layout"><section class="ci-r-section"><h4>Importar partidas del rival</h4><p class="ci-subtle">Acepta un PGN completo o archivo con varias partidas. Verifica jugadas y que el rival coincida con los encabezados antes de guardar en tu base privada.</p>
  <label>Archivo PGN<input id="ci-r-file" type="file" accept=".pgn,.txt,text/plain,application/x-chess-pgn"/></label>
  <label>Pegar PGN<textarea id="ci-r-pgn" rows="6" placeholder="[Event &quot;Torneo&quot;]&#10;[White &quot;Jugador...&quot;]&#10;[Black &quot;Jugador...&quot;]&#10;[Result &quot;1-0&quot;]&#10;&#10;1. e4 e5 2. Nf3 Nc6 1-0"></textarea></label>
@@ -137,19 +148,35 @@ export function initCIPlayerProfile({host,service}){
    add(block,'p',c.n?'Resultados registrados: '+c.wins+' V · '+c.draws+' T · '+c.losses+' D':'Sin resultados importados.','ci-subtle');
   }
  }
+ function gameFilters(){
+  return {query:el('ci-game-query').value,year:el('ci-game-year').value,tournament:el('ci-game-event').value,color:el('ci-game-color').value,outcome:el('ci-game-result').value,eco:el('ci-game-eco').value};
+ }
+ function updateGameOptions(){
+  const opts=gameFilterOptions(createCIGameIndex(records));
+  const fill=(id,values)=>{
+   const box=el(id),previous=box.value;
+   box.replaceChildren(new Option('Todos','all'));
+   for(const value of values)box.add(new Option(value,value));
+   box.value=values.includes(previous)?previous:'all';
+  };
+  fill('ci-game-year',opts.years);fill('ci-game-event',opts.tournaments);fill('ci-game-eco',opts.ecos);
+ }
  function renderGames(){
   const panel=el('ci-r-games');panel.replaceChildren();
-  if(!records.length)return add(panel,'p','Todavía no hay PGN completos registrados para este rival.','ci-subtle');
-  for(const game of records.slice(0,60)){
+  const index=createCIGameIndex(records),filtered=filterCIGames(index,gameFilters()),stats=ciFilterStats(filtered);
+  el('ci-game-count').textContent=stats.total+' de '+index.length+' partidas · '+stats.white+' blancas · '+stats.black+' negras · '+stats.wins+' V / '+stats.draws+' T / '+stats.losses+' D'+(stats.unknown?' · '+stats.unknown+' sin resultado':'');
+  if(!filtered.length)return add(panel,'p',index.length?'No hay partidas que coincidan con estos filtros.':'Todavía no hay PGN completos registrados para este rival.','ci-subtle');
+  for(const game of filtered.slice(0,100)){
    const row=add(panel,'div','', 'ci-r-game');
-   const title=add(row,'strong',game.source_name||'Partida');
-   add(row,'small',[(game.played_at||'Fecha desconocida'),game.player_color==='w'?'Rival blancas':'Rival negras'].join(' · '));
+   add(row,'strong',game.tournament+' · '+game.year);
+   add(row,'small',(game.color==='w'?'Blancas':'Negras')+' vs '+game.opponent+' · '+game.eco+' · '+game.result+' · '+game.moves+' medias jugadas');
    const action=document.createElement('button');action.className='btn outline';action.type='button';action.textContent='Exportar PGN';
    action.onclick=()=>{
-    const blob=new Blob([game.pgn],{type:'application/x-chess-pgn'});const uri=URL.createObjectURL(blob),anchor=document.createElement('a');anchor.href=uri;anchor.download='IB_CI_partida_'+String(game.id).slice(0,8)+'.pgn';anchor.click();setTimeout(()=>URL.revokeObjectURL(uri),1500);
+    const blob=new Blob([game.record.pgn],{type:'application/x-chess-pgn'}),uri=URL.createObjectURL(blob),a=document.createElement('a');
+    a.href=uri;a.download='IB_CI_partida_'+String(game.id).slice(0,8)+'.pgn';a.click();setTimeout(()=>URL.revokeObjectURL(uri),1500);
    };row.append(action);
   }
-  if(records.length>60)add(panel,'small','Mostrando 60 de '+records.length+' partidas. El análisis incluye hasta 500.','ci-subtle');
+  if(filtered.length>100)add(panel,'small','Mostrando 100 de '+filtered.length+' partidas filtradas.','ci-subtle');
  }
  async function refresh(){
   if(!selected)return;
@@ -158,8 +185,8 @@ export function initCIPlayerProfile({host,service}){
    const games=await service.listGames(selected.id);
    if(token!==requestId)return;
    records=games;
-   renderStats();renderGames();renderCoverage();
-  }catch(error){if(token===requestId){status('No fue posible cargar partidas: '+error.message,true);records=[];renderStats();renderGames();renderCoverage();}}
+   updateGameOptions();renderStats();renderGames();renderCoverage();
+  }catch(error){if(token===requestId){status('No fue posible cargar partidas: '+error.message,true);records=[];updateGameOptions();renderStats();renderGames();renderCoverage();}}
  }
  async function importPGN(){
   if(!selected||busy)return;
@@ -194,10 +221,13 @@ export function initCIPlayerProfile({host,service}){
  el('ci-r-import').onclick=importPGN;
  el('ci-r-clear').onclick=()=>{el('ci-r-file').value='';el('ci-r-pgn').value='';el('ci-r-source').value='';status('Formulario limpio.');};
  el('ci-r-refresh').onclick=refresh;
+ for(const id of ['ci-game-query','ci-game-year','ci-game-event','ci-game-color','ci-game-result','ci-game-eco'])el(id).addEventListener(id==='ci-game-query'?'input':'change',renderGames);
  return {
   async select(player){
    selected=player||null;host.hidden=!selected;records=[];if(!selected)return;
-   el('ci-r-name').textContent=selected.display_name;renderRatings();renderEventSources();renderDossier();renderReferences();renderStats();renderGames();renderCoverage();status('Fuentes FIDE consultadas. Partidas privadas pendientes de carga.');
+   el('ci-r-name').textContent=selected.display_name;
+   el('ci-game-query').value='';for(const id of ['ci-game-year','ci-game-event','ci-game-color','ci-game-result','ci-game-eco'])el(id).value='all';
+   renderRatings();renderEventSources();renderDossier();renderReferences();renderStats();renderGames();renderCoverage();status('Fuentes FIDE consultadas. Partidas privadas pendientes de carga.');
    await refresh();
   },
   clear(){selected=null;host.hidden=true;records=[];requestId++;}

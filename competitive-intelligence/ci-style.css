@@ -184,3 +184,11 @@
 .ci-r-score-details{border:1px solid var(--ui-edge);border-radius:10px;padding:10px}
 .ci-r-score-details summary{font-weight:750;font-size:12px;cursor:pointer;padding:4px 0 8px;color:var(--ui-ink)}
 .ci-r-score-details .ci-r-event{margin:8px 0}
+
+
+/* Contextual advanced filters; only rendered after selecting a rival. */
+.ci-game-filters{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:0 10px;margin:12px 0}
+.ci-game-filters label{min-width:0;margin:0 0 10px;font-size:11px;color:var(--ui-muted)}
+.ci-game-filters input,.ci-game-filters select{width:100%;min-width:0;font-size:12px}
+.ci-game-filters label:first-child{grid-column:1/-1}
+@media(max-width:600px){.ci-game-filters{grid-template-columns:1fr}.ci-game-filters label:first-child{grid-column:auto}}
