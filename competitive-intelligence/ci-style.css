@@ -192,3 +192,11 @@
 .ci-game-filters input,.ci-game-filters select{width:100%;min-width:0;font-size:12px}
 .ci-game-filters label:first-child{grid-column:1/-1}
 @media(max-width:600px){.ci-game-filters{grid-template-columns:1fr}.ci-game-filters label:first-child{grid-column:auto}}
+
+
+/* Per-player research audit is optional and collapsible; never a permanent onboarding banner. */
+.ci-dossier-audit{border:1px solid var(--ui-edge);border-radius:12px;background:var(--ui-raised);padding:12px 14px;margin:12px 0 18px;color:var(--ui-ink)}
+.ci-dossier-audit summary{cursor:pointer;font-size:12px;font-weight:750}
+.ci-dossier-audit ul{margin:10px 0 8px;padding-left:20px;line-height:1.7;color:var(--ui-ink);font-size:12px}
+.ci-dossier-audit p{margin:10px 0 7px}
+.ci-dossier-audit small{display:block;margin-top:8px}
